@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  zookeeper2:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper2
+    ports:
+      - "2182:2181"  # Host:Container (Zookeeper for system 2)
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka2:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka2
+    ports:
+      - "9093:9092"  # Host:Container (Kafka for system 2)
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper2:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1

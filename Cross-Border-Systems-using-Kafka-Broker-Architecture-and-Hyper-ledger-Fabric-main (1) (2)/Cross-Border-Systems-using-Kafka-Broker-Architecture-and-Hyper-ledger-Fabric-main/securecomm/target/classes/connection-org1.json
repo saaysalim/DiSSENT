@@ -1,0 +1,76 @@
+{
+  "name": "fabric-network-org1",
+  "version": "1.0.0",
+  "client": {
+    "organization": "Org1",
+    "connection": {
+      "timeout": {
+        "peer": {
+          "endorser": "300"
+        }
+      }
+    }
+  },
+  "organizations": {
+    "Org1": {
+      "mspid": "Org1MSP",
+      "peers": [
+        "peer0.org1"
+      ],
+      "certificateAuthorities": [
+        "ca.org1"
+      ]
+    }
+  },
+  "peers": {
+    "peer0.org1": {
+      "url": "grpcs://172.28.248.150:7051",
+      "tlsCACerts": {
+        "path": "src/main/resources/localhost-7054-ca-org1.pem"
+      },
+      "grpcOptions": {
+        "ssl-target-name-override": "peer0.org1.example.com",
+        "hostnameOverride": "peer0.org1.example.com"
+      }
+    }
+  },
+  "certificateAuthorities": {
+    "ca.org1": {
+      "url": "https://172.28.248.150:7054",
+      "caName": "ca-org1",
+      "tlsCACerts": {
+        "path": "src/main/resources/localhost-7054-ca-org1.pem"
+      },
+      "httpOptions": {
+        "verify": false
+      }
+    }
+  },
+  "orderers": {
+    "orderer.example.com": {
+      "url": "grpcs://localhost:7050",
+      "grpcOptions": {
+        "ssl-target-name-override": "orderer.example.com",
+        "hostnameOverride": "orderer.example.com"
+      },
+      "tlsCACerts": {
+        "path": "src/main/resources/orderer-cert.pem"
+      }
+    }
+  },
+  "channels": {
+    "mychannel": {
+      "orderers": [
+        "orderer.example.com"
+      ],
+      "peers": {
+        "peer0.org1": {
+          "endorsingPeer": true,
+          "chaincodeQuery": true,
+          "ledgerQuery": true,
+          "eventSource": true
+        }
+      }
+    }
+  }
+}
