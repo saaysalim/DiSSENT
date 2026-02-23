@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Client–Server Integration Interface</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #111833;
+      --panel-2: #0f1530;
+      --text: #e6e9f5;
+      --muted: #a7b0cc;
+      --accent: #7c9cff;
+      --accent-2: #6ee7ff;
+      --green: #21d19f;
+      --orange: #ffb454;
+      --border: #1d2547;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 700px at 20% -10%, #1a2b5f 0%, #0b1020 55%),
+                  radial-gradient(900px 500px at 110% 10%, #1a3a4f 0%, #0b1020 60%);
+      color: var(--text);
+      font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      padding: 40px 24px 64px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      gap: 24px;
+    }
+
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: clamp(26px, 3.2vw, 40px);
+      line-height: 1.1;
+      margin: 0;
+      font-weight: 700;
+    }
+
+    header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 820px;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, rgba(19, 27, 58, 0.98), rgba(13, 19, 43, 0.96));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      display: grid;
+      gap: 10px;
+      min-height: 150px;
+    }
+
+    .card h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .card p {
+      margin: 0;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(124, 156, 255, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(124, 156, 255, 0.35);
+      width: fit-content;
+    }
+
+    .diagram {
+      display: grid;
+      gap: 18px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      align-items: center;
+      gap: 12px;
+    }
+
+    .node {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+      position: relative;
+    }
+
+    .node strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .node span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .node.accent { border-color: rgba(124, 156, 255, 0.5); box-shadow: 0 0 0 1px rgba(124, 156, 255, 0.1); }
+    .node.green { border-color: rgba(33, 209, 159, 0.5); }
+    .node.orange { border-color: rgba(255, 180, 84, 0.5); }
+
+    .arrow {
+      height: 2px;
+      background: linear-gradient(90deg, rgba(124, 156, 255, 0.2), rgba(124, 156, 255, 0.8));
+      position: relative;
+    }
+
+    .arrow::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: -4px;
+      border-style: solid;
+      border-width: 5px 0 5px 10px;
+      border-color: transparent transparent transparent rgba(124, 156, 255, 0.9);
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    .dot.accent { background: var(--accent); }
+    .dot.green { background: var(--green); }
+    .dot.orange { background: var(--orange); }
+
+    .cta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .pill {
+      background: rgba(110, 231, 255, 0.12);
+      color: var(--accent-2);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid rgba(110, 231, 255, 0.3);
+    }
+
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge">Integration Overview</span>
+      <h1>React Client ↔ Express Servers ↔ Fabric & Kafka Networks</h1>
+      <p>
+        A unified client application orchestrates user interactions, relays requests through REST APIs,
+        and routes data into Hyperledger Fabric and Kafka networks. NodeJS-based servers act as
+        connectors, offering consistent query submission and results retrieval.
+      </p>
+    </header>
+
+    <section class="panel diagram">
+      <h2 style="margin:0;font-size:18px;">System Interaction Flow</h2>
+      <div class="flow">
+        <div class="node accent">
+          <strong>React JS Client</strong>
+          <span>User interface + API calls</span>
+        </div>
+        <div class="arrow"></div>
+        <div class="node">
+          <strong>Express JS REST API</strong>
+          <span>Authentication + routing</span>
+        </div>
+        <div class="arrow"></div>
+        <div class="node green">
+          <strong>Hyperledger Fabric</strong>
+          <span>Smart contracts + ledger</span>
+        </div>
+        <div class="arrow"></div>
+        <div class="node orange">
+          <strong>Kafka Broker</strong>
+          <span>Event streaming + topics</span>
+        </div>
+      </div>
+      <div class="legend">
+        <div><span class="dot accent"></span>Client App</div>
+        <div><span class="dot"></span>Server Layer</div>
+        <div><span class="dot green"></span>Fabric Network</div>
+        <div><span class="dot orange"></span>Kafka Network</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="grid">
+        <div class="card">
+          <h3>Client Application</h3>
+          <p>React JS UI enables users to submit actions and queries from a single platform.</p>
+          <span class="pill">SPA + REST integration</span>
+        </div>
+        <div class="card">
+          <h3>REST API Gateway</h3>
+          <p>Express JS services standardize requests, apply validation, and forward data to networks.</p>
+          <span class="pill">NodeJS + Express</span>
+        </div>
+        <div class="card">
+          <h3>Fabric Connector</h3>
+          <p>Fabric SDK handles chaincode invocation and ledger queries for secure transactions.</p>
+          <span class="pill">Fabric SDK</span>
+        </div>
+        <div class="card">
+          <h3>Kafka Connector</h3>
+          <p>Kafka client libraries publish and consume streaming events across broker topics.</p>
+          <span class="pill">Kafka JS</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin:0 0 14px;font-size:18px;">Key Integration Highlights</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Unified Workflow</h3>
+          <p>End users interact with one interface while servers coordinate Fabric and Kafka workflows.</p>
+        </div>
+        <div class="card">
+          <h3>Consistent Queries</h3>
+          <p>REST API ensures consistent submission, response handling, and traceability.</p>
+        </div>
+        <div class="card">
+          <h3>NodeJS Alignment</h3>
+          <p>Both servers are built in NodeJS for shared tooling and developer familiarity.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer>Designed to match the provided integration description.</footer>
+  </div>
+</body>
+</html>
