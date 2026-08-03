@@ -1,0 +1,13 @@
+# Java / Maven build output (Chaincode, securecomm, securecomm2)
+target/
+*.class
+*.jar
+
+# User-uploaded content
+docs/uploads/*
+!docs/uploads/.gitkeep
+!docs/uploads/**/.gitkeep
+
+# OS / editor junk
+.DS_Store
+Thumbs.db

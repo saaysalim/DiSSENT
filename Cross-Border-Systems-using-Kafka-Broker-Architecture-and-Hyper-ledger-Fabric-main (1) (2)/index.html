@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MiCT and The Liberties Exchange Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-0: #f4efe6;
+      --bg-1: #e6d9c6;
+      --ink: #162329;
+      --muted: #5d696f;
+      --card: rgba(255, 252, 247, 0.8);
+      --stroke: rgba(22, 35, 41, 0.14);
+      --primary: #005f73;
+      --secondary: #ca6702;
+      --ok: #2a9d8f;
+      --warn: #bb3e03;
+      --shadow: 0 16px 36px rgba(0, 41, 61, 0.16);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(900px 520px at -5% -8%, rgba(0, 95, 115, 0.22), transparent 60%),
+        radial-gradient(900px 600px at 110% 8%, rgba(202, 103, 2, 0.18), transparent 55%),
+        linear-gradient(160deg, var(--bg-0) 0%, var(--bg-1) 100%);
+      min-height: 100vh;
+    }
+
+    .layout {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 30px 18px 40px;
+      display: grid;
+      gap: 16px;
+      opacity: 0;
+      transform: translateY(18px);
+      animation: riseIn 700ms ease forwards;
+    }
+
+    @keyframes riseIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .topbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: grid;
+      gap: 4px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(1.35rem, 2.5vw, 2rem);
+      letter-spacing: 0.02em;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid var(--stroke);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.65);
+      padding: 7px 12px;
+      font-size: 0.8rem;
+      color: #143640;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--ok);
+      box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.2);
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      padding: 16px;
+    }
+
+    .hero {
+      grid-column: span 12;
+      display: grid;
+      gap: 14px;
+    }
+
+    .hero h2 {
+      margin: 0;
+      font-size: clamp(1.2rem, 2.2vw, 1.6rem);
+      line-height: 1.25;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .metrics {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+    }
+
+    .metric {
+      background: rgba(255, 255, 255, 0.68);
+      border: 1px solid var(--stroke);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 1rem;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .panel-title {
+      margin: 0 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 1rem;
+    }
+
+    .panel-sub {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin: -4px 0 12px;
+    }
+
+    .architecture {
+      grid-column: span 12;
+      display: grid;
+      gap: 12px;
+    }
+
+    .arch-map {
+      border: 1px dashed rgba(0, 95, 115, 0.3);
+      border-radius: 14px;
+      padding: 14px;
+      background: rgba(255, 255, 255, 0.62);
+      display: grid;
+      gap: 10px;
+    }
+
+    .arch-row {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      align-items: center;
+    }
+
+    .arch-node {
+      border: 1px solid var(--stroke);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 10px;
+      text-align: center;
+      min-height: 70px;
+      display: grid;
+      align-content: center;
+      gap: 2px;
+    }
+
+    .arch-node strong {
+      font-size: 0.86rem;
+    }
+
+    .arch-node span {
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-family: "IBM Plex Mono", Consolas, monospace;
+    }
+
+    .arch-node.client {
+      border-color: rgba(0, 95, 115, 0.45);
+    }
+
+    .arch-node.api {
+      border-color: rgba(202, 103, 2, 0.45);
+    }
+
+    .arch-node.fabric {
+      border-color: rgba(42, 157, 143, 0.45);
+    }
+
+    .arch-node.kafka {
+      border-color: rgba(187, 62, 3, 0.42);
+    }
+
+    .arch-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #36525b;
+      font-weight: 700;
+      font-size: 0.92rem;
+      letter-spacing: 0.02em;
+      text-align: center;
+    }
+
+    .arch-links {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .arch-link {
+      border: 1px solid var(--stroke);
+      border-radius: 10px;
+      padding: 8px;
+      background: rgba(254, 255, 255, 0.72);
+      font-size: 0.77rem;
+      color: #29464f;
+      font-family: "IBM Plex Mono", Consolas, monospace;
+    }
+
+    .exchange-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .exchange-card {
+      border: 1px solid var(--stroke);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.72);
+      display: grid;
+      gap: 6px;
+    }
+
+    .exchange-card h4 {
+      margin: 0;
+      font-size: 0.85rem;
+    }
+
+    .exchange-card code {
+      font-family: "IBM Plex Mono", Consolas, monospace;
+      font-size: 0.74rem;
+      color: #2a474f;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .services {
+      grid-column: span 7;
+      display: grid;
+      gap: 10px;
+    }
+
+    .service {
+      border: 1px solid var(--stroke);
+      border-radius: 12px;
+      padding: 11px;
+      background: rgba(255, 255, 255, 0.7);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .service h4 {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .service p {
+      margin: 2px 0 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-family: "IBM Plex Mono", Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .status {
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      letter-spacing: 0.02em;
+      border: 1px solid var(--stroke);
+      color: #39444a;
+      background: #f6f6f6;
+    }
+
+    .status.ok {
+      background: rgba(42, 157, 143, 0.14);
+      color: #0f5f57;
+      border-color: rgba(42, 157, 143, 0.35);
+    }
+
+    .status.fail {
+      background: rgba(187, 62, 3, 0.14);
+      color: #7e2c09;
+      border-color: rgba(187, 62, 3, 0.32);
+    }
+
+    .events {
+      grid-column: span 5;
+      display: grid;
+      gap: 12px;
+    }
+
+    .timeline {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 9px;
+      font-size: 0.84rem;
+    }
+
+    .timeline li {
+      border-left: 3px solid rgba(0, 95, 115, 0.34);
+      background: rgba(255, 255, 255, 0.65);
+      border-radius: 0 10px 10px 0;
+      padding: 8px 10px;
+      color: #2d3940;
+      animation: reveal 500ms ease both;
+    }
+
+    @keyframes reveal {
+      from {
+        opacity: 0;
+        transform: translateX(-6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .forms {
+      grid-column: span 12;
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.76rem;
+      color: #415158;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid rgba(15, 45, 56, 0.22);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.88);
+      padding: 10px;
+      font: inherit;
+      color: #18252c;
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+      font-family: "IBM Plex Mono", Consolas, monospace;
+      font-size: 0.82rem;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: transform 0.14s ease, filter 0.18s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.02);
+    }
+
+    button.primary {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    button.secondary {
+      background: var(--secondary);
+      color: #fff;
+    }
+
+    button.ghost {
+      border-color: rgba(0, 95, 115, 0.25);
+      background: rgba(255, 255, 255, 0.74);
+      color: #224049;
+    }
+
+    pre {
+      margin: 0;
+      border: 1px dashed rgba(0, 95, 115, 0.25);
+      border-radius: 10px;
+      background: rgba(254, 255, 255, 0.7);
+      padding: 10px;
+      font-family: "IBM Plex Mono", Consolas, monospace;
+      font-size: 0.76rem;
+      color: #23434b;
+      overflow: auto;
+      max-height: 210px;
+    }
+
+    footer {
+      text-align: center;
+      color: #56666d;
+      font-size: 0.8rem;
+      padding: 6px 4px;
+    }
+
+    @media (max-width: 940px) {
+      .services,
+      .events {
+        grid-column: span 12;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .arch-row {
+        grid-template-columns: 1fr;
+      }
+
+      .arch-arrow {
+        transform: rotate(90deg);
+      }
+    }
+
+    @media (max-width: 620px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .layout {
+        padding: 20px 12px 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <header class="topbar">
+      <div class="brand">
+        <h1>MiCT ↔ The Liberties Dublin Exchange Console</h1>
+        <p>Track and simulate bilateral data exchange between MiCT and The Liberties Dublin through Fabric and Kafka layers.</p>
+      </div>
+      <div class="chip"><span class="dot"></span>UI Session Active</div>
+    </header>
+
+    <section class="card hero">
+      <h2>Two-system operations cockpit for MiCT and The Liberties Dublin</h2>
+      <p>Use this interface to compose exchange payloads, monitor gateway availability, and simulate trusted data transfer between both organizations.</p>
+      <div class="metrics">
+        <div class="metric"><strong>2</strong><span>REST Gateways</span></div>
+        <div class="metric"><strong>2</strong><span>Fabric Connectors</span></div>
+        <div class="metric"><strong>2</strong><span>Kafka Brokers</span></div>
+        <div class="metric"><strong>2-way</strong><span>Exchange Direction</span></div>
+      </div>
+    </section>
+
+    <section class="card architecture">
+      <h3 class="panel-title">System Architecture</h3>
+      <p class="panel-sub">End-to-end architecture showing exchange between MiCT and The Liberties Dublin systems.</p>
+
+      <div class="arch-map">
+        <div class="arch-row">
+          <div class="arch-node client">
+            <strong>MiCT System</strong>
+            <span>mict-international.org</span>
+          </div>
+          <div class="arch-arrow">→ request</div>
+          <div class="arch-node api">
+            <strong>securecomm Gateway</strong>
+            <span>localhost:8081 (System A)</span>
+          </div>
+          <div class="arch-arrow">→ commit</div>
+          <div class="arch-node fabric">
+            <strong>Fabric Ledger</strong>
+            <span>chaincode state + proof</span>
+          </div>
+        </div>
+
+        <div class="arch-row">
+          <div class="arch-node client">
+            <strong>The Liberties Dublin</strong>
+            <span>libertiesdublin.ie</span>
+          </div>
+          <div class="arch-arrow">← response</div>
+          <div class="arch-node api">
+            <strong>securecomm2 Gateway</strong>
+            <span>localhost:8082 (System B)</span>
+          </div>
+          <div class="arch-arrow">← event</div>
+          <div class="arch-node kafka">
+            <strong>Kafka Brokers</strong>
+            <span>exchange topics on 9092 / 9093</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-links">
+        <div class="arch-link">MiCT -> securecomm(8081) -> Fabric + Kafka</div>
+        <div class="arch-link">The Liberties -> securecomm2(8082) -> Fabric + Kafka</div>
+        <div class="arch-link">Data integrity tracked in chaincode transitions</div>
+        <div class="arch-link">Asynchronous notifications via Kafka exchange topics</div>
+      </div>
+
+      <div class="exchange-grid">
+        <div class="exchange-card">
+          <h4>MiCT outbound payload</h4>
+          <code>{"sender":"MiCT","receiver":"The Liberties Dublin","recordType":"community_case","caseId":"M-2041","status":"initiated"}</code>
+        </div>
+        <div class="exchange-card">
+          <h4>The Liberties acknowledgement</h4>
+          <code>{"sender":"The Liberties Dublin","receiver":"MiCT","caseId":"M-2041","status":"verified","timestamp":"ISO-8601"}</code>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card services">
+        <h3 class="panel-title">Service Status <button id="checkAllBtn" class="ghost" type="button">Check All</button></h3>
+        <p class="panel-sub">Runs lightweight GET requests to the configured URLs.</p>
+
+        <div class="service" data-url="http://localhost:8081/actuator/health">
+          <div>
+            <h4>MiCT gateway (securecomm)</h4>
+            <p>http://localhost:8081/actuator/health</p>
+          </div>
+          <span class="status" data-status>Unknown</span>
+        </div>
+
+        <div class="service" data-url="http://localhost:8082/actuator/health">
+          <div>
+            <h4>The Liberties gateway (securecomm2)</h4>
+            <p>http://localhost:8082/actuator/health</p>
+          </div>
+          <span class="status" data-status>Unknown</span>
+        </div>
+
+        <div class="service" data-url="http://localhost:9092">
+          <div>
+            <h4>Kafka Broker #1</h4>
+            <p>localhost:9092</p>
+          </div>
+          <span class="status" data-status>Unknown</span>
+        </div>
+
+        <div class="service" data-url="http://localhost:9093">
+          <div>
+            <h4>Kafka Broker #2</h4>
+            <p>localhost:9093</p>
+          </div>
+          <span class="status" data-status>Unknown</span>
+        </div>
+      </article>
+
+      <article class="card events">
+        <h3 class="panel-title">Flow Timeline</h3>
+        <ul class="timeline" id="timeline">
+          <li>MiCT publishes cross-system record.</li>
+          <li>securecomm validates and submits to Fabric.</li>
+          <li>Kafka topic emits exchange event.</li>
+          <li>The Liberties gateway confirms and responds.</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="forms">
+      <article class="card">
+        <h3 class="panel-title">Build MiCT -> The Liberties Exchange</h3>
+        <form id="txForm" class="form-grid">
+          <div class="field">
+            <label for="txnId">Transaction ID</label>
+            <input id="txnId" name="txnId" type="text" value="TXN-2026-0001" required />
+          </div>
+          <div class="field">
+            <label for="assetId">Asset ID</label>
+            <input id="assetId" name="assetId" type="text" value="ASSET-IRL-9" required />
+          </div>
+          <div class="field">
+            <label for="fromParty">From</label>
+            <input id="fromParty" name="fromParty" type="text" value="MiCT" required />
+          </div>
+          <div class="field">
+            <label for="toParty">To</label>
+            <input id="toParty" name="toParty" type="text" value="The Liberties Dublin" required />
+          </div>
+          <div class="field">
+            <label for="amount">Amount</label>
+            <input id="amount" name="amount" type="number" min="0" value="15000" required />
+          </div>
+          <div class="field">
+            <label for="currency">Currency</label>
+            <select id="currency" name="currency">
+              <option>EUR</option>
+              <option>USD</option>
+              <option>GBP</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes">Data exchange initiated by MiCT for The Liberties Dublin review.</textarea>
+          </div>
+          <div class="field full actions">
+            <button class="primary" type="submit">Generate JSON Payload</button>
+            <button class="ghost" type="button" id="copyTxBtn">Copy Payload</button>
+          </div>
+        </form>
+        <pre id="txOutput" aria-live="polite">Generated transaction payload will appear here.</pre>
+      </article>
+
+      <article class="card">
+        <h3 class="panel-title">Build Kafka Exchange Event</h3>
+        <form id="eventForm" class="form-grid">
+          <div class="field">
+            <label for="topic">Topic</label>
+            <input id="topic" name="topic" value="mict-liberties-exchange" required />
+          </div>
+          <div class="field">
+            <label for="partitionKey">Partition Key</label>
+            <input id="partitionKey" name="partitionKey" value="TXN-2026-0001" required />
+          </div>
+          <div class="field full">
+            <label for="eventType">Event Type</label>
+            <input id="eventType" name="eventType" value="EXCHANGE_SUBMITTED" required />
+          </div>
+          <div class="field full">
+            <label for="eventData">Event Data</label>
+            <textarea id="eventData" name="eventData">{"source":"MiCT","destination":"The Liberties Dublin","network":"fabric","priority":"high"}</textarea>
+          </div>
+          <div class="field full actions">
+            <button class="secondary" type="submit">Generate Event</button>
+            <button class="ghost" type="button" id="seedBtn">Use Transaction ID</button>
+          </div>
+        </form>
+        <pre id="eventOutput" aria-live="polite">Generated Kafka event will appear here.</pre>
+      </article>
+    </section>
+
+    <footer>Interface prepared for MiCT and The Liberties Dublin bilateral exchange simulation.</footer>
+  </main>
+
+  <script>
+    const timeline = document.getElementById("timeline");
+
+    function addTimeline(message) {
+      const row = document.createElement("li");
+      row.textContent = message;
+      timeline.prepend(row);
+      while (timeline.children.length > 7) {
+        timeline.removeChild(timeline.lastChild);
+      }
+    }
+
+    async function checkService(serviceNode) {
+      const target = serviceNode.dataset.url;
+      const label = serviceNode.querySelector("[data-status]");
+      label.textContent = "Checking";
+      label.className = "status";
+
+      try {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 2200);
+
+        const response = await fetch(target, {
+          method: "GET",
+          mode: "cors",
+          cache: "no-store",
+          signal: controller.signal
+        });
+
+        if (response.ok || response.type === "opaque") {
+          label.textContent = response.ok ? "Online" : "Reachable";
+          label.classList.add("ok");
+          addTimeline("Probe success: " + target);
+        } else {
+          label.textContent = "Degraded";
+          label.classList.add("fail");
+          addTimeline("Probe returned status " + response.status + " on " + target);
+        }
+      } catch (error) {
+        label.textContent = "Offline";
+        label.classList.add("fail");
+        addTimeline("Probe failed: " + target);
+      }
+    }
+
+    const checkAllBtn = document.getElementById("checkAllBtn");
+    checkAllBtn.addEventListener("click", () => {
+      document.querySelectorAll(".service").forEach((service) => {
+        checkService(service);
+      });
+    });
+
+    document.querySelectorAll(".service").forEach((service) => {
+      service.addEventListener("click", () => checkService(service));
+    });
+
+    const txForm = document.getElementById("txForm");
+    const txOutput = document.getElementById("txOutput");
+    const copyTxBtn = document.getElementById("copyTxBtn");
+
+    txForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(txForm);
+      const payload = {
+        transactionId: data.get("txnId"),
+        assetId: data.get("assetId"),
+        sourceParty: data.get("fromParty"),
+        destinationParty: data.get("toParty"),
+        amount: Number(data.get("amount")),
+        currency: data.get("currency"),
+        notes: data.get("notes"),
+        submittedAt: new Date().toISOString()
+      };
+
+      txOutput.textContent = JSON.stringify(payload, null, 2);
+      addTimeline("Exchange payload generated for " + payload.transactionId);
+    });
+
+    copyTxBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(txOutput.textContent);
+        addTimeline("Exchange payload copied to clipboard.");
+      } catch (error) {
+        addTimeline("Clipboard access blocked by browser policy.");
+      }
+    });
+
+    const eventForm = document.getElementById("eventForm");
+    const eventOutput = document.getElementById("eventOutput");
+    const seedBtn = document.getElementById("seedBtn");
+
+    eventForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(eventForm);
+
+      let parsedData;
+      try {
+        parsedData = JSON.parse(String(data.get("eventData") || "{}"));
+      } catch (error) {
+        parsedData = { raw: data.get("eventData") };
+      }
+
+      const payload = {
+        topic: data.get("topic"),
+        key: data.get("partitionKey"),
+        type: data.get("eventType"),
+        eventData: parsedData,
+        createdAt: new Date().toISOString()
+      };
+
+      eventOutput.textContent = JSON.stringify(payload, null, 2);
+      addTimeline("Kafka exchange event prepared for topic " + payload.topic);
+    });
+
+    seedBtn.addEventListener("click", () => {
+      const txId = document.getElementById("txnId").value;
+      document.getElementById("partitionKey").value = txId;
+      addTimeline("Partition key synced from transaction ID " + txId);
+    });
+  </script>
+</body>
+</html>
