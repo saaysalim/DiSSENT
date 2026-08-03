@@ -1,0 +1,242 @@
+:root {
+    --primary-color: #10244d;
+    --secondary-color: #4a90e2;
+    --accent-color: #00c2a8;
+    --background-color: #f4f7fc;
+    --card-color: #ffffff;
+    --text-color: #1e293b;
+    --white: #ffffff;
+    --border-radius: 12px;
+    --shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+    background:var(--background-color);
+    color:var(--text-color);
+    line-height:1.6;
+}
+
+/* HEADER */
+
+header{
+    background:var(--primary-color);
+    color:white;
+    padding:18px 50px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+}
+
+.logo{
+    font-size:28px;
+    font-weight:bold;
+}
+
+.logo a{
+    color:white;
+    text-decoration:none;
+}
+
+nav ul{
+    display:flex;
+    gap:25px;
+    list-style:none;
+}
+
+nav a{
+    color:white;
+    text-decoration:none;
+    font-weight:500;
+    transition:0.3s;
+}
+
+nav a:hover,
+nav a.active{
+    color:var(--secondary-color);
+}
+
+.header-right{
+    display:flex;
+    gap:10px;
+    align-items:center;
+}
+
+.header-search{
+    display:flex;
+}
+
+.header-search input,
+.header-right input{
+    padding:8px 12px;
+    border:none;
+    border-radius:6px;
+}
+
+.language-selector{
+    padding:8px;
+    border:none;
+    border-radius:6px;
+}
+
+.login-btn{
+    background:var(--secondary-color);
+    color:white;
+    text-decoration:none;
+    padding:8px 16px;
+    border-radius:6px;
+    white-space:nowrap;
+}
+
+.nav-toggle{
+    display:none;
+    flex-direction:column;
+    justify-content:space-between;
+    width:28px;
+    height:20px;
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:0;
+}
+
+.nav-toggle span{
+    display:block;
+    height:3px;
+    width:100%;
+    background:white;
+    border-radius:2px;
+}
+
+/* GLOBAL BUTTONS (used across most pages: hero, forms, media center, profile) */
+
+.btn-primary,
+.btn-secondary{
+    text-decoration:none;
+    padding:12px 25px;
+    border-radius:8px;
+    font-weight:bold;
+    border:none;
+    cursor:pointer;
+    font-size:16px;
+    display:inline-block;
+}
+
+.btn-primary{
+    background:var(--secondary-color);
+    color:white;
+}
+
+.btn-secondary{
+    border:2px solid var(--primary-color);
+    color:var(--primary-color);
+    background:transparent;
+}
+
+/* FOOTER */
+
+footer{
+    background:var(--primary-color);
+    color:white;
+    text-align:center;
+    padding:30px;
+}
+
+.footer-links{
+    margin-bottom:15px;
+}
+
+.footer-links a{
+    color:white;
+    text-decoration:none;
+    margin:0 10px;
+}
+
+/* RESPONSIVE NAVIGATION (900px) */
+
+@media (max-width: 900px){
+
+    .nav-toggle{
+        display:flex;
+    }
+
+    nav{
+        display:none;
+        width:100%;
+        order:3;
+    }
+
+    nav ul{
+        flex-direction:column;
+        gap:0;
+        width:100%;
+    }
+
+    nav ul li{
+        width:100%;
+        text-align:center;
+        border-top:1px solid rgba(255,255,255,0.15);
+    }
+
+    nav ul li a{
+        display:block;
+        padding:12px 0;
+    }
+
+    .header-right{
+        display:none;
+        width:100%;
+        order:4;
+        flex-direction:column;
+        gap:12px;
+        margin-top:10px;
+    }
+
+    .header-right .header-search,
+    .header-right select,
+    .header-right .login-btn{
+        width:100%;
+    }
+
+    .header-search input{
+        width:100%;
+        box-sizing:border-box;
+    }
+
+    header.nav-open nav,
+    header.nav-open .header-right{
+        display:flex;
+    }
+}
+
+/* SHARED CARD RESPONSIVENESS (480px) — used by cards on many different pages */
+
+@media (max-width: 480px){
+
+    header{
+        padding:14px 20px;
+    }
+
+    .logo{
+        font-size:22px;
+    }
+
+    .stat-card,
+    .action-card,
+    .verification-card,
+    .report-card,
+    .media-card,
+    .featured-card,
+    .partner-card,
+    .tech-card,
+    .feature-card{
+        width:100%;
+    }
+}

@@ -1,216 +1,275 @@
 package chaincode
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/hyperledger/fabric-contract-api-go/v2/contractapi"
 )
 
-// SmartContract provides functions for managing an Asset
+// SmartContract implements the DiSSENT ledger: a tamper-evident hash chain of
+// report verifications, and a public-key registry used to authenticate
+// cross-border secure messages.
 type SmartContract struct {
 	contractapi.Contract
 }
 
-// Asset describes basic details of what makes up a simple asset
-// Insert struct field in alphabetic order => to achieve determinism across languages
-// golang keeps the order when marshal to json but doesn't order automatically
-type Asset struct {
-	AppraisedValue int    `json:"AppraisedValue"`
-	Color          string `json:"Color"`
-	ID             string `json:"ID"`
-	Owner          string `json:"Owner"`
-	Size           int    `json:"Size"`
+const (
+	verificationKeyPrefix = "VERIFICATION_"
+	chainBlockKeyPrefix   = "CHAIN_BLOCK_"
+	chainHeadKey          = "CHAIN_HEAD"
+	pubKeyPrefix          = "PUBKEY_"
+	genesisHash           = "0"
+)
+
+// VerificationRecord is one block in the report verification hash chain.
+type VerificationRecord struct {
+	ReportID   string `json:"ReportID"`
+	Title      string `json:"Title"`
+	DataHash   string `json:"DataHash"`
+	PrevHash   string `json:"PrevHash"`
+	BlockHash  string `json:"BlockHash"`
+	BlockIndex int    `json:"BlockIndex"`
+	Timestamp  string `json:"Timestamp"`
 }
 
-// InitLedger adds a base set of assets to the ledger
+// ChainHead tracks the tip of the hash chain so new blocks link to the last one.
+type ChainHead struct {
+	LastBlockHash string `json:"LastBlockHash"`
+	BlockCount    int    `json:"BlockCount"`
+}
+
+// PublicKeyRecord is a registered organisation/user public key used to verify
+// the signature on secure messages exchanged between securecomm and securecomm2.
+type PublicKeyRecord struct {
+	UserID       string `json:"UserID"`
+	OrgID        string `json:"OrgID"`
+	PublicKeyPEM string `json:"PublicKeyPEM"`
+	RegisteredAt string `json:"RegisteredAt"`
+}
+
+// InitLedger sets up the genesis chain head. Safe to call once on channel setup.
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
-	assets := []Asset{
-		{ID: "asset1", Color: "blue", Size: 5, Owner: "Tomoko", AppraisedValue: 300},
-		{ID: "asset2", Color: "red", Size: 5, Owner: "Brad", AppraisedValue: 400},
-		{ID: "asset3", Color: "green", Size: 10, Owner: "Jin Soo", AppraisedValue: 500},
-		{ID: "asset4", Color: "yellow", Size: 10, Owner: "Max", AppraisedValue: 600},
-		{ID: "asset5", Color: "black", Size: 15, Owner: "Adriana", AppraisedValue: 700},
-		{ID: "asset6", Color: "white", Size: 15, Owner: "Michel", AppraisedValue: 800},
+	existing, err := ctx.GetStub().GetState(chainHeadKey)
+	if err != nil {
+		return fmt.Errorf("failed to read chain head: %v", err)
+	}
+	if existing != nil {
+		return nil // already initialised
 	}
 
-	for _, asset := range assets {
-		assetJSON, err := json.Marshal(asset)
-		if err != nil {
-			return err
-		}
-
-		err = ctx.GetStub().PutState(asset.ID, assetJSON)
-		if err != nil {
-			return fmt.Errorf("failed to put to world state. %v", err)
-		}
-	}
-
-	return nil
-}
-
-// CreateAsset issues a new asset to the world state with given details.
-func (s *SmartContract) CreateAsset(ctx contractapi.TransactionContextInterface, id string, color string, size int, owner string, value int) error {
-	exists, err := s.AssetExists(ctx, id)
+	head := ChainHead{LastBlockHash: genesisHash, BlockCount: 0}
+	headJSON, err := json.Marshal(head)
 	if err != nil {
 		return err
+	}
+	return ctx.GetStub().PutState(chainHeadKey, headJSON)
+}
+
+func (s *SmartContract) getChainHead(ctx contractapi.TransactionContextInterface) (ChainHead, error) {
+	headJSON, err := ctx.GetStub().GetState(chainHeadKey)
+	if err != nil {
+		return ChainHead{}, fmt.Errorf("failed to read chain head: %v", err)
+	}
+	if headJSON == nil {
+		return ChainHead{LastBlockHash: genesisHash, BlockCount: 0}, nil
+	}
+
+	var head ChainHead
+	if err := json.Unmarshal(headJSON, &head); err != nil {
+		return ChainHead{}, err
+	}
+	return head, nil
+}
+
+func (s *SmartContract) txTimestamp(ctx contractapi.TransactionContextInterface) (string, error) {
+	ts, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return "", fmt.Errorf("failed to read tx timestamp: %v", err)
+	}
+	return time.Unix(ts.Seconds, int64(ts.Nanos)).UTC().Format(time.RFC3339), nil
+}
+
+// AddVerification appends a new block to the hash chain for the given report,
+// linking it to the previous block's hash, and returns the new block hash.
+func (s *SmartContract) AddVerification(ctx contractapi.TransactionContextInterface, reportID string, title string, dataHash string) (string, error) {
+	if reportID == "" || dataHash == "" {
+		return "", fmt.Errorf("reportID and dataHash must not be empty")
+	}
+
+	exists, err := s.verificationExists(ctx, reportID)
+	if err != nil {
+		return "", err
 	}
 	if exists {
-		return fmt.Errorf("the asset %s already exists", id)
+		return "", fmt.Errorf("report %s has already been verified", reportID)
 	}
 
-	asset := Asset{
-		ID:             id,
-		Color:          color,
-		Size:           size,
-		Owner:          owner,
-		AppraisedValue: value,
-	}
-
-	assetJSON, err := json.Marshal(asset)
+	head, err := s.getChainHead(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return ctx.GetStub().PutState(id, assetJSON)
+	sum := sha256.Sum256([]byte(head.LastBlockHash + dataHash))
+	blockHash := hex.EncodeToString(sum[:])
+
+	timestamp, err := s.txTimestamp(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	record := VerificationRecord{
+		ReportID:   reportID,
+		Title:      title,
+		DataHash:   dataHash,
+		PrevHash:   head.LastBlockHash,
+		BlockHash:  blockHash,
+		BlockIndex: head.BlockCount,
+		Timestamp:  timestamp,
+	}
+
+	recordJSON, err := json.Marshal(record)
+	if err != nil {
+		return "", err
+	}
+	if err := ctx.GetStub().PutState(verificationKeyPrefix+reportID, recordJSON); err != nil {
+		return "", fmt.Errorf("failed to store verification record: %v", err)
+	}
+
+	blockKey := fmt.Sprintf("%s%010d", chainBlockKeyPrefix, head.BlockCount)
+	if err := ctx.GetStub().PutState(blockKey, []byte(reportID)); err != nil {
+		return "", fmt.Errorf("failed to store chain index: %v", err)
+	}
+
+	newHead := ChainHead{LastBlockHash: blockHash, BlockCount: head.BlockCount + 1}
+	newHeadJSON, err := json.Marshal(newHead)
+	if err != nil {
+		return "", err
+	}
+	if err := ctx.GetStub().PutState(chainHeadKey, newHeadJSON); err != nil {
+		return "", fmt.Errorf("failed to update chain head: %v", err)
+	}
+
+	return blockHash, nil
 }
 
-// ReadAsset returns the asset stored in the world state with given id.
-func (s *SmartContract) ReadAsset(ctx contractapi.TransactionContextInterface, id string) (*Asset, error) {
-	assetJSON, err := ctx.GetStub().GetState(id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read from world state: %v", err)
-	}
-	if assetJSON == nil {
-		return nil, fmt.Errorf("the asset %s does not exist", id)
-	}
-
-	var asset Asset
-	err = json.Unmarshal(assetJSON, &asset)
-	if err != nil {
-		return nil, err
-	}
-
-	return &asset, nil
-}
-
-// UpdateAsset updates an existing asset in the world state with provided parameters.
-func (s *SmartContract) UpdateAsset(ctx contractapi.TransactionContextInterface, id string, color string, size int, owner string, appraisedValue int) error {
-	exists, err := s.AssetExists(ctx, id)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("the asset %s does not exist", id)
-	}
-
-	// overwriting original asset with new asset
-	asset := Asset{
-		ID:             id,
-		Color:          color,
-		Size:           size,
-		Owner:          owner,
-		AppraisedValue: appraisedValue,
-	}
-	assetJSON, err := json.Marshal(asset)
-	if err != nil {
-		return err
-	}
-
-	return ctx.GetStub().PutState(id, assetJSON)
-}
-
-// DeleteAsset deletes an given asset from the world state.
-func (s *SmartContract) DeleteAsset(ctx contractapi.TransactionContextInterface, id string) error {
-	exists, err := s.AssetExists(ctx, id)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("the asset %s does not exist", id)
-	}
-
-	return ctx.GetStub().DelState(id)
-}
-
-// AssetExists returns true when asset with given ID exists in world state
-func (s *SmartContract) AssetExists(ctx contractapi.TransactionContextInterface, id string) (bool, error) {
-	assetJSON, err := ctx.GetStub().GetState(id)
+func (s *SmartContract) verificationExists(ctx contractapi.TransactionContextInterface, reportID string) (bool, error) {
+	recordJSON, err := ctx.GetStub().GetState(verificationKeyPrefix + reportID)
 	if err != nil {
 		return false, fmt.Errorf("failed to read from world state: %v", err)
 	}
-
-	return assetJSON != nil, nil
+	return recordJSON != nil, nil
 }
 
-// TransferAsset updates the owner field of asset with given id in world state, and returns the old owner.
-func (s *SmartContract) TransferAsset(ctx contractapi.TransactionContextInterface, id string, newOwner string) (string, error) {
-	asset, err := s.ReadAsset(ctx, id)
+// GetVerification returns the verification record for a single report.
+func (s *SmartContract) GetVerification(ctx contractapi.TransactionContextInterface, reportID string) (*VerificationRecord, error) {
+	recordJSON, err := ctx.GetStub().GetState(verificationKeyPrefix + reportID)
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("failed to read from world state: %v", err)
+	}
+	if recordJSON == nil {
+		return nil, fmt.Errorf("no verification record for report %s", reportID)
 	}
 
-	oldOwner := asset.Owner
-	asset.Owner = newOwner
-
-	assetJSON, err := json.Marshal(asset)
-	if err != nil {
-		return "", err
+	var record VerificationRecord
+	if err := json.Unmarshal(recordJSON, &record); err != nil {
+		return nil, err
 	}
-
-	err = ctx.GetStub().PutState(id, assetJSON)
-	if err != nil {
-		return "", err
-	}
-
-	return oldOwner, nil
+	return &record, nil
 }
 
-// GetAllAssets returns all assets found in world state
-func (s *SmartContract) GetAllAssets(ctx contractapi.TransactionContextInterface) ([]*Asset, error) {
-	// range query with empty string for startKey and endKey does an
-	// open-ended query of all assets in the chaincode namespace.
-	resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
+// GetAllVerifications returns every block in the chain, oldest first.
+func (s *SmartContract) GetAllVerifications(ctx contractapi.TransactionContextInterface) ([]*VerificationRecord, error) {
+	iterator, err := ctx.GetStub().GetStateByRange(chainBlockKeyPrefix, chainBlockKeyPrefix+"~")
 	if err != nil {
 		return nil, err
 	}
-	defer resultsIterator.Close()
+	defer iterator.Close()
 
-	var assets []*Asset
-	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
+	// Must be a non-nil empty slice, not a nil one: encoding/json serializes nil as
+	// JSON null, and the Java client's history endpoint calls .size() on the decoded
+	// list without a null check — an empty chain would NPE it instead of returning [].
+	records := make([]*VerificationRecord, 0)
+	for iterator.HasNext() {
+		entry, err := iterator.Next()
 		if err != nil {
 			return nil, err
 		}
 
-		var asset Asset
-		err = json.Unmarshal(queryResponse.Value, &asset)
+		reportID := string(entry.Value)
+		record, err := s.GetVerification(ctx, reportID)
 		if err != nil {
 			return nil, err
 		}
-		assets = append(assets, &asset)
+		records = append(records, record)
 	}
 
-	return assets, nil
+	return records, nil
 }
 
-func (s *SmartContract) RegisterUserPublicKey(ctx contractapi.TransactionContextInterface, userID string, certPEM string) error {
-	if len(userID) == 0 || len(certPEM) == 0 {
-		return fmt.Errorf("userID and certificate must not be empty")
-	}
-	fmt.Printf("RegisterUserPublicKey called with key = '%s'\n", userID)
-	return ctx.GetStub().PutState(userID, []byte(certPEM))
-}
-
-func (s *SmartContract) GetUserPublicKey(ctx contractapi.TransactionContextInterface, userID string) (string, error) {
-	certPEM, err := ctx.GetStub().GetState(userID)
-	fmt.Printf("Public Key retrieved for %s", userId)
+// VerifyChainIntegrity walks every block and confirms BlockHash still equals
+// sha256(PrevHash + DataHash) — the same tamper-evident check the PHP side used
+// to run against MySQL, now run against the ledger.
+func (s *SmartContract) VerifyChainIntegrity(ctx contractapi.TransactionContextInterface) (bool, error) {
+	records, err := s.GetAllVerifications(ctx)
 	if err != nil {
-		return "", fmt.Errorf("failed to get public key for %s: %v", userID, err)
+		return false, err
 	}
-	if certPEM == nil {
-		return "", fmt.Errorf("no public key registered for %s", userID)
+
+	for _, record := range records {
+		sum := sha256.Sum256([]byte(record.PrevHash + record.DataHash))
+		expected := hex.EncodeToString(sum[:])
+		if expected != record.BlockHash {
+			return false, nil
+		}
 	}
-	return string(certPEM), nil
+
+	return true, nil
 }
 
+// RegisterPublicKey stores (or replaces) the public key used to verify signed
+// messages from a given user/organisation.
+func (s *SmartContract) RegisterPublicKey(ctx contractapi.TransactionContextInterface, userID string, orgID string, publicKeyPEM string) error {
+	if userID == "" || publicKeyPEM == "" {
+		return fmt.Errorf("userID and publicKeyPEM must not be empty")
+	}
+
+	timestamp, err := s.txTimestamp(ctx)
+	if err != nil {
+		return err
+	}
+
+	record := PublicKeyRecord{
+		UserID:       userID,
+		OrgID:        orgID,
+		PublicKeyPEM: publicKeyPEM,
+		RegisteredAt: timestamp,
+	}
+
+	recordJSON, err := json.Marshal(record)
+	if err != nil {
+		return err
+	}
+
+	return ctx.GetStub().PutState(pubKeyPrefix+userID, recordJSON)
+}
+
+// GetPublicKey looks up a previously registered public key by user ID.
+func (s *SmartContract) GetPublicKey(ctx contractapi.TransactionContextInterface, userID string) (*PublicKeyRecord, error) {
+	recordJSON, err := ctx.GetStub().GetState(pubKeyPrefix + userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get public key for %s: %v", userID, err)
+	}
+	if recordJSON == nil {
+		return nil, fmt.Errorf("no public key registered for %s", userID)
+	}
+
+	var record PublicKeyRecord
+	if err := json.Unmarshal(recordJSON, &record); err != nil {
+		return nil, err
+	}
+	return &record, nil
+}

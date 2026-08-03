@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.CrossBorderSystem</groupId>
-	<artifactId>securecomm</artifactId>
+	<artifactId>securecomm2</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>securecomm</name>
-	<description>Secure Cross-Border Communication</description>
+	<name>securecomm2</name>
+	<description>Secure Cross-Border Communication - System2</description>
 	<url/>
 	<licenses>
 		<license/>

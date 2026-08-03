@@ -100,7 +100,10 @@ Example:
 ./deploy_chaincode.sh basic_2.0:6a6f743366675481339c7ddda5f281a441c9ad8c13e32a9a5c07b892e44de105
 
 Running Spring Boot Messaging Services
-Each system has its own Kafka + App compose stack
+securecomm and securecomm2 share ONE Kafka/Zookeeper/Mongo stack (both apps'
+application.properties already point at localhost:9092 and localhost:27017,
+just with separate Mongo databases) — only securecomm/docker-compose.yml needs
+to be started, not a second one per system.
 
 cd securecomm
 mvn clean install
@@ -108,7 +111,8 @@ mvn clean install
 cd ../securecomm2
 mvn clean install
 
-Start Kafka and Zookeeper with Docker
+Start Kafka, Zookeeper and Mongo with Docker (once, from securecomm/)
+cd securecomm
 docker-compose up -d
 
 Run Spring Boot Apps
@@ -118,17 +122,16 @@ java -jar target/securecomm-0.0.1-SNAPSHOT.jar
 cd ../securecomm2
 java -jar target/securecomm2-0.0.1-SNAPSHOT.jar
 
-Each app:
+securecomm (System1, Org1):
+- REST API for the report verification hash chain (Fabric-backed); every write also
+  publishes a verification-events Kafka message
+- On send: encrypts with AES, signs with ECDSA, publishes to Kafka
 
-Encrypts with AES
-
-Signs with ECDSA
-
-Publishes to Kafka
-
-Validates using public key from Hyperledger Fabric
-
-Decrypts the payload
+securecomm2 (System2, Org2):
+- Consumes verification-events and mirrors each one into its own store — the
+  cross-border partner's independent copy of what System1 verified (GET /api/verification/mirror)
+- Consumes secure-messages, validates the sender's public key from Hyperledger Fabric,
+  decrypts the payload, and exposes a status endpoint for polling delivery/verification
 
 Monitoring (Grafana + Prometheus)
 docker-compose up -d

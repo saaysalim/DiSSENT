@@ -1,0 +1,165 @@
+.login-section,
+.register-section,
+.forgot-section{
+    min-height:80vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:
+    linear-gradient(rgba(16,36,77,0.8), rgba(16,36,77,0.8)),
+    url('../images/image_111.jpg');
+    background-size:cover;
+    background-position:center;
+    padding:60px 20px;
+}
+
+.login-container,
+.register-container,
+.forgot-container{
+    background:white;
+    width:100%;
+    max-width:450px;
+    padding:50px;
+    border-radius:15px;
+    text-align:center;
+    box-shadow:0 8px 25px rgba(0,0,0,0.2);
+}
+
+.register-container,
+.forgot-container{
+    max-width:500px;
+}
+
+.login-container h1,
+.register-container h1,
+.forgot-container h1{
+    color:#10244d;
+    margin-bottom:15px;
+}
+
+.login-container p{
+    color:#666;
+    margin-bottom:30px;
+}
+
+.login-form,
+.register-form,
+.forgot-form{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    margin-top:10px;
+}
+
+.login-form input,
+.register-form input,
+.register-form select,
+.forgot-form input{
+    padding:15px;
+    border:1px solid #ccc;
+    border-radius:8px;
+    font-size:16px;
+}
+
+.login-form input:focus{
+    outline:none;
+    border-color:#10244d;
+}
+
+.login-form button,
+.register-form button,
+.forgot-form button{
+    background:#10244d;
+    color:white;
+    border:none;
+    padding:15px;
+    border-radius:8px;
+    font-size:16px;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.login-form button:hover,
+.register-form button:hover,
+.forgot-form button:hover{
+    background:#1b3670;
+}
+
+.login-links,
+.register-links,
+.forgot-links{
+    margin-top:25px;
+}
+
+.login-links a,
+.register-links a,
+.forgot-links a{
+    color:#10244d;
+    text-decoration:none;
+    font-weight:600;
+}
+
+.login-links a:hover,
+.register-links a:hover,
+.forgot-links a:hover{
+    text-decoration:underline;
+}
+
+/* Password strength/requirements hint box (used on register.php / reset_password.php) */
+
+.password-requirements{
+    margin-top:10px;
+    font-size:14px;
+    color:#555;
+    text-align:left;
+}
+
+.password-requirements ul{
+    margin-left:20px;
+}
+
+.password-requirements li{
+    margin:5px 0;
+}
+
+.password-strength{
+    background:#f4f6fb;
+    border-left:5px solid #10244d;
+    padding:15px;
+    border-radius:10px;
+    text-align:left;
+    margin-bottom:20px;
+}
+
+.password-strength p{
+    font-weight:600;
+    margin-bottom:10px;
+    color:#10244d;
+}
+
+.password-strength ul{
+    list-style:none;
+    padding:0;
+}
+
+.password-strength li{
+    margin:8px 0;
+    font-size:14px;
+    color:#dc3545;
+    font-weight:500;
+    transition:.3s;
+}
+
+.password-strength li.valid{
+    color:#28a745 !important;
+    font-weight:bold;
+}
+
+@media (max-width: 480px){
+
+    .login-container,
+    .register-container,
+    .forgot-container{
+        padding:30px 20px;
+    }
+}
