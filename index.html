@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="DiSSENT is a secure cross-border journalism platform for trusted communication and verified reporting." />
+    <title>DiSSENT | Secure journalism across borders</title>
+    <style>
+      :root {
+        --ink: #112a30;
+        --muted: #557076;
+        --paper: #f5f2e9;
+        --cream: #fffdf7;
+        --teal: #0c6768;
+        --coral: #ed745d;
+        --line: #d8e0d8;
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body { margin: 0; color: var(--ink); background: var(--paper); font-family: Georgia, 'Times New Roman', serif; line-height: 1.6; }
+      a { color: inherit; }
+      .shell { width: min(1120px, calc(100% - 48px)); margin: 0 auto; }
+      .topbar { display: flex; align-items: center; justify-content: space-between; padding: 28px 0; border-bottom: 1px solid var(--line); }
+      .brand { font: 800 1.15rem/1 'Trebuchet MS', sans-serif; letter-spacing: .12em; }
+      nav { display: flex; gap: 28px; font: 600 .85rem/1 'Trebuchet MS', sans-serif; }
+      nav a { text-decoration: none; }
+      nav a:hover { color: var(--coral); }
+      .hero { display: grid; grid-template-columns: 1.15fr .85fr; gap: 72px; align-items: end; padding: 92px 0 110px; }
+      .eyebrow { color: var(--teal); font: 700 .78rem/1.2 'Trebuchet MS', sans-serif; letter-spacing: .18em; text-transform: uppercase; }
+      h1, h2, p { margin-top: 0; }
+      h1 { max-width: 760px; margin: 20px 0 28px; font-size: clamp(3.5rem, 8vw, 7.5rem); line-height: .91; letter-spacing: -.045em; }
+      .lede { max-width: 610px; margin-bottom: 36px; color: var(--muted); font-size: 1.25rem; }
+      .actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+      .button { display: inline-block; padding: 14px 22px; border: 1px solid var(--teal); background: var(--teal); color: #fff; font: 700 .85rem/1 'Trebuchet MS', sans-serif; text-decoration: none; }
+      .button:hover { background: var(--ink); border-color: var(--ink); }
+      .button.secondary { background: transparent; color: var(--teal); }
+      .signal { position: relative; min-height: 330px; padding: 30px; background: var(--teal); color: #fff; overflow: hidden; }
+      .signal::after { content: ''; position: absolute; width: 230px; height: 230px; right: -80px; bottom: -70px; border: 38px solid rgba(255,255,255,.12); border-radius: 50%; }
+      .signal-label { font: 700 .75rem/1 'Trebuchet MS', sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+      .signal blockquote { position: relative; z-index: 1; margin: 70px 0 0; font-size: 2.1rem; line-height: 1.12; }
+      .section { padding: 84px 0; border-top: 1px solid var(--line); }
+      .section-heading { display: grid; grid-template-columns: .7fr 1fr; gap: 48px; margin-bottom: 48px; }
+      h2 { margin-bottom: 0; font-size: clamp(2.2rem, 5vw, 4.6rem); line-height: .96; letter-spacing: -.04em; }
+      .section-heading p { color: var(--muted); font-size: 1.15rem; }
+      .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+      .feature { min-height: 220px; padding: 28px; background: var(--cream); }
+      .feature-number { color: var(--coral); font: 700 .8rem/1 'Trebuchet MS', sans-serif; }
+      .feature h3 { margin: 42px 0 10px; font-size: 1.5rem; }
+      .feature p { margin-bottom: 0; color: var(--muted); }
+      .closing { display: flex; justify-content: space-between; gap: 40px; align-items: end; padding-bottom: 90px; }
+      .closing p { max-width: 470px; color: var(--muted); font-size: 1.15rem; }
+      footer { padding: 24px 0 42px; border-top: 1px solid var(--line); color: var(--muted); font: .78rem/1.5 'Trebuchet MS', sans-serif; }
+      @media (max-width: 760px) {
+        .shell { width: min(100% - 32px, 560px); }
+        .topbar { padding: 20px 0; }
+        nav { gap: 14px; font-size: .72rem; }
+        .hero { grid-template-columns: 1fr; gap: 42px; padding: 64px 0 72px; }
+        h1 { font-size: clamp(3.5rem, 18vw, 6rem); }
+        .section-heading, .features { grid-template-columns: 1fr; }
+        .features { gap: 1px; }
+        .closing { display: block; }
+        .closing .button { margin-top: 12px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="shell topbar">
+      <a class="brand" href="./">DiSSENT</a>
+      <nav aria-label="Primary navigation">
+        <a href="#mission">Mission</a>
+        <a href="#approach">Approach</a>
+        <a href="https://github.com/saaysalim/DiSSENT">GitHub</a>
+      </nav>
+    </header>
+    <main>
+      <section class="shell hero">
+        <div>
+          <div class="eyebrow">A trusted network for independent reporting</div>
+          <h1>Stories should cross borders safely.</h1>
+          <p class="lede">DiSSENT connects journalists, media organisations, and trusted partners through secure communication and verifiable information exchange.</p>
+          <div class="actions">
+            <a class="button" href="https://github.com/saaysalim/DiSSENT">Explore the project</a>
+            <a class="button secondary" href="#approach">See how it works</a>
+          </div>
+        </div>
+        <aside class="signal" aria-label="DiSSENT mission statement">
+          <div class="signal-label">The signal matters</div>
+          <blockquote>“Trust is built into the route, not added at the end.”</blockquote>
+        </aside>
+      </section>
+      <section class="shell section" id="mission">
+        <div class="section-heading">
+          <h2>Built for difficult truths.</h2>
+          <p>DiSSENT supports the people who gather and move information when distance, risk, and uncertainty make ordinary channels inadequate.</p>
+        </div>
+        <div class="features" id="approach">
+          <article class="feature"><div class="feature-number">01 / CONNECT</div><h3>Protected conversations</h3><p>Keep journalists and partner organisations connected through a focused, secure messaging workflow.</p></article>
+          <article class="feature"><div class="feature-number">02 / VERIFY</div><h3>Evidence with context</h3><p>Preserve the integrity of reports and supporting material with hash-chain verification.</p></article>
+          <article class="feature"><div class="feature-number">03 / COLLABORATE</div><h3>Across borders</h3><p>Give trusted teams a shared place to exchange information and coordinate responsibly.</p></article>
+        </div>
+      </section>
+      <section class="shell closing">
+        <div><div class="eyebrow">Open project · Secure by design</div><h2>Make the route trustworthy.</h2></div>
+        <div><p>Read the code, follow the work, and help shape a more resilient infrastructure for cross-border journalism.</p><a class="button" href="https://github.com/saaysalim/DiSSENT">Visit the repository</a></div>
+      </section>
+    </main>
+    <footer><div class="shell">DiSSENT · Secure cross-border journalism platform</div></footer>
+  </body>
+</html>
