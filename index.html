@@ -38,6 +38,11 @@
       .signal::after { content: ''; position: absolute; width: 230px; height: 230px; right: -80px; bottom: -70px; border: 38px solid rgba(255,255,255,.12); border-radius: 50%; }
       .signal-label { font: 700 .75rem/1 'Trebuchet MS', sans-serif; letter-spacing: .12em; text-transform: uppercase; }
       .signal blockquote { position: relative; z-index: 1; margin: 70px 0 0; font-size: 2.1rem; line-height: 1.12; }
+      .partners { padding: 28px 0 38px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+      .partners-label { margin-bottom: 18px; color: var(--muted); font: 700 .72rem/1.2 'Trebuchet MS', sans-serif; letter-spacing: .16em; text-transform: uppercase; }
+      .partner-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+      .partner { display: flex; min-height: 96px; align-items: center; padding: 10px; background: var(--cream); border: 1px solid var(--line); }
+      .partner img { display: block; width: 100%; height: auto; }
       .section { padding: 84px 0; border-top: 1px solid var(--line); }
       .section-heading { display: grid; grid-template-columns: .7fr 1fr; gap: 48px; margin-bottom: 48px; }
       h2 { margin-bottom: 0; font-size: clamp(2.2rem, 5vw, 4.6rem); line-height: .96; letter-spacing: -.04em; }
@@ -56,6 +61,7 @@
         nav { gap: 14px; font-size: .72rem; }
         .hero { grid-template-columns: 1fr; gap: 42px; padding: 64px 0 72px; }
         h1 { font-size: clamp(3.5rem, 18vw, 6rem); }
+        .partner-grid { grid-template-columns: 1fr; gap: 10px; }
         .section-heading, .features { grid-template-columns: 1fr; }
         .features { gap: 1px; }
         .closing { display: block; }
@@ -87,6 +93,15 @@
           <div class="signal-label">The signal matters</div>
           <blockquote>“Trust is built into the route, not added at the end.”</blockquote>
         </aside>
+      </section>
+
+      <section class="shell partners" aria-labelledby="partners-title">
+        <div class="partners-label" id="partners-title">Research and education partners</div>
+        <div class="partner-grid">
+          <div class="partner"><img src="assets/research-ireland.svg" alt="Research Ireland" /></div>
+          <div class="partner"><img src="assets/university-of-limerick.svg" alt="University of Limerick" /></div>
+          <div class="partner"><img src="assets/dublin-city-university.svg" alt="Dublin City University" /></div>
+        </div>
       </section>
       <section class="shell section" id="mission">
         <div class="section-heading">
