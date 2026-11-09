@@ -1,4 +1,5 @@
-# Builds the DiSSENT PHP pages into static HTML and deploys them to GitHub Pages.
+#Builds every DiSSENT PHP page in its own job, reports the status of each page,
+# then deploys the site to GitHub Pages.
 # Runs automatically on every push to main, or manually from the Actions tab.
 
 name: Build and deploy DiSSENT pages
@@ -19,9 +20,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build pages
+  # 1. Find all the pages in docs/Pages
+  find-pages:
+    name: Find pages
     runs-on: ubuntu-latest
+    outputs:
+      pages: ${{ steps.list.outputs.pages }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: List PHP pages
+        id: list
+        run: |
+          # Backend endpoints, not pages people visit. Edit this list if needed.
+          skip="logout send_message get_new_messages message_status"
+          pages=()
+          for f in docs/Pages/*.php; do
+            name=$(basename "$f" .php)
+            if [[ " $skip " == *" $name "* ]]; then continue; fi
+            pages+=("\"$name\"")
+          done
+          json="[$(IFS=,; echo "${pages[*]}")]"
+          echo "Pages found: $json"
+          echo "pages=$json" >> "$GITHUB_OUTPUT"
+
+  # 2. Build each page in its own job (one box per page)
+  build-page:
+    name: Build ${{ matrix.page }}
+    needs: find-pages
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        page: ${{ fromJson(needs.find-pages.outputs.pages) }}
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -31,41 +63,107 @@ jobs:
         with:
           php-version: '8.2'
 
-      - name: Start PHP server
+      - name: Render ${{ matrix.page }}.php
         run: |
           php -d display_errors=0 -S 127.0.0.1:8888 -t . > php-server.log 2>&1 &
-          sleep 3
+          sleep 2
+          mkdir -p out
+          code=$(curl -s -L -o "out/${{ matrix.page }}.html" -w "%{http_code}" \
+                          "http://127.0.0.1:8888/docs/Pages/${{ matrix.page }}.php")
+          echo "${{ matrix.page }} $code" > "out/${{ matrix.page }}.status"
+          echo "HTTP $code"
+          if [ "$code" -ge 200 ] && [ "$code" -lt 400 ] && [ -s "out/${{ matrix.page }}.html" ]; then
+            echo "✅ ${{ matrix.page }} built"
+          else
+            echo "::warning title=${{ matrix.page }}.php::Returned HTTP $code. This page needs the database or backend, so it only fully works locally."
+          fi
 
-      - name: Render PHP pages to HTML
+      - name: Save built page
+        uses: actions/upload-artifact@v4
+        with:
+          name: page-${{ matrix.page }}
+          path: out/
+          retention-days: 1
+
+  # 3. Collect all pages, write the status report and prepare the site
+  report-build-status:
+    name: Report build status
+    needs: build-page
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Collect built pages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: page-*
+          path: pages
+          merge-multiple: true
+
+      - name: Write build report
         run: |
+          shopt -s nullglob
+          {
+            echo "## DiSSENT page build report"
+            echo ""
+            echo "| Page | HTTP status | Result |"
+            echo "|---|---|---|"
+            for s in pages/*.status; do
+              read -r name code < "$s"
+              if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+                result="✅ Built"
+              else
+                result="⚠️ Needs backend (works locally only)"
+              fi
+              echo "| $name | $code | $result |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Assemble site
+        run: |
+          shopt -s nullglob
           mkdir -p _site/docs/Pages
+          cp pages/*.html _site/docs/Pages/
           cp -r docs/assets _site/docs/assets
           if [ -d site ]; then cp -r site _site/site; fi
 
-          echo "## DiSSENT page build report" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Page | HTTP status | Result |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
-
-          for f in docs/Pages/*.php; do
-            name=$(basename "$f" .php)
-            code=$(curl -s -L -o "_site/docs/Pages/$name.html" -w "%{http_code}" \
-                   "http://127.0.0.1:8888/docs/Pages/$name.php")
-            if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
-              result="✅ Built"
-            else
-              result="⚠️ Needs backend (works locally only)"
-            fi
-            echo "$name.php -> HTTP $code"
-            echo "| $name | $code | $result |" >> "$GITHUB_STEP_SUMMARY"
-          done
-
-      - name: Make links point to the HTML pages
-        run: |
+          # Make links point to the HTML versions of the pages
           find _site -name "*.html" -exec sed -i -E 's/([A-Za-z0-9_-]+)\.php/\1.html/g' {} +
 
-      - name: Add homepage redirect
-        run: |
+          # Online preview mode: GitHub Pages cannot receive form data (it returns
+          # "405 Not Allowed"), so show a friendly message instead and add a banner.
+          cat > _site/docs/assets/preview-mode.js <<'EOF'
+          (function () {
+            var msg = 'This is the online preview of DiSSENT.\n\n' +
+                      'Registration, login and messaging need the database and backend, ' +
+                      'so they only work in the full version of the system.';
+            document.addEventListener('submit', function (e) {
+              e.preventDefault();
+              e.stopImmediatePropagation();
+              alert(msg);
+            }, true);
+            function showBanner() {
+              var b = document.createElement('div');
+              b.textContent = 'Online preview: forms (register, login, messaging) are disabled here.';
+              b.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;' +
+                'background:#1f2a5c;color:#fff;text-align:center;padding:10px 16px;' +
+                'font:14px/1.4 Arial,sans-serif;';
+              document.body.appendChild(b);
+            }
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', showBanner);
+            } else {
+              showBanner();
+            }
+          })();
+          EOF
+          for f in _site/docs/Pages/*.html; do
+            sed -i 's#</body>#<script src="../assets/preview-mode.js"></script></body>#' "$f"
+          done
+
+          # Homepage redirect
           cat > _site/index.html <<'EOF'
           <!DOCTYPE html>
           <html lang="en">
@@ -81,11 +179,8 @@ jobs:
           EOF
           touch _site/.nojekyll
 
-      - name: Check the homepage was built
-        run: |
           if [ ! -s _site/docs/Pages/home.html ]; then
-            echo "home.php did not render. PHP server log:"
-            cat php-server.log
+            echo "::error title=home.php::The homepage did not build, so the site was not deployed."
             exit 1
           fi
 
@@ -94,9 +189,10 @@ jobs:
         with:
           path: _site
 
+  # 4. Publish to GitHub Pages
   deploy:
     name: Deploy to GitHub Pages
-    needs: build
+    needs: report-build-status
     runs-on: ubuntu-latest
     environment:
       name: github-pages
