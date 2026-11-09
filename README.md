@@ -226,6 +226,7 @@ After editing a PHP file: save (**Ctrl + S**) and refresh the browser (**F5**). 
 - [ ] Make the site work fully offline for the demo (local Bootstrap and fonts)
 - [ ] Prepare demo day script and backup recording
 - [ ] Write final user guide
+- [ ] Integrate with AI
 
 ---
 
