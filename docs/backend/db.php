@@ -2,10 +2,10 @@
 
 mysqli_report(MYSQLI_REPORT_OFF);
 
-$host = "sql208.infinityfree.com";
-$user = "if0_42242989";
-$password = "PASTE_YOUR_NEW_PASSWORD_HERE";
-$database = "if0_42242989_dissent_db";
+$host = "127.0.0.1";
+$user = "root";
+$password = "";
+$database = "dissent_local";
 
 $conn = @mysqli_connect(
     $host,

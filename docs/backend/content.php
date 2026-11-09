@@ -3,339 +3,982 @@
 require_once __DIR__ . '/blockchain_client.php';
 require_once __DIR__ . '/messaging_client.php';
 
-// Set to false once real email sending is configured — while true,
-// forgot_password.php shows the reset link on-screen instead of emailing it.
-define('DEBUG_MODE', true);
-
-function e($value){
-    return htmlspecialchars((string)$value, ENT_QUOTES, "UTF-8");
+// Do not display password-reset links on screen.
+// Email delivery must be configured separately.
+if (!defined('DEBUG_MODE')) {
+    define('DEBUG_MODE', false);
 }
 
-function db_ready(){
+
+/* -------------------------------------------------
+   Output escaping
+------------------------------------------------- */
+
+function e($value)
+{
+    return htmlspecialchars(
+        (string) $value,
+        ENT_QUOTES | ENT_SUBSTITUTE,
+        'UTF-8'
+    );
+}
+
+
+/* -------------------------------------------------
+   Database helpers
+------------------------------------------------- */
+
+function db_ready()
+{
     global $conn;
+
     return isset($conn) && $conn instanceof mysqli;
 }
 
-function db_count($table, $where = "1=1"){
-    if(!db_ready()){
-        return 0;
+
+// Use only developer-controlled table names and conditions.
+// Never pass raw form or URL input into $where.
+function db_count($table, $where = "1=1")
+{
+    if (!db_ready()) {
+        throw new RuntimeException('Database connection unavailable.');
+    }
+
+    if (
+        !is_string($table) ||
+        !preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)
+    ) {
+        throw new InvalidArgumentException('Invalid table name.');
     }
 
     global $conn;
-    $result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM $table WHERE $where");
 
-    if(!$result){
-        return 0;
+    $result = mysqli_query(
+        $conn,
+        "SELECT COUNT(*) AS total FROM `$table` WHERE $where"
+    );
+
+    if (!$result) {
+        throw new RuntimeException('Database count failed.');
     }
 
     $row = mysqli_fetch_assoc($result);
-    return (int)$row['total'];
+    mysqli_free_result($result);
+
+    return (int) $row['total'];
 }
 
-function db_rows($sql){
-    if(!db_ready()){
-        return array();
+
+// SQL passed here must be developer-controlled.
+// Use prepared statements for user-supplied values.
+function db_rows($sql)
+{
+    if (!db_ready()) {
+        throw new RuntimeException('Database connection unavailable.');
     }
 
     global $conn;
+
     $result = mysqli_query($conn, $sql);
 
-    if(!$result){
-        return array();
+    if (!$result instanceof mysqli_result) {
+        throw new RuntimeException('Database query failed.');
     }
 
     $rows = array();
-    while($row = mysqli_fetch_assoc($result)){
+
+    while ($row = mysqli_fetch_assoc($result)) {
         $rows[] = $row;
     }
+
+    mysqli_free_result($result);
 
     return $rows;
 }
 
-function platform_content(){
+
+/* -------------------------------------------------
+   Shared platform text
+------------------------------------------------- */
+
+function platform_content()
+{
     return array(
-        "features" => array(
-            array("title" => "Secure Messaging", "text" => "Protected conversations between journalists, media organisations and verification partners.", "link" => "messaging.php"),
-            array("title" => "Blockchain Verification", "text" => "Report authenticity, immutable timestamps and transparent status tracking.", "link" => "verification.php"),
-            array("title" => "Report Management", "text" => "Submit, review and monitor investigations from one workspace.", "link" => "reports.php"),
-            array("title" => "Media Collaboration", "text" => "Coordinate trusted cross-border publishing workflows.", "link" => "media_center.php")
+        'features' => array(
+            array(
+                'title' => 'Messaging',
+                'text' => 'Exchange messages with journalists and media teams, with secure-transfer status tracking.',
+                'link' => 'messaging.php'
+            ),
+            array(
+                'title' => 'Blockchain Integrity',
+                'text' => 'Record report fingerprints and check integrity separately from editorial approval.',
+                'link' => 'verification.php'
+            ),
+            array(
+                'title' => 'Report Management',
+                'text' => 'Submit reports and follow editorial review decisions.',
+                'link' => 'reports.php'
+            ),
+            array(
+                'title' => 'Media Collaboration',
+                'text' => 'Explore approved reports and coordinate cross-border work.',
+                'link' => 'media_center.php'
+            )
         ),
-        "workflow" => array(
-            array("title" => "Submit Information", "text" => "Journalists submit reports, evidence links and source context.", "link" => "reports.php"),
-            array("title" => "Secure Transfer", "text" => "Partners coordinate through the protected messaging workspace.", "link" => "messaging.php"),
-            array("title" => "Verify Evidence", "text" => "Reports are checked, timestamped and prepared for publication.", "link" => "verification.php")
+
+        'workflow' => array(
+            array(
+                'title' => 'Submit a Report',
+                'text' => 'Provide your report and supporting evidence links.',
+                'link' => 'reports.php'
+            ),
+            array(
+                'title' => 'Coordinate with Others',
+                'text' => 'Use the messaging workspace to communicate with your contacts.',
+                'link' => 'messaging.php'
+            ),
+            array(
+                'title' => 'Review and Publish',
+                'text' => 'An authorised reviewer decides whether a report is suitable for publication.',
+                'link' => 'media_center.php'
+            )
         ),
-        "partners" => array(
-            array("name" => "MiCT", "text" => "Media in Cooperation and Transition", "url" => "https://www.mict-international.org/"),
-            array("name" => "ECHO", "text" => "Ireland media partner", "url" => "https://www.echo.ie/")
+
+        // Existing organisation links retained from your original file.
+        // Confirm names, links and partnership wording before launch.
+        'partners' => array(
+            array(
+                'name' => 'MiCT',
+                'text' => 'Media in Cooperation and Transition',
+                'url' => 'https://www.mict-international.org/'
+            ),
+            array(
+                'name' => 'ECHO',
+                'text' => 'Ireland media partner',
+                'url' => 'https://www.echo.ie/'
+            )
         ),
-        "benefits" => array(
-            array("title" => "Security", "text" => "Protected channels for sensitive journalism workflows."),
-            array("title" => "Verification", "text" => "Status tracking and evidence validation for submitted reports."),
-            array("title" => "Transparency", "text" => "Clear activity, timestamps and partner accountability."),
-            array("title" => "Collaboration", "text" => "A shared workspace for cross-border media teams.")
+
+        'benefits' => array(
+            array(
+                'title' => 'Access Control',
+                'text' => 'Separate permissions for reporters and administrators.'
+            ),
+            array(
+                'title' => 'Integrity',
+                'text' => 'Technical integrity checks kept separate from editorial decisions.'
+            ),
+            array(
+                'title' => 'Accountability',
+                'text' => 'Recorded review actions and report statuses.'
+            ),
+            array(
+                'title' => 'Collaboration',
+                'text' => 'A shared workspace for cross-border media teams.'
+            )
         )
     );
 }
 
-// Real publications, pulled live from the reports table.
-// Public visitors only ever see verified reports; pass true to see everything (admin view).
-function get_publications($search = "", $show_all_statuses = false){
-    if(!db_ready()){
-        return array();
+
+/* -------------------------------------------------
+   Authentication and admin permissions
+------------------------------------------------- */
+
+function require_login()
+{
+    $user_id = $_SESSION['user_id'] ?? null;
+
+    if (
+        !is_scalar($user_id) ||
+        filter_var(
+            $user_id,
+            FILTER_VALIDATE_INT,
+            array('options' => array('min_range' => 1))
+        ) === false
+    ) {
+        header('Location: login.php');
+        exit();
+    }
+}
+
+
+// Read current permissions instead of trusting an old session role.
+function content_user_is_admin()
+{
+    if (!db_ready()) {
+        return false;
+    }
+
+    $user_id = $_SESSION['user_id'] ?? null;
+
+    if (
+        !is_scalar($user_id) ||
+        filter_var(
+            $user_id,
+            FILTER_VALIDATE_INT,
+            array('options' => array('min_range' => 1))
+        ) === false
+    ) {
+        return false;
     }
 
     global $conn;
 
-    $sql = "SELECT r.id, r.title, r.category, r.description, r.location, r.evidence,
-                r.status, r.created_at,
-                u.fullname, u.organisation, vc.block_hash
-            FROM reports r
-            JOIN users u ON r.user_id = u.id
-            LEFT JOIN verification_chain vc ON vc.report_id = r.id
-            WHERE 1=1";
+    $user_id = (int) $user_id;
 
-    if(!$show_all_statuses){
-        $sql .= " AND r.status = 'Verified'";
+    $stmt = mysqli_prepare(
+        $conn,
+        "SELECT role FROM users WHERE id = ? LIMIT 1"
+    );
+
+    if (!$stmt) {
+        throw new RuntimeException('Could not check account permissions.');
     }
 
-    if($search !== ""){
-        $safe = mysqli_real_escape_string($conn, $search);
-        $sql .= " AND (r.title LIKE '%$safe%' OR r.description LIKE '%$safe%' OR r.category LIKE '%$safe%' OR u.fullname LIKE '%$safe%')";
+    mysqli_stmt_bind_param($stmt, 'i', $user_id);
+
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new RuntimeException('Could not check account permissions.');
     }
 
-    $sql .= " ORDER BY r.created_at DESC";
+    $result = mysqli_stmt_get_result($stmt);
 
-    return db_rows($sql);
-}
-function summarize($text, $length = 160){
-    $text = trim(strip_tags($text));
-    if(strlen($text) <= $length){
-        return $text;
-    }
-    return substr($text, 0, $length) . '…';
-}
-
-function get_updates($limit = 6){
-    if(!db_ready()){
-        return array();
+    if (!$result) {
+        throw new RuntimeException('Account permissions unavailable.');
     }
 
-    $submissions = db_rows("
-        SELECT r.title, r.created_at AS event_time, u.fullname,
-            'submitted' AS event_type
-        FROM reports r
-        JOIN users u ON r.user_id = u.id
-        ORDER BY r.created_at DESC
-        LIMIT $limit
-    ");
+    $user = mysqli_fetch_assoc($result);
+    mysqli_stmt_close($stmt);
 
-    $verifications = db_rows("
-        SELECT r.title, vc.created_at AS event_time, u.fullname,
-            'verified' AS event_type
-        FROM verification_chain vc
-        JOIN reports r ON vc.report_id = r.id
-        JOIN users u ON r.user_id = u.id
-        WHERE r.status = 'Verified'
-        ORDER BY vc.created_at DESC
-        LIMIT $limit
-    ");
-
-    $events = array_merge($submissions, $verifications);
-
-    usort($events, function($a, $b){
-        return strtotime($b['event_time']) <=> strtotime($a['event_time']);
-    });
-
-    $events = array_slice($events, 0, $limit);
-
-    return array_map(function($event){
-        if($event['event_type'] === 'verified'){
-            return e($event['title']) . ' was verified and published.';
-        }
-        return 'New report "' . e($event['title']) . '" submitted by ' . e($event['fullname']) . '.';
-    }, $events);
+    return $user && $user['role'] === 'admin';
 }
 
-function filter_items($items, $query){
-    $query = strtolower(trim($query));
 
-    if($query === ""){
-        return $items;
+function require_admin()
+{
+    require_login();
+
+    if (!db_ready()) {
+        require_once __DIR__ . '/db.php';
     }
 
-    return array_values(array_filter($items, function($item) use ($query){
-        return strpos(strtolower(implode(" ", $item)), $query) !== false;
-    }));
+    try {
+        $is_admin = content_user_is_admin();
+    } catch (Throwable $exception) {
+        error_log('DiSSENT: admin permission check failed.');
+
+        http_response_code(503);
+        exit('Account permissions could not be checked. Please try again.');
+    }
+
+    if (!$is_admin) {
+        http_response_code(403);
+        exit('You do not have permission to access this page.');
+    }
 }
 
-function csrf_token(){
-    if(empty($_SESSION['csrf_token'])){
+
+/* -------------------------------------------------
+   CSRF protection
+------------------------------------------------- */
+
+function csrf_token()
+{
+    if (
+        !isset($_SESSION['csrf_token']) ||
+        !is_string($_SESSION['csrf_token']) ||
+        $_SESSION['csrf_token'] === ''
+    ) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
+
     return $_SESSION['csrf_token'];
 }
 
-function csrf_field(){
-    return '<input type="hidden" name="csrf_token" value="' . csrf_token() . '">';
+
+function csrf_field()
+{
+    return '<input type="hidden" name="csrf_token" value="'
+        . e(csrf_token())
+        . '">';
 }
 
-function verify_csrf(){
-    if(
-        !isset($_POST['csrf_token']) ||
-        !isset($_SESSION['csrf_token']) ||
-        !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])
-    ){
-        die('Your session expired. Please go back and try again.');
+
+function verify_csrf()
+{
+    $submitted = $_POST['csrf_token'] ?? null;
+    $expected = $_SESSION['csrf_token'] ?? null;
+
+    if (
+        !is_string($submitted) ||
+        !is_string($expected) ||
+        $expected === '' ||
+        !hash_equals($expected, $submitted)
+    ) {
+        http_response_code(403);
+
+        exit(
+            'Your form session is invalid or expired. '
+            . 'Please reload the page and try again.'
+        );
     }
 }
 
-function require_login(){
-    if(!isset($_SESSION['user_id'])){
-        header("Location: login.php");
-        exit();
+
+/* -------------------------------------------------
+   Public reports
+------------------------------------------------- */
+
+function get_publications($search = "", $show_all_statuses = false)
+{
+    if (!db_ready()) {
+        throw new RuntimeException('Database connection unavailable.');
     }
-}
 
-function require_admin(){
-    require_login();
-    if(!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin'){
-        header("Location: dashboard.php");
-        exit();
+    global $conn;
+
+    $can_view_all = $show_all_statuses
+        ? content_user_is_admin()
+        : false;
+
+    $sql = "
+        SELECT
+            r.id, r.title, r.category, r.description,
+            r.location, r.evidence, r.status, r.created_at,
+            u.fullname, u.organisation,
+            (
+                SELECT vc.block_hash
+                FROM verification_chain vc
+                WHERE vc.report_id = r.id
+                ORDER BY vc.created_at DESC
+                LIMIT 1
+            ) AS block_hash
+        FROM reports r
+        JOIN users u ON r.user_id = u.id
+    ";
+
+    $conditions = array();
+
+    // Previous Verified records are not automatically republished.
+    if (!$can_view_all) {
+        $conditions[] = "r.status = 'Approved'";
     }
-}
 
-// Hash-chain verification is now a real Hyperledger Fabric ledger, reached through
-// securecomm's REST API (see backend/blockchain_client.php) instead of being simulated
-// in MySQL. verification_chain stays as a local read cache so listing pages (media
-// center, homepage updates) don't need a live HTTP round trip per row — admin.php
-// writes to it right after a successful ledger call, via this helper.
-function cache_verification_block($report_id, $block_hash){
-    global $conn;
-    $stmt = mysqli_prepare($conn, "INSERT INTO verification_chain (report_id, prev_hash, data_hash, block_hash) VALUES (?, '', '', ?)");
-    mysqli_stmt_bind_param($stmt, 'is', $report_id, $block_hash);
-    mysqli_stmt_execute($stmt);
-}
+    $search = is_string($search) ? trim($search) : '';
 
-function create_password_reset($email){
-    global $conn;
+    if ($search !== '') {
+        $conditions[] = "
+            (
+                r.title LIKE ?
+                OR r.description LIKE ?
+                OR r.category LIKE ?
+                OR u.fullname LIKE ?
+            )
+        ";
+    }
 
-    $token = bin2hex(random_bytes(32));
+    if (!empty($conditions)) {
+        $sql .= ' WHERE ' . implode(' AND ', $conditions);
+    }
 
-    $stmt = mysqli_prepare($conn, "INSERT INTO password_resets (email, token) VALUES (?, ?)");
-    mysqli_stmt_bind_param($stmt, 'ss', $email, $token);
-    mysqli_stmt_execute($stmt);
+    $sql .= ' ORDER BY r.created_at DESC, r.id DESC';
 
-    return $token;
-}
+    $stmt = mysqli_prepare($conn, $sql);
 
-function get_valid_reset($token){
-    global $conn;
+    if (!$stmt) {
+        throw new RuntimeException('Could not prepare publication lookup.');
+    }
 
-    // Expiry is checked in SQL (against MySQL's own NOW()) rather than comparing
-    // MySQL's created_at to PHP's clock — PHP and MySQL can run in different
-    // timezones (seen locally: PHP in Europe/Berlin, MySQL server in UTC+1), which
-    // silently made every reset link look expired immediately.
-    $stmt = mysqli_prepare($conn, "SELECT * FROM password_resets WHERE token = ? AND created_at >= NOW() - INTERVAL 60 MINUTE ORDER BY id DESC LIMIT 1");
-    mysqli_stmt_bind_param($stmt, 's', $token);
-    mysqli_stmt_execute($stmt);
+    if ($search !== '') {
+        $pattern = '%' . $search . '%';
+
+        mysqli_stmt_bind_param(
+            $stmt,
+            'ssss',
+            $pattern,
+            $pattern,
+            $pattern,
+            $pattern
+        );
+    }
+
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new RuntimeException('Could not load publications.');
+    }
+
     $result = mysqli_stmt_get_result($stmt);
-    $row = mysqli_fetch_assoc($result);
 
-    return $row ?: null;
+    if (!$result) {
+        throw new RuntimeException('Publication results unavailable.');
+    }
+
+    $rows = array();
+
+    while ($row = mysqli_fetch_assoc($result)) {
+        // Approval of a report does not automatically publish its evidence.
+        if (!$can_view_all) {
+            $row['evidence'] = '';
+        }
+
+        $rows[] = $row;
+    }
+
+    mysqli_stmt_close($stmt);
+
+    return $rows;
 }
 
-function consume_reset_token($token){
+
+// Public activity only. Personal dashboard activity is separate.
+function get_updates($limit = 6)
+{
+    $limit = max(1, min(50, (int) $limit));
+
+    $rows = db_rows("
+        SELECT
+            r.id,
+            r.title,
+            MAX(aa.action_at) AS event_time
+        FROM reports r
+        JOIN admin_actions aa ON aa.report_id = r.id
+        WHERE r.status = 'Approved'
+          AND aa.action = 'Approved'
+        GROUP BY r.id, r.title
+        ORDER BY event_time DESC, r.id DESC
+        LIMIT $limit
+    ");
+
+    // Keep the original function's escaped-HTML return format.
+    return array_map(function ($row) {
+        return 'Report “' . e($row['title'])
+            . '” was approved for publication.';
+    }, $rows);
+}
+
+
+/* -------------------------------------------------
+   Text helpers
+------------------------------------------------- */
+
+function summarize($text, $length = 160)
+{
+    $text = trim(strip_tags((string) $text));
+    $length = max(1, (int) $length);
+
+    if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+        if (mb_strlen($text, 'UTF-8') <= $length) {
+            return $text;
+        }
+
+        return mb_substr($text, 0, $length, 'UTF-8') . '…';
+    }
+
+    if (strlen($text) <= $length) {
+        return $text;
+    }
+
+    return substr($text, 0, $length) . '…';
+}
+
+
+function filter_items($items, $query)
+{
+    $query = strtolower(trim((string) $query));
+
+    if ($query === '') {
+        return $items;
+    }
+
+    return array_values(array_filter($items, function ($item) use ($query) {
+        $values = array_filter($item, 'is_scalar');
+        $text = strtolower(implode(' ', $values));
+
+        return strpos($text, $query) !== false;
+    }));
+}
+
+
+/* -------------------------------------------------
+   Local verification cache
+------------------------------------------------- */
+
+// This is a local cache of a hash reported by the Java service.
+// It is not independent proof of a committed Fabric transaction.
+function cache_verification_block($report_id, $block_hash)
+{
+    if (!db_ready()) {
+        throw new RuntimeException('Database connection unavailable.');
+    }
+
+    if (!is_string($block_hash) || trim($block_hash) === '') {
+        throw new InvalidArgumentException('A block hash is required.');
+    }
+
     global $conn;
-    $stmt = mysqli_prepare($conn, "DELETE FROM password_resets WHERE token = ?");
-    mysqli_stmt_bind_param($stmt, 's', $token);
-    mysqli_stmt_execute($stmt);
+
+    $report_id = (int) $report_id;
+    $block_hash = trim($block_hash);
+
+    if ($report_id <= 0) {
+        throw new InvalidArgumentException('Invalid report ID.');
+    }
+
+    $stmt = mysqli_prepare(
+        $conn,
+        "INSERT INTO verification_chain
+            (report_id, prev_hash, data_hash, block_hash)
+         VALUES (?, '', '', ?)"
+    );
+
+    if (!$stmt) {
+        throw new RuntimeException('Could not prepare verification cache.');
+    }
+
+    mysqli_stmt_bind_param($stmt, 'is', $report_id, $block_hash);
+
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new RuntimeException('Could not save verification cache.');
+    }
+
+    mysqli_stmt_close($stmt);
 }
 
-// Whole-chain tamper check now runs against the real Fabric ledger. Returns true/false,
-// or null if the verification service is unreachable — callers must treat null as
-// "unknown", not as "broken".
-function get_verification_stats(){
+
+/* -------------------------------------------------
+   Verification listings
+------------------------------------------------- */
+
+function get_verification_stats()
+{
+    $recorded_rows = db_rows("
+        SELECT COUNT(DISTINCT r.id) AS total
+        FROM reports r
+        JOIN verification_chain vc ON vc.report_id = r.id
+        WHERE r.status = 'Approved'
+          AND vc.block_hash IS NOT NULL
+          AND vc.block_hash <> ''
+    ");
+
+    $recorded_count = (int) $recorded_rows[0]['total'];
+
     return array(
         'total_reports' => db_count('reports'),
-        'verified_count' => db_count('reports', "status = 'Verified'"),
-        'pending_count' => db_count('reports', "status = 'Pending'"),
+        'approved_count' => db_count(
+            'reports',
+            "status = 'Approved'"
+        ),
+        'pending_count' => db_count(
+            'reports',
+            "status = 'Pending'"
+        ),
+        'rejected_count' => db_count(
+            'reports',
+            "status = 'Rejected'"
+        ),
+        'recorded_count' => $recorded_count,
+
+        // Compatibility key for existing pages.
+        // This counts cached records, not fresh integrity checks.
+        'verified_count' => $recorded_count,
+
         'chain_intact' => bc_verify_chain_integrity()
     );
 }
 
-// Recent verified reports with their hash-chain block, most recent first
-function get_verification_history($limit = 10){
+
+// Approved reports with a local recording hash.
+// A cache entry is not a fresh integrity verification.
+function get_verification_history($limit = 10)
+{
+    $limit = max(1, min(100, (int) $limit));
+
     return db_rows("
-        SELECT r.id, r.title, r.category, r.status, u.fullname,
-        vc.block_hash, vc.created_at AS verified_at
+        SELECT
+            r.id, r.title, r.category, r.status, u.fullname,
+            vc.block_hash, vc.created_at AS verified_at
         FROM verification_chain vc
         JOIN reports r ON vc.report_id = r.id
         JOIN users u ON r.user_id = u.id
+        WHERE r.status = 'Approved'
+          AND vc.block_hash IS NOT NULL
+          AND vc.block_hash <> ''
         ORDER BY vc.created_at DESC
         LIMIT $limit
     ");
 }
 
-// Search a single verified report by ID or title/journalist name
-function find_verified_report($query){
+
+// Retains the existing function name for compatibility.
+// Returns an approved report and its cached recording information.
+function find_verified_report($query)
+{
+    if (!db_ready()) {
+        throw new RuntimeException('Database connection unavailable.');
+    }
+
+    if (!is_scalar($query)) {
+        return null;
+    }
+
     global $conn;
 
-    if(is_numeric($query)){
-        $stmt = mysqli_prepare($conn, "
-            SELECT r.*, u.fullname, vc.block_hash, vc.prev_hash, vc.data_hash, vc.created_at AS verified_at
-            FROM reports r
-            JOIN users u ON r.user_id = u.id
-            LEFT JOIN verification_chain vc ON vc.report_id = r.id
-            WHERE r.id = ? AND r.status = 'Verified'
-        ");
-        $id = (int)$query;
-        mysqli_stmt_bind_param($stmt, 'i', $id);
-    }else{
-        $safe = '%' . mysqli_real_escape_string($conn, $query) . '%';
-        $stmt = mysqli_prepare($conn, "
-            SELECT r.*, u.fullname, vc.block_hash, vc.prev_hash, vc.data_hash, vc.created_at AS verified_at
-            FROM reports r
-            JOIN users u ON r.user_id = u.id
-            LEFT JOIN verification_chain vc ON vc.report_id = r.id
-            WHERE r.status = 'Verified' AND (r.title LIKE ? OR u.fullname LIKE ?)
+    $query = trim((string) $query);
+
+    if ($query === '') {
+        return null;
+    }
+
+    $sql = "
+        SELECT
+            r.id, r.user_id, r.title, r.category,
+            r.description, r.location,
+            '' AS evidence,
+            r.status, r.created_at,
+            u.fullname,
+            vc.block_hash, vc.prev_hash, vc.data_hash,
+            vc.created_at AS verified_at
+        FROM reports r
+        JOIN users u ON r.user_id = u.id
+        LEFT JOIN verification_chain vc ON vc.report_id = r.id
+        WHERE r.status = 'Approved'
+    ";
+
+    $id = filter_var(
+        $query,
+        FILTER_VALIDATE_INT,
+        array('options' => array('min_range' => 1))
+    );
+
+    if ($id !== false) {
+        $sql .= "
+            AND r.id = ?
+            ORDER BY vc.created_at DESC
             LIMIT 1
-        ");
-        mysqli_stmt_bind_param($stmt, 'ss', $safe, $safe);
+        ";
+
+        $stmt = mysqli_prepare($conn, $sql);
+
+        if (!$stmt) {
+            throw new RuntimeException('Could not prepare report lookup.');
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $id);
+    } else {
+        $sql .= "
+            AND (r.title LIKE ? OR u.fullname LIKE ?)
+            ORDER BY r.created_at DESC, vc.created_at DESC
+            LIMIT 1
+        ";
+
+        $stmt = mysqli_prepare($conn, $sql);
+
+        if (!$stmt) {
+            throw new RuntimeException('Could not prepare report lookup.');
+        }
+
+        // Prepared parameters do not need mysqli_real_escape_string().
+        $pattern = '%' . $query . '%';
+
+        mysqli_stmt_bind_param($stmt, 'ss', $pattern, $pattern);
     }
 
-    mysqli_stmt_execute($stmt);
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new RuntimeException('Could not load the report.');
+    }
+
     $result = mysqli_stmt_get_result($stmt);
-    return mysqli_fetch_assoc($result);
+
+    if (!$result) {
+        throw new RuntimeException('Report result unavailable.');
+    }
+
+    $row = mysqli_fetch_assoc($result);
+    mysqli_stmt_close($stmt);
+
+    return $row ?: null;
 }
 
-function get_avatar_html($user){
-    if(!empty($user['profile_picture']) && file_exists(__DIR__ . '/../uploads/profile_pictures/' . $user['profile_picture'])){
-        return '<img src="../uploads/profile_pictures/' . e($user['profile_picture']) . '" class="profile-avatar-img" alt="Profile picture">';
+
+/* -------------------------------------------------
+   Password-reset helpers
+------------------------------------------------- */
+
+// Existing token format retained for compatibility with reset pages.
+// Token hashing and atomic one-use redemption need coordinated changes
+// to those pages and the password_resets table.
+function create_password_reset($email)
+{
+    if (!db_ready()) {
+        throw new RuntimeException('Database connection unavailable.');
     }
-    return '<div class="profile-avatar">' . e(strtoupper(substr($user['fullname'], 0, 1))) . '</div>';
+
+    if (
+        !is_string($email) ||
+        !filter_var($email, FILTER_VALIDATE_EMAIL)
+    ) {
+        throw new InvalidArgumentException('A valid email is required.');
+    }
+
+    global $conn;
+
+    $token = bin2hex(random_bytes(32));
+
+    $stmt = mysqli_prepare(
+        $conn,
+        "INSERT INTO password_resets (email, token) VALUES (?, ?)"
+    );
+
+    if (!$stmt) {
+        throw new RuntimeException('Could not prepare password reset.');
+    }
+
+    mysqli_stmt_bind_param($stmt, 'ss', $email, $token);
+
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new RuntimeException('Could not save password reset.');
+    }
+
+    mysqli_stmt_close($stmt);
+
+    return $token;
 }
 
-function handle_avatar_upload($file){
-    $allowed = array('jpg', 'jpeg', 'png', 'gif');
-    $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
-    if(!in_array($ext, $allowed)){
-        return array('error' => 'Only JPG, PNG, or GIF images are allowed.');
+function get_valid_reset($token)
+{
+    if (
+        !is_string($token) ||
+        !preg_match('/^[a-f0-9]{64}$/', $token)
+    ) {
+        return null;
     }
 
-    if($file['size'] > 3 * 1024 * 1024){
-        return array('error' => 'Image must be smaller than 3MB.');
+    if (!db_ready()) {
+        throw new RuntimeException('Database connection unavailable.');
     }
 
-    $safe_name = 'avatar_' . uniqid() . '.' . $ext;
-    $dest_dir = __DIR__ . '/../uploads/profile_pictures/';
-    $dest = $dest_dir . $safe_name;
+    global $conn;
 
-    if(move_uploaded_file($file['tmp_name'], $dest)){
-        return array('filename' => $safe_name);
+    $stmt = mysqli_prepare(
+        $conn,
+        "SELECT *
+         FROM password_resets
+         WHERE token = ?
+           AND created_at >= NOW() - INTERVAL 60 MINUTE
+         ORDER BY id DESC
+         LIMIT 1"
+    );
+
+    if (!$stmt) {
+        throw new RuntimeException('Could not prepare reset lookup.');
     }
 
-    return array('error' => 'Upload failed. Please try again.');
+    mysqli_stmt_bind_param($stmt, 's', $token);
+
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new RuntimeException('Could not check password reset.');
+    }
+
+    $result = mysqli_stmt_get_result($stmt);
+
+    if (!$result) {
+        throw new RuntimeException('Password reset result unavailable.');
+    }
+
+    $row = mysqli_fetch_assoc($result);
+    mysqli_stmt_close($stmt);
+
+    return $row ?: null;
 }
-?>
+
+
+function consume_reset_token($token)
+{
+    if (
+        !is_string($token) ||
+        !preg_match('/^[a-f0-9]{64}$/', $token)
+    ) {
+        return;
+    }
+
+    if (!db_ready()) {
+        throw new RuntimeException('Database connection unavailable.');
+    }
+
+    global $conn;
+
+    $stmt = mysqli_prepare(
+        $conn,
+        "DELETE FROM password_resets WHERE token = ?"
+    );
+
+    if (!$stmt) {
+        throw new RuntimeException('Could not prepare reset removal.');
+    }
+
+    mysqli_stmt_bind_param($stmt, 's', $token);
+
+    if (!mysqli_stmt_execute($stmt)) {
+        throw new RuntimeException('Could not remove password reset.');
+    }
+
+    mysqli_stmt_close($stmt);
+}
+
+
+/* -------------------------------------------------
+   Profile avatars
+------------------------------------------------- */
+
+function get_avatar_html($user)
+{
+    $filename = $user['profile_picture'] ?? '';
+
+    // Accept filenames only, never directories or traversal paths.
+    if (
+        is_string($filename) &&
+        preg_match('/^[a-zA-Z0-9_-]+\.(jpg|jpeg|png|gif)$/i', $filename)
+    ) {
+        $path = __DIR__ . '/../uploads/profile_pictures/' . $filename;
+
+        if (is_file($path)) {
+            return '<img src="../uploads/profile_pictures/'
+                . e(rawurlencode($filename))
+                . '" class="profile-avatar-img" alt="Profile picture">';
+        }
+    }
+
+    $name = trim((string) ($user['fullname'] ?? ''));
+
+    if ($name === '') {
+        $initial = '?';
+    } elseif (
+        function_exists('mb_substr') &&
+        function_exists('mb_strtoupper')
+    ) {
+        $initial = mb_strtoupper(
+            mb_substr($name, 0, 1, 'UTF-8'),
+            'UTF-8'
+        );
+    } else {
+        $initial = strtoupper(substr($name, 0, 1));
+    }
+
+    return '<div class="profile-avatar">' . e($initial) . '</div>';
+}
+
+
+function handle_avatar_upload($file)
+{
+    if (
+        !is_array($file) ||
+        !isset($file['error']) ||
+        !is_int($file['error'])
+    ) {
+        return array('error' => 'Invalid image upload.');
+    }
+
+    if ($file['error'] === UPLOAD_ERR_NO_FILE) {
+        return array('error' => 'Please choose an image.');
+    }
+
+    if (
+        $file['error'] === UPLOAD_ERR_INI_SIZE ||
+        $file['error'] === UPLOAD_ERR_FORM_SIZE
+    ) {
+        return array('error' => 'The image exceeds the upload size limit.');
+    }
+
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        return array('error' => 'The image upload failed. Please try again.');
+    }
+
+    $temp_path = $file['tmp_name'] ?? '';
+
+    if (
+        !is_string($temp_path) ||
+        !is_uploaded_file($temp_path)
+    ) {
+        return array('error' => 'Invalid uploaded image.');
+    }
+
+    $actual_size = filesize($temp_path);
+
+    if (
+        $actual_size === false ||
+        $actual_size <= 0 ||
+        $actual_size > 3 * 1024 * 1024
+    ) {
+        return array('error' => 'Choose an image no larger than 3MB.');
+    }
+
+    if (!class_exists('finfo')) {
+        return array('error' => 'Image validation is unavailable.');
+    }
+
+    $allowed_types = array(
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/gif' => 'gif'
+    );
+
+    try {
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($temp_path);
+        $image_info = @getimagesize($temp_path);
+
+        if (
+            !isset($allowed_types[$mime]) ||
+            $image_info === false ||
+            ($image_info['mime'] ?? '') !== $mime
+        ) {
+            return array(
+                'error' => 'Please upload a valid JPG, PNG or GIF image.'
+            );
+        }
+
+        $width = (int) $image_info[0];
+        $height = (int) $image_info[1];
+
+        if (
+            $width < 1 ||
+            $height < 1 ||
+            $width > 6000 ||
+            $height > 6000 ||
+            $width * $height > 20000000
+        ) {
+            return array(
+                'error' => 'The image dimensions are too large. Please resize it.'
+            );
+        }
+
+        $destination_dir = __DIR__ . '/../uploads/profile_pictures/';
+
+        if (
+            !is_dir($destination_dir) &&
+            !mkdir($destination_dir, 0750, true) &&
+            !is_dir($destination_dir)
+        ) {
+            return array('error' => 'Image storage is unavailable.');
+        }
+
+        $filename = 'avatar_'
+            . bin2hex(random_bytes(16))
+            . '.'
+            . $allowed_types[$mime];
+
+        $destination = $destination_dir . $filename;
+
+        if (!move_uploaded_file($temp_path, $destination)) {
+            return array('error' => 'The image could not be saved.');
+        }
+
+        return array('filename' => $filename);
+    } catch (Throwable $exception) {
+        error_log('DiSSENT: avatar upload failed.');
+
+        return array('error' => 'The image could not be saved.');
+    }
+}

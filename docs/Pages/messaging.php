@@ -76,7 +76,6 @@ if($receiver){
                 data-role="<?php echo strtolower(e($contact['role'])); ?>">
 
                     <strong><?php echo e($contact['fullname']); ?></strong>
-                    <br>
                     <small><?php echo e($contact['role']); ?></small>
 
                 </a>
@@ -90,17 +89,20 @@ if($receiver){
 
     <div class="chat-area" id="chatArea" style="scroll-margin-top: 100px;">
 
-        <?php if($receiver){ ?>
-            <div class="chat-header">
-                <h2><?php echo e($receiver['fullname']); ?></h2>
-                <p><?php echo e($receiver['role']); ?></p>
+        <div class="chat-header">
+            <div class="chat-avatar" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="26" height="26"
+                     fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H5l-3 3V11.5A7.5 7.5 0 0 1 9.5 4h3a7.5 7.5 0 0 1 7.5 7.5Z"></path>
+                </svg>
             </div>
-        <?php }else{ ?>
-            <div class="chat-header">
-                <h2>Select a contact</h2>
-                <p>Choose a journalist or organisation from the left panel to start messaging.</p>
+            <div class="chat-heading-text">
+                <h2><?php echo $receiver ? e($receiver['fullname']) : 'Your conversations'; ?></h2>
+                <p><?php echo $receiver
+                    ? 'Conversation with ' . e($receiver['fullname'])
+                    : 'Choose a contact to start a conversation.'; ?></p>
             </div>
-        <?php } ?>
+        </div>
 
         <div class="messages-box" id="messagesBox">
 
@@ -148,20 +150,59 @@ if($receiver){
 
         </div>
 
-        <?php if($receiver){ ?>
+        <form
+    action="send_message.php"
+    method="POST"
+    class="message-form"
+    id="messageForm"
+>
+    <?php echo csrf_field(); ?>
 
-            <form action="send_message.php" method="POST" class="message-form" id="messageForm">
+    <input
+        type="hidden"
+        name="receiver_id"
+        value="<?php echo $receiver ? (int)$receiver_id : 0; ?>"
+    >
 
-                <?php echo csrf_field(); ?>
-                <input type="hidden" name="receiver_id" value="<?php echo (int)$receiver_id; ?>">
+    <div class="message-composer">
+        <textarea
+            id="messageText"
+            name="message"
+            rows="3"
+            aria-label="Write a message"
+            placeholder="<?php echo $receiver
+                ? 'Write a message…'
+                : 'Select a contact before writing a message.'; ?>"
+            required
+            <?php if (!$receiver): ?>disabled<?php endif; ?>
+        ></textarea>
 
-                <textarea name="message" rows="5" placeholder="Type your secure message here..." required></textarea>
+        <button
+            type="submit"
+            class="send-btn composer-send"
+            aria-label="Send message"
+            title="Send message"
+            <?php if (!$receiver): ?>disabled<?php endif; ?>
+        >
+            <svg
+                viewBox="0 0 24 24"
+                width="22"
+                height="22"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+                focusable="false"
+            >
+                <path d="m22 2-7 20-4-9-9-4 20-7Z"></path>
+                <path d="M22 2 11 13"></path>
+            </svg>
+        </button>
+    </div>
 
-                <button type="submit" class="send-btn">Send Message</button>
-
-            </form>
-
-        <?php } ?>
+</form>
 
     </div>
 
@@ -180,6 +221,7 @@ if($receiver){
     let navigation = null;
     let loading = false;
     let polling = false;
+    let sending = false;
 
     const notice = document.createElement('p');
     notice.setAttribute('role', 'status');
@@ -335,21 +377,100 @@ if($receiver){
         }
     });
 
-    chatArea.addEventListener('submit', function (event) {
+    chatArea.addEventListener('submit', async function (event) {
         const form = event.target;
         if (!form.matches('#messageForm')) return;
+        event.preventDefault();
 
-        if (loading) {
-            event.preventDefault();
+        if (loading || sending || receiverId <= 0) return;
+
+        const textarea = form.querySelector('textarea');
+        if (!textarea.value.trim()) {
+            textarea.setCustomValidity('Please type a message first.');
+            textarea.reportValidity();
             return;
         }
 
-        const textarea = form.querySelector('textarea');
+        const body = new FormData(form);
+        const submittedText = textarea.value.trim();
+        const sentTo = receiverId;
+        const thisVersion = ++version;
+        const previousId = lastMessageId();
+        const button = form.querySelector('button[type="submit"]');
+        const hadFocus = form.contains(document.activeElement);
 
-        if (!textarea.value.trim()) {
-            event.preventDefault();
-            textarea.setCustomValidity('Please type a message first.');
-            textarea.reportValidity();
+        sending = true;
+        textarea.readOnly = true;
+        button.disabled = true;
+        form.setAttribute('aria-busy', 'true');
+        notice.textContent = 'Sending message…';
+
+        try {
+            // Fetch follows the existing PHP redirect in the background.
+            // It does not navigate or reload the visible page.
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: body,
+                credentials: 'same-origin',
+                cache: 'no-store'
+            });
+            if (!response.ok) throw new Error('Send request failed.');
+
+            const html = await response.text();
+            const page = new DOMParser().parseFromString(html, 'text/html');
+            const returnedChat = page.getElementById('chatArea');
+            const returnedReceiver = returnedChat
+                ? returnedChat.querySelector('[name="receiver_id"]') : null;
+            if (!returnedReceiver || Number(returnedReceiver.value) !== sentTo) {
+                throw new Error('Conversation confirmation unavailable.');
+            }
+
+            const returnedMessages = Array.from(
+                returnedChat.querySelectorAll('.messages-box [data-id]')
+            );
+            const confirmed = returnedMessages.some(function (item) {
+                const text = item.querySelector('p');
+                return item.classList.contains('sent-message') &&
+                    Number(item.dataset.id) > previousId && text &&
+                    text.textContent.trim() === submittedText;
+            });
+            if (!confirmed) throw new Error('Saved message not confirmed.');
+
+            if (thisVersion !== version || receiverId !== sentTo) {
+                notice.textContent = 'Message sent.';
+                return;
+            }
+
+            const box = messageBox();
+            const existingIds = new Set(Array.from(
+                box.querySelectorAll('[data-id]'), item => item.dataset.id
+            ));
+            returnedMessages.forEach(function (item) {
+                if (existingIds.has(item.dataset.id)) return;
+                const placeholder = box.querySelector('.no-message');
+                if (placeholder) placeholder.remove();
+                box.appendChild(document.importNode(item, true));
+                existingIds.add(item.dataset.id);
+            });
+
+            textarea.value = '';
+            textarea.setCustomValidity('');
+            updateTimes();
+            scrollMessages();
+            notice.textContent = '';
+            if (hadFocus) textarea.focus({ preventScroll: true });
+        } catch (error) {
+            notice.textContent = 'Could not confirm sending. Check the conversation before trying again; the message may already have been saved.';
+            console.error('Send confirmation failed:', error);
+        } finally {
+            sending = false;
+            if (form.isConnected) {
+                textarea.readOnly = false;
+                button.disabled = false;
+                form.removeAttribute('aria-busy');
+            }
+            pollMessages();
+            pollSecureStatus();
         }
     });
 
@@ -410,7 +531,7 @@ if($receiver){
     }
 
     async function pollMessages() {
-        if (loading || polling || receiverId <= 0) return;
+        if (loading || sending || polling || receiverId <= 0) return;
 
         polling = true;
         const thisVersion = version;

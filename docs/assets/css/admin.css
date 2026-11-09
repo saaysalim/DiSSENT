@@ -1,123 +1,381 @@
-.page-content{
-    padding:2rem 5%;
-    max-width:1100px;
-    margin:0 auto;
+/* DiSSENT — Admin report review */
+
+.review-page {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 20px 64px;
+    color: #263247;
 }
 
-.page-content h1{
-    color:#10244d;
+.review-page *,
+.review-page *::before,
+.review-page *::after {
+    box-sizing: border-box;
 }
 
-.page-content h2{
-    color:#10244d;
-    margin:2rem 0 1rem;
+.review-page h1,
+.review-page h2,
+.review-page h3,
+.review-page h4 {
+    color: #10244d;
 }
 
-.dashboard-cards{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-    gap:20px;
-    margin:1.5rem 0;
+.review-page h1 {
+    margin: 0 0 12px;
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    line-height: 1.2;
 }
 
-.dash-card{
-    background:white;
-    padding:25px;
-    border-radius:12px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.1);
-    text-align:center;
+.review-page h2 {
+    margin: 36px 0 20px;
+    font-size: 1.6rem;
 }
 
-.dash-card h3{
-    color:#666;
-    font-size:0.95rem;
-    margin-bottom:10px;
+.review-page h4 {
+    margin: 22px 0 8px;
 }
 
-.dash-number{
-    font-size:2rem;
-    font-weight:bold;
-    color:#10244d;
+.review-page p {
+    line-height: 1.7;
 }
 
-.table-scroll{
-    overflow-x:auto;
+/* Standard text links */
+
+.review-page a {
+    color: #244b91;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    overflow-wrap: anywhere;
 }
 
-.data-table{
-    width:100%;
-    border-collapse:collapse;
-    background:white;
-    border-radius:12px;
-    overflow:hidden;
-    box-shadow:0 4px 12px rgba(0,0,0,0.1);
+.review-page a:hover {
+    color: #10244d;
 }
 
-.data-table th,
-.data-table td{
-    padding:14px 16px;
-    text-align:left;
-    border-bottom:1px solid #eef1f6;
-    white-space:nowrap;
+/* Summary cards */
+
+.review-page .review-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+    margin: 28px 0;
 }
 
-.data-table th{
-    background:#10244d;
-    color:white;
-    font-weight:600;
+.review-page .review-stat {
+    min-width: 0;
+    padding: 24px 18px;
+    border: 1px solid #dbe2ee;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 4px 14px rgba(16, 36, 77, 0.06);
+    text-align: center;
+    font-weight: 600;
+    color: #526078;
+    overflow-wrap: anywhere;
 }
 
-.data-table tr:last-child td{
-    border-bottom:none;
+.review-page .review-stat strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 2.2rem;
+    line-height: 1.2;
+    color: #10244d;
 }
 
-.status-badge{
-    align-self:flex-start;
-    font-size:0.75rem;
-    font-weight:700;
-    text-transform:uppercase;
-    padding:0.2rem 0.6rem;
-    border-radius:999px;
+/* Report cards */
+
+.review-page .review-card {
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 22px;
+    padding: 28px;
+    border: 1px solid #dbe2ee;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 4px 14px rgba(16, 36, 77, 0.06);
+    text-align: left;
 }
 
-.status-verified{
-    background:#e3f7e8;
-    color:#1e7e34;
+.review-page .review-card h3 {
+    margin: 0 0 16px;
+    font-size: 1.3rem;
+    overflow-wrap: anywhere;
 }
 
-.status-pending{
-    background:#fff4e0;
-    color:#a06600;
+.review-page .review-card p {
+    margin: 10px 0;
+    overflow-wrap: anywhere;
 }
 
-.status-rejected{
-    background:#fdeaea;
-    color:#c0392b;
+.review-page .review-description {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
-.updates-list{
-    list-style:none;
-    padding:0;
-    display:flex;
-    flex-direction:column;
-    gap:0.6rem;
+/* Expandable report details */
+
+.review-page .review-card details {
+    margin-top: 18px;
+    border-top: 1px solid #e2e7ef;
 }
 
-.updates-list li{
-    padding:0.6rem 1rem;
-    border-left:3px solid #4a90d9;
-    background:#f7faff;
-    border-radius:0 4px 4px 0;
-    font-size:0.9rem;
+.review-page .review-card summary {
+    padding: 16px 4px;
+    color: #244b91;
+    font-weight: 700;
+    cursor: pointer;
+    overflow-wrap: anywhere;
 }
 
-@media(max-width:768px){
-    .page-content{
-        padding:1.5rem 4%;
+.review-page .review-card summary:hover {
+    color: #10244d;
+}
+
+.review-page .review-card details[open] > summary {
+    margin-bottom: 10px;
+    border-bottom: 1px solid #e2e7ef;
+}
+
+/* Review form */
+
+.review-page .review-form {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e7ef;
+}
+
+.review-page .review-form label {
+    display: block;
+    margin-bottom: 10px;
+    color: #10244d;
+    font-weight: 600;
+}
+
+.review-page .review-form textarea {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 110px;
+    padding: 12px 14px;
+    border: 1px solid #8895aa;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #263247;
+    font: inherit;
+    font-size: 16px;
+    line-height: 1.6;
+    resize: vertical;
+    overflow-y: auto;
+}
+
+/* Shared action row */
+
+.review-page .review-card .review-buttons {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    width: 100%;
+    margin-top: 18px;
+}
+
+/* Shared styling for buttons and the document link */
+
+.review-page .review-card .review-buttons > .review-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 48px;
+    margin: 0;
+    padding: 12px 20px;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background: #315a9e;
+    color: #ffffff;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: center;
+    text-decoration: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+/* Approve: green, then darker green */
+
+.review-page .review-card .review-buttons > .review-approve {
+    background: #22613c;
+    border-color: #22613c;
+    color: #ffffff;
+}
+
+.review-page .review-card .review-buttons > .review-approve:hover,
+.review-page .review-card .review-buttons > .review-approve:focus-visible,
+.review-page .review-card .review-buttons > .review-approve:active {
+    background: #18492c;
+    border-color: #18492c;
+    color: #ffffff;
+}
+
+/* Reject: red, then darker red */
+
+.review-page .review-card .review-buttons > .review-reject {
+    background: #922f34;
+    border-color: #922f34;
+    color: #ffffff;
+}
+
+.review-page .review-card .review-buttons > .review-reject:hover,
+.review-page .review-card .review-buttons > .review-reject:focus-visible,
+.review-page .review-card .review-buttons > .review-reject:active {
+    background: #742329;
+    border-color: #742329;
+    color: #ffffff;
+}
+
+/* Document: blue, then darker navy */
+
+.review-page .review-card .review-buttons > a.review-document,
+.review-page .review-card .review-buttons > a.review-document:visited {
+    background: #315a9e;
+    border-color: #315a9e;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.review-page .review-card .review-buttons > a.review-document:hover,
+.review-page .review-card .review-buttons > a.review-document:focus-visible,
+.review-page .review-card .review-buttons > a.review-document:active {
+    background: #10244d;
+    border-color: #10244d;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+/* Disabled form buttons */
+
+.review-page .review-card .review-buttons > button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Keyboard accessibility */
+
+.review-page button:focus-visible,
+.review-page textarea:focus-visible,
+.review-page summary:focus-visible,
+.review-page a:focus-visible {
+    outline: 3px solid #648bdb;
+    outline-offset: 4px;
+}
+
+/* Feedback messages */
+
+.review-page .review-notice {
+    margin: 20px 0;
+    padding: 16px 20px;
+    border: 1px solid #cad8f3;
+    border-radius: 10px;
+    background: #eaf0fb;
+    color: #233b66;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+.review-page .review-error {
+    border-color: #edc3bf;
+    background: #fff0ef;
+    color: #862d28;
+}
+
+.review-page .review-notice ul {
+    margin: 0;
+    padding-left: 22px;
+}
+
+/* Admin activity */
+
+.review-page .review-activity {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.review-page .review-activity li {
+    min-width: 0;
+    padding: 16px 20px;
+    border-left: 4px solid #4a78bd;
+    border-radius: 0 8px 8px 0;
+    background: #ffffff;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+}
+
+/* Tablets */
+
+@media (max-width: 768px) {
+    .review-page {
+        padding: 28px 18px 48px;
     }
-    .data-table th,
-    .data-table td{
-        padding:10px 12px;
-        font-size:0.9rem;
+
+    .review-page .review-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .review-page .review-card {
+        padding: 22px;
+    }
+}
+
+/* Mobile: full-width action buttons */
+
+@media (max-width: 600px) {
+    .review-page .review-card .review-buttons > .review-button {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}
+
+/* Small mobile screens */
+
+@media (max-width: 420px) {
+    .review-page {
+        padding: 24px 12px 40px;
+    }
+
+    .review-page .review-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .review-page .review-card {
+        padding: 18px;
+    }
+
+    .review-page .review-notice,
+    .review-page .review-activity li {
+        padding: 14px 16px;
+    }
+}
+
+/* Respect reduced-motion preferences */
+
+@media (prefers-reduced-motion: reduce) {
+    .review-page .review-card .review-buttons > .review-button {
+        transition: none;
     }
 }

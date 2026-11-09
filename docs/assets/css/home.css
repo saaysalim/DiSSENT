@@ -1,270 +1,401 @@
-/* HERO */
+/* DiSSENT — Homepage and shared feature sections */
 
-.hero{
-    min-height:80vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    text-align:center;
+/* Hero */
+
+.hero {
+    min-height: 70vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 64px 20px;
+    text-align: center;
+
     background:
-    linear-gradient(rgba(16,36,77,0.75), rgba(16,36,77,0.75)),
-    url('../images/image_111.jpg');
-    background-size:cover;
-    background-position:center;
-    color:white;
+        linear-gradient(
+            rgba(16, 36, 77, 0.82),
+            rgba(16, 36, 77, 0.82)
+        ),
+        url("../images/image_111.jpg");
+
+    background-color: #10244d;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: #fff;
 }
 
-.hero-content{
-    max-width:900px;
-    padding:20px;
+.hero-content {
+    width: 100%;
+    min-width: 0;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
 }
 
-.hero h1{
-    font-size:3.5rem;
-    margin-bottom:20px;
+.hero h1 {
+    margin: 0 0 24px;
+    color: #fff;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    line-height: 1.2;
+    overflow-wrap: anywhere;
 }
 
-.hero p{
-    font-size:1.2rem;
-    line-height:1.8;
-    margin-bottom:30px;
+.hero p {
+    max-width: 760px;
+    margin: 0 auto 30px;
+    color: #edf2ff;
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    line-height: 1.8;
 }
 
-.hero-buttons{
-    display:flex;
-    justify-content:center;
-    gap:15px;
-    flex-wrap:wrap;
+.hero-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    margin: 0 auto;
 }
 
-/* ABOUT SUMMARY (short blurb on the homepage) */
-
-.about-section{
-    padding:80px 10%;
-    text-align:center;
+.hero-buttons > a,
+.hero-buttons > button {
+    margin: 0;
 }
 
-.about-section h2{
-    margin-bottom:25px;
-    color:var(--primary-color);
+/* Also centre a button placed directly inside hero-content */
+.hero-content > .btn-primary,
+.hero-content > .btn-secondary,
+.hero-content > .login-btn {
+    margin-inline: auto;
 }
 
-.about-section p{
-    max-width:900px;
-    margin:auto;
+.hero .btn-primary {
+    border: 2px solid #fff;
+    background: #fff;
+    color: #10244d;
 }
 
-/* HOW IT WORKS */
-
-.workflow-section{
-    padding:90px 10%;
-    text-align:center;
+.hero .btn-primary:hover,
+.hero .btn-primary:focus-visible {
+    border-color: #e4edff;
+    background: #e4edff;
+    color: #10244d;
 }
 
-.workflow-section h2{
-    font-size:38px;
-    margin-bottom:50px;
-    color:#10244d;
+.hero .btn-secondary {
+    border: 2px solid #fff;
+    background: transparent;
+    color: #fff;
 }
 
-.workflow-container{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    gap:25px;
-    max-width:1400px;
-    margin:0 auto;
+.hero .btn-secondary:hover,
+.hero .btn-secondary:focus-visible {
+    background: #fff;
+    color: #10244d;
 }
 
-.workflow-card{
-    width:280px;
-    min-height:220px;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    text-align:center;
-    background:white;
-    color:#10244d;
-    text-decoration:none;
-    padding:30px;
-    border-radius:12px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.1);
-    transition:0.3s;
+.hero a:focus-visible,
+.hero button:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 5px;
 }
 
-.workflow-card h3{
-    color:#10244d;
-    margin-bottom:15px;
-    transition:0.3s;
+/* Section spacing */
+
+.about-section,
+.workflow-section,
+.partners-section,
+.features {
+    padding: clamp(40px, 6vw, 80px) 24px;
+    text-align: center;
 }
 
-.workflow-card p{
-    color:#444;
+.about-section h2,
+.workflow-section h2,
+.partners-section h2,
+.features h2 {
+    margin: 0 0 32px;
+    color: #10244d;
+    font-size: clamp(1.7rem, 3.5vw, 2.4rem);
+    line-height: 1.3;
 }
 
-.workflow-card:hover{
-    background:#10244d;
-    transform:translateY(-10px);
-    box-shadow:0 15px 35px rgba(0,0,0,0.25);
+.about-section p {
+    max-width: 900px;
+    margin: 0 auto;
+    color: #44526a;
+    line-height: 1.8;
 }
 
-.workflow-card:hover h3,
-.workflow-card:hover p{
-    color:white;
+/* Platform features */
+
+.features-container {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 24px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
-.workflow-arrow{
-    font-size:40px;
-    color:#10244d;
-    font-weight:bold;
+/* Workflow */
+
+.workflow-container {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    gap: 18px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
-/* TRUSTED PARTNERS (homepage strip) */
-
-.partners-section{
-    padding:80px 10%;
-    text-align:center;
+.workflow-container > .workflow-card {
+    flex: 1 1 0;
 }
 
-.partners-section h2{
-    color:#10244d;
-    font-size:38px;
-    margin-bottom:50px;
+.workflow-arrow,
+.exchange-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 0 0 32px;
+    color: #526c96;
+    font-size: 2rem;
+    font-weight: 700;
 }
 
-.partners{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    gap:40px;
-    flex-wrap:wrap;
-    max-width:1200px;
-    margin:0 auto;
+/* Organisation cards */
+
+.partners {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 24px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
-.partner-card{
-    width:280px;
-    height:220px;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    text-align:center;
-    background:white;
-    color:#10244d;
-    text-decoration:none;
-    border-radius:12px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.1);
-    transition:all .3s ease;
+.partners > .partner-card {
+    flex: 0 1 320px;
 }
 
-.partner-card h3{
-    margin-bottom:15px;
-    color:#10244d;
+/* Shared card appearance */
+
+.feature-card,
+.workflow-card,
+.partner-card {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    min-height: 210px;
+    padding: 28px 24px;
+
+    border: 1px solid #dbe2ee;
+    border-radius: 12px;
+    background: #fff;
+    color: #10244d;
+    box-shadow: 0 4px 14px rgba(16, 36, 77, 0.06);
+
+    text-align: center;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
-.partner-card p{
-    color:#444;
+.feature-card h3,
+.workflow-card h3,
+.partner-card h3 {
+    margin: 0 0 14px;
+    color: #10244d;
+    font-size: 1.15rem;
+    line-height: 1.4;
 }
 
-.partner-card:hover{
-    background:#10244d;
-    color:white;
-    transform:translateY(-10px);
+.feature-card p,
+.workflow-card p,
+.partner-card p,
+.partner-card span {
+    margin: 0;
+    color: #526078;
+    line-height: 1.7;
 }
 
-.partner-card:hover h3,
-.partner-card:hover p{
-    color:white;
-}
+/* Change background and text together */
 
-.exchange-arrow{
-    font-size:40px;
-    color:#10244d;
-    font-weight:bold;
-}
-
-/* PLATFORM FEATURES */
-
-.features{
-    padding:80px 10%;
-    text-align:center;
-}
-
-.features h2{
-    font-size:38px;
-    margin-bottom:50px;
-    color:#10244d;
-}
-
-.features-container{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    gap:30px;
-    flex-wrap:wrap;
-    max-width:1400px;
-    margin:0 auto;
-}
-
-.feature-card{
-    width:280px;
-    min-height:220px;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    text-align:center;
-    background:white;
-    color:#10244d;
-    text-decoration:none;
-    padding:30px;
-    border-radius:12px;
-    box-shadow:0 4px 12px rgba(0,0,0,0.1);
-    transition:0.3s;
-}
-
-.feature-card h3{
-    color:#10244d;
-    margin-bottom:15px;
-}
-
-.feature-card p{
-    color:#444;
-}
-
-.feature-card:hover{
-    background:#2563eb;
-    transform:translateY(-10px);
-    box-shadow:0 15px 35px rgba(0,0,0,0.25);
+.feature-card:hover,
+.feature-card:focus-visible,
+.workflow-card:hover,
+.workflow-card:focus-visible,
+.partner-card:hover,
+.partner-card:focus-visible {
+    border-color: #19386f;
+    background: #19386f;
+    color: #fff;
+    box-shadow: 0 8px 22px rgba(16, 36, 77, 0.16);
+    text-decoration: none;
+    transform: none;
 }
 
 .feature-card:hover h3,
-.feature-card:hover p{
-    color:white;
+.feature-card:focus-visible h3,
+.workflow-card:hover h3,
+.workflow-card:focus-visible h3,
+.partner-card:hover h3,
+.partner-card:focus-visible h3 {
+    color: #fff;
 }
 
-/* RESPONSIVE */
+.feature-card:hover p,
+.feature-card:focus-visible p,
+.workflow-card:hover p,
+.workflow-card:focus-visible p,
+.partner-card:hover p,
+.partner-card:focus-visible p,
+.partner-card:hover span,
+.partner-card:focus-visible span {
+    color: #edf2ff;
+}
 
-@media(max-width:768px){
+/* Keyboard focus */
 
-    .hero h1{
-        font-size:2.2rem;
+.feature-card:focus-visible,
+.workflow-card:focus-visible,
+.partner-card:focus-visible {
+    outline: 3px solid #648bdb;
+    outline-offset: 4px;
+}
+
+/* Tablet layouts */
+
+@media (max-width: 1000px) {
+    .features-container {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .hero p{
-        font-size:1rem;
+    .workflow-container {
+        gap: 12px;
     }
 
-    .workflow-container,
-    .partners,
-    .features-container{
-        flex-direction:column;
+    .workflow-card {
+        padding: 24px 18px;
+    }
+
+    .workflow-arrow {
+        flex-basis: 20px;
+        font-size: 1.5rem;
+    }
+}
+
+/* Phones and smaller tablets */
+
+@media (max-width: 700px) {
+    .hero {
+        min-height: 60vh;
+        padding: 48px 20px;
+    }
+
+    .hero-content {
+        padding: 12px 0;
+    }
+
+    .workflow-container {
+        flex-direction: column;
+        align-items: stretch;
+        max-width: 520px;
+    }
+
+    .workflow-container > .workflow-card {
+        flex: auto;
     }
 
     .workflow-arrow,
-    .exchange-arrow{
-        transform:rotate(90deg);
+    .exchange-arrow {
+        display: none;
+    }
+
+    .partners {
+        flex-direction: column;
+        align-items: stretch;
+        max-width: 520px;
+    }
+
+    .partners > .partner-card {
+        flex: auto;
+    }
+
+    .feature-card,
+    .workflow-card,
+    .partner-card {
+        min-height: 180px;
+    }
+}
+
+/* Small phones */
+
+@media (max-width: 480px) {
+    .hero,
+    .about-section,
+    .workflow-section,
+    .partners-section,
+    .features {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .hero-buttons {
+        flex-direction: column;
+        align-items: stretch;
+        max-width: 360px;
+    }
+
+    .hero-buttons > a,
+    .hero-buttons > button {
+        width: 100%;
+    }
+
+    .features-container {
+        grid-template-columns: 1fr;
+    }
+
+    .feature-card,
+    .workflow-card,
+    .partner-card {
+        padding: 24px 20px;
+    }
+}
+
+/* Short screens, including landscape phones */
+
+@media (max-height: 600px) {
+    .hero {
+        min-height: auto;
+        padding-top: 40px;
+        padding-bottom: 40px;
+    }
+}
+
+/* Respect reduced-motion settings */
+
+@media (prefers-reduced-motion: reduce) {
+    .feature-card,
+    .workflow-card,
+    .partner-card {
+        transition: none;
     }
 }

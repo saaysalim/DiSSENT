@@ -1,34 +1,133 @@
 <?php
-include('../backend/db.php');
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-$message = "";
-$message_type = "";
+require_once __DIR__ . '/../backend/db.php';
+require_once __DIR__ . '/../backend/content.php';
 
-if($_SERVER["REQUEST_METHOD"] == "POST"){
+$message = '';
+$message_type = '';
 
-    $full_name = mysqli_real_escape_string($conn, trim($_POST['full_name']));
-    $email = mysqli_real_escape_string($conn, trim($_POST['email']));
-    $subject = mysqli_real_escape_string($conn, trim($_POST['subject']));
-    $body = mysqli_real_escape_string($conn, trim($_POST['message']));
+$fields = array(
+    'full_name' => '',
+    'email' => '',
+    'subject' => '',
+    'message' => ''
+);
 
-    if($full_name != "" && $email != "" && $body != ""){
+$contact_escape = static function ($value) {
+    return htmlspecialchars(
+        (string) $value,
+        ENT_QUOTES | ENT_SUBSTITUTE,
+        'UTF-8'
+    );
+};
 
-        $sql = "INSERT INTO contact_messages
-        (full_name,email,subject,message)
-        VALUES
-        ('$full_name','$email','$subject','$body')";
+$contact_length = static function ($value) {
+    return function_exists('mb_strlen')
+        ? mb_strlen($value, 'UTF-8')
+        : strlen($value);
+};
 
-        if(mysqli_query($conn,$sql)){
-            $message = "Thank you, your message has been sent. We'll get back to you soon.";
-            $message_type = "success";
-        }else{
-            $message = "Something went wrong. Please try again later.";
-            $message_type = "error";
+// Show the success message once after redirecting.
+if (isset($_SESSION['contact_success'])) {
+    $message = 'Thank you. Your message has been received.';
+    $message_type = 'success';
+
+    unset($_SESSION['contact_success']);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
+
+    $message = '';
+    $message_type = 'error';
+    $invalid_input = false;
+
+    foreach ($fields as $field => $default_value) {
+        $value = $_POST[$field] ?? '';
+
+        if (!is_string($value)) {
+            $invalid_input = true;
+            continue;
         }
 
-    }else{
-        $message = "Please fill in your name, email and message.";
-        $message_type = "error";
+        $fields[$field] = trim($value);
+    }
+
+    if ($invalid_input) {
+        $message = 'Please enter valid text in each field.';
+    } elseif (
+        $fields['full_name'] === '' ||
+        $fields['email'] === '' ||
+        $fields['message'] === ''
+    ) {
+        $message = 'Please fill in your name, email and message.';
+    } elseif ($contact_length($fields['full_name']) > 100) {
+        $message = 'Please keep your name within 100 characters.';
+    } elseif (
+        strlen($fields['email']) > 254 ||
+        !filter_var($fields['email'], FILTER_VALIDATE_EMAIL)
+    ) {
+        $message = 'Please enter a valid email address.';
+    } elseif ($contact_length($fields['subject']) > 150) {
+        $message = 'Please keep the subject within 150 characters.';
+    } elseif ($contact_length($fields['message']) > 5000) {
+        $message = 'Please keep your message within 5,000 characters.';
+    } else {
+        $statement = null;
+        $saved = false;
+
+        try {
+            $statement = mysqli_prepare(
+                $conn,
+                'INSERT INTO contact_messages
+                    (full_name, email, subject, message)
+                VALUES (?, ?, ?, ?)'
+            );
+
+            if (!$statement) {
+                throw new RuntimeException(
+                    'Contact statement preparation failed.'
+                );
+            }
+
+            mysqli_stmt_bind_param(
+                $statement,
+                'ssss',
+                $fields['full_name'],
+                $fields['email'],
+                $fields['subject'],
+                $fields['message']
+            );
+
+            if (!mysqli_stmt_execute($statement)) {
+                throw new RuntimeException(
+                    'Contact message insertion failed.'
+                );
+            }
+
+            $saved = true;
+        } catch (Throwable $exception) {
+            // Do not log the visitor's message or contact details.
+            error_log('DiSSENT: unable to save contact message.');
+
+            $message = 'Your message could not be saved. Please try again later.';
+        } finally {
+            if ($statement instanceof mysqli_stmt) {
+                mysqli_stmt_close($statement);
+            }
+        }
+
+        if ($saved) {
+            $_SESSION['contact_success'] = true;
+
+            // Redirect after a successful POST so refreshing
+            // does not submit the message again.
+            header('Location: contact_us.php', true, 303);
+            exit();
+        }
     }
 }
 ?>
@@ -38,6 +137,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Contact Us - DiSSENT</title>
 
     <link rel="stylesheet" href="../assets/css/base.css">
@@ -46,116 +146,169 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 
 <body>
 
-<?php include('../includes/header.php'); ?>
+<?php include __DIR__ . '/../includes/header.php'; ?>
 
-<!-- CONTACT HERO -->
+<main class="contact-page">
 
-<section class="contact-hero">
-
-    <div class="contact-hero-content">
-
-        <h1>Contact DiSSENT</h1>
-
-        <p>
-            We'd love to hear from you. Contact our team for support,
-            collaboration opportunities, or project inquiries.
-        </p>
-
-    </div>
-
-</section>
-
-<!-- SUBMISSION MESSAGE -->
-
-<?php if($message != "") { ?>
-
-<div style="
-max-width:900px;
-margin:20px auto;
-padding:15px;
-background:<?php echo $message_type == "success" ? "#e6f4ea" : "#fdecea"; ?>;
-color:<?php echo $message_type == "success" ? "#1e7e34" : "#a12622"; ?>;
-border-radius:8px;
-text-align:center;
-font-weight:bold;">
-
-<?php echo htmlspecialchars($message); ?>
-
-</div>
-
-<?php } ?>
-
-<!-- CONTACT SECTION -->
-
-<section class="contact-section">
-
-    <div class="contact-container">
-
-        <div class="contact-info">
-
-            <h2>Get In Touch</h2>
+    <section class="contact-hero" aria-labelledby="contactHeading">
+        <div class="contact-hero-content">
+            <h1 id="contactHeading">Contact DiSSENT</h1>
 
             <p>
-                DiSSENT supports secure communication between journalists,
-                media organisations and trusted partners across borders.
+                Contact our team with questions about the platform,
+                technical support or collaboration opportunities.
             </p>
+        </div>
+    </section>
 
-            <div class="contact-details">
+    <section
+        class="contact-section"
+        aria-labelledby="contactFormHeading"
+    >
+        <?php if ($message !== ''): ?>
+            <div
+                class="contact-notice contact-notice--<?php
+                    echo $contact_escape($message_type);
+                ?>"
+                role="<?php
+                    echo $message_type === 'error' ? 'alert' : 'status';
+                ?>"
+            >
+                <p><?php echo $contact_escape($message); ?></p>
+            </div>
+        <?php endif; ?>
 
-                <p><strong>Email:</strong> support@dissent.org</p>
+        <div class="contact-container">
 
-                <p><strong>Phone:</strong> +353 000 000 000</p>
+            <div class="contact-info">
+                <h2>Get in Touch</h2>
 
-                <p><strong>Location:</strong> Limerick, Ireland</p>
+                <p>
+                    DiSSENT brings together journalists, media organisations
+                    and cross-border partners, including reporters working
+                    away from their home countries.
+                </p>
 
+                <p>
+                    Use this form to ask a question, report a technical
+                    issue or discuss working with us.
+                </p>
+
+                <div class="contact-details">
+                    <p>
+                        <strong>Location:</strong>
+                        Limerick, Ireland
+                    </p>
+
+                    <p>
+                        <strong>Contact:</strong>
+                        Please use the message form.
+                    </p>
+                </div>
+
+                <p class="contact-help">
+                    For technical issues, include the page name and a short
+                    description of what happened. Do not include passwords,
+                    private keys or confidential source information.
+                </p>
+            </div>
+
+            <div class="contact-form-container">
+                <h2 id="contactFormHeading">Send a Message</h2>
+
+                <p id="contactFormHelp" class="contact-help">
+                    Name, email and message are required.
+                </p>
+
+                <form
+                    method="POST"
+                    action="contact_us.php"
+                    class="contact-form"
+                    aria-describedby="contactFormHelp"
+                >
+                    <?php echo csrf_field(); ?>
+
+                    <label for="contactFullName">
+                        Full name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="contactFullName"
+                        name="full_name"
+                        autocomplete="name"
+                        maxlength="100"
+                        placeholder="Your full name"
+                        value="<?php
+                            echo $contact_escape($fields['full_name']);
+                        ?>"
+                        required
+                    >
+
+                    <label for="contactEmail">
+                        Email address
+                    </label>
+
+                    <input
+                        type="email"
+                        id="contactEmail"
+                        name="email"
+                        autocomplete="email"
+                        maxlength="254"
+                        placeholder="you@example.com"
+                        value="<?php
+                            echo $contact_escape($fields['email']);
+                        ?>"
+                        required
+                    >
+
+                    <label for="contactSubject">
+                        Subject (optional)
+                    </label>
+
+                    <input
+                        type="text"
+                        id="contactSubject"
+                        name="subject"
+                        maxlength="150"
+                        placeholder="What is your message about?"
+                        value="<?php
+                            echo $contact_escape($fields['subject']);
+                        ?>"
+                    >
+
+                    <label for="contactMessage">
+                        Message
+                    </label>
+
+                    <textarea
+                        id="contactMessage"
+                        name="message"
+                        rows="7"
+                        maxlength="5000"
+                        placeholder="Write your message here..."
+                        aria-describedby="contactMessageHelp"
+                        required
+                    ><?php
+                        echo $contact_escape($fields['message']);
+                    ?></textarea>
+
+                    <p id="contactMessageHelp" class="contact-help">
+                        Maximum 5,000 characters.
+                    </p>
+
+                    <button type="submit" class="contact-btn">
+                        Send Message
+                    </button>
+                </form>
             </div>
 
         </div>
+    </section>
 
-        <div class="contact-form-container">
+</main>
 
-            <h2>Send a Message</h2>
-
-            <form method="POST" class="contact-form">
-
-                <input type="text"
-                    name="full_name"
-                    placeholder="Full Name"
-                    value="<?php echo isset($_POST['full_name']) ? htmlspecialchars($_POST['full_name']) : ""; ?>"
-                    required>
-
-                <input type="email"
-                    name="email"
-                    placeholder="Email Address"
-                    value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ""; ?>"
-                    required>
-
-                <input type="text"
-                    name="subject"
-                    placeholder="Subject"
-                    value="<?php echo isset($_POST['subject']) ? htmlspecialchars($_POST['subject']) : ""; ?>">
-
-                <textarea
-                    name="message"
-                    rows="6"
-                    placeholder="Write your message here..."
-                    required><?php echo isset($_POST['message']) ? htmlspecialchars($_POST['message']) : ""; ?></textarea>
-
-                <button type="submit"
-                        class="contact-btn">
-                    Send Message
-                </button>
-
-            </form>
-
-        </div>
-
-    </div>
-
-</section>
-
-<?php include('../includes/footer.php'); ?>
+<?php include __DIR__ . '/../includes/footer.php'; ?>
 
 </body>
-
 </html>

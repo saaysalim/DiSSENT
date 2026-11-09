@@ -1,198 +1,407 @@
-.verification-hero{
-    padding:120px 10%;
-    text-align:center;
+/* VERIFICATION HERO */
+
+.verification-hero {
+    padding: 64px 24px;
+    text-align: center;
     background:
-    linear-gradient(rgba(16,36,77,0.85), rgba(16,36,77,0.85)),
-    url('../images/image_333.jpg');
-    background-size:cover;
-    background-position:center;
-    color:white;
+        linear-gradient(
+            rgba(16, 36, 77, 0.85),
+            rgba(16, 36, 77, 0.85)
+        ),
+        url("../images/image_333.jpg");
+    background-size: cover;
+    background-position: center;
+    color: #fff;
 }
 
-.verification-hero h1{
-    font-size:55px;
-    margin-bottom:20px;
+.verification-hero h1 {
+    margin: 0 0 20px;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    line-height: 1.2;
+    overflow-wrap: anywhere;
 }
 
-.verification-hero p{
-    font-size:20px;
-    max-width:800px;
-    margin:auto;
+.verification-hero p {
+    max-width: 800px;
+    margin: 0 auto;
+    color: #edf3ff;
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    line-height: 1.8;
 }
 
-.verification-search{
-    padding:80px 10%;
-    text-align:center;
+/* SECTION LAYOUT */
+
+.verification-search,
+.blockchain-section,
+.verification-history {
+    width: 100%;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 48px 24px;
 }
 
-.verification-form{
-    display:flex;
-    justify-content:center;
-    gap:15px;
-    flex-wrap:wrap;
-    margin-top:30px;
+.verification-search,
+.blockchain-section {
+    text-align: center;
 }
 
-.verification-form input{
-    width:350px;
-    padding:15px;
-    border:1px solid #ddd;
-    border-radius:8px;
+.verification-search h2,
+.blockchain-section > h2,
+.verification-history h2 {
+    margin: 0 0 24px;
+    color: #10244d;
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    line-height: 1.3;
+    text-align: center;
+    overflow-wrap: anywhere;
 }
 
-.verification-form button{
-    padding:15px 30px;
-    border:none;
-    border-radius:8px;
-    background:#10244d;
-    color:white;
-    cursor:pointer;
+.verification-search > p {
+    max-width: 760px;
+    margin: 0 auto;
+    color: #526174;
+    line-height: 1.8;
 }
 
-.verification-form button:hover{
-    background:#1c3b78;
+/* SEARCH FORM */
+
+.verification-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: center;
+    gap: 14px;
+    width: 100%;
+    max-width: 760px;
+    margin: 28px auto 0;
 }
 
-.verification-stats{
-    padding:50px 10%;
-    display:flex;
-    justify-content:center;
-    gap:30px;
-    flex-wrap:wrap;
+.verification-form label {
+    flex: 1 1 100%;
+    color: #10244d;
+    font-weight: 600;
+    text-align: left;
 }
 
-.verification-card{
-    width:260px;
-    padding:30px;
-    background:white;
-    border-radius:12px;
-    text-align:center;
-    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+.verification-form input:not([type="hidden"]) {
+    flex: 1 1 300px;
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    padding: 12px 15px;
+    border: 1px solid #bbc7d8;
+    border-radius: 9px;
+    background: #fff;
+    color: #1e293b;
+    font: inherit;
+    font-size: 16px;
+    line-height: 1.5;
 }
 
-.verification-card h2{
-    color:#10244d;
-    font-size:40px;
+.verification-form input::placeholder {
+    color: #66758a;
+    opacity: 1;
 }
 
-.blockchain-section{
-    padding:80px 10%;
-    text-align:center;
+.verification-form input:focus {
+    border-color: #285bb5;
+    outline: 2px solid #285bb5;
+    outline-offset: 2px;
 }
 
-.blockchain-card{
-    max-width:800px;
-    margin:auto;
-    background:white;
-    padding:40px;
-    border-radius:12px;
-    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+.verification-form button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    max-width: 100%;
+    padding: 12px 26px;
+    border: 2px solid transparent;
+    border-radius: 9px;
+    background: #10244d;
+    color: #fff;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
 }
 
-.verified-badge{
-    display:inline-block;
-    background:#d4edda;
-    color:#155724;
-    padding:8px 15px;
-    border-radius:20px;
-    font-size:14px;
+.verification-form button:hover {
+    background: #214d99;
 }
 
-.hash-box{
-    margin-top:15px;
-    background:#f5f5f5;
-    padding:15px;
-    border-radius:8px;
-    word-break:break-all;
-    font-family:monospace;
+.verification-form button:focus-visible {
+    outline: 3px solid #648bdb;
+    outline-offset: 4px;
 }
 
-.verification-history{
-    padding:80px 10%;
+.verification-form button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
-.verification-history h2{
-    text-align:center;
-    margin-bottom:40px;
+/* STATISTICS */
+
+.verification-stats {
+    display: grid;
+    grid-template-columns:
+        repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 24px;
+    width: 100%;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 32px 24px;
 }
 
-.verification-history table{
-    width:100%;
-    border-collapse:collapse;
-    background:white;
-    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+.verification-stats .verification-card {
+    width: 100%;
+    min-width: 0;
+    padding: 28px 20px;
+    border: 1px solid #e1e7f0;
+    border-top: 4px solid #285bb5;
+    border-radius: 14px;
+    background: #fff;
+    text-align: center;
+    overflow-wrap: anywhere;
+    box-shadow: 0 6px 20px rgba(16, 36, 77, 0.06);
 }
 
-.verification-history th{
-    background:#10244d;
-    color:white;
+.verification-stats .verification-card h2 {
+    margin: 0 0 10px;
+    color: #10244d;
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+}
+
+.verification-stats .verification-card p {
+    margin: 0;
+    color: #526174;
+    line-height: 1.6;
+}
+
+/* VERIFICATION RESULT */
+
+.blockchain-section .blockchain-card {
+    width: 100%;
+    max-width: 900px;
+    min-width: 0;
+    margin: 0 auto;
+    padding: 32px;
+    border: 1px solid #e1e7f0;
+    border-radius: 14px;
+    background: #fff;
+    text-align: left;
+    overflow-wrap: anywhere;
+    box-shadow: 0 6px 20px rgba(16, 36, 77, 0.06);
+}
+
+.blockchain-card h2,
+.blockchain-card h3 {
+    margin: 0 0 16px;
+    color: #10244d;
+    line-height: 1.4;
+}
+
+.blockchain-card p {
+    margin: 0 0 14px;
+    color: #475569;
+    line-height: 1.8;
+}
+
+.blockchain-card p:last-child {
+    margin-bottom: 0;
+}
+
+.blockchain-card strong {
+    color: #10244d;
+}
+
+/* Existing verification badge */
+
+.blockchain-section .verified-badge,
+.verification-history .verified-badge {
+    display: inline-block;
+    max-width: 100%;
+    padding: 7px 14px;
+    border: 1px solid #abd5b6;
+    border-radius: 999px;
+    background: #e3f7e8;
+    color: #185c32;
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* HASH DISPLAY */
+
+.blockchain-section .hash-box,
+.verification-history .hash-box {
+    max-width: 100%;
+    margin-top: 16px;
+    padding: 15px;
+    border: 1px solid #dce4ef;
+    border-radius: 9px;
+    background: #f4f7fc;
+    color: #334155;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 0.85rem;
+    line-height: 1.8;
+    text-align: left;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+.hash-box code {
+    font: inherit;
+    white-space: inherit;
+    overflow-wrap: anywhere;
+}
+
+/* HISTORY TABLE */
+
+/*
+ * The section can scroll horizontally if the table is wider
+ * than the screen. Table headings remain visible.
+ */
+
+.verification-history {
+    overflow-x: auto;
+}
+
+.verification-history table {
+    width: 100%;
+    min-width: 640px;
+    margin: 0;
+    border-collapse: collapse;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(16, 36, 77, 0.06);
+}
+
+.verification-history caption {
+    padding: 0 0 16px;
+    color: #526174;
+    text-align: left;
+    line-height: 1.6;
 }
 
 .verification-history th,
-.verification-history td{
-    padding:15px;
-    border:1px solid #ddd;
-    text-align:center;
+.verification-history td {
+    padding: 15px 18px;
+    border: 1px solid #dce4ef;
+    text-align: left;
+    vertical-align: top;
+    line-height: 1.6;
 }
 
-.verification-history tr:hover{
-    background:#f5f7fb;
+.verification-history th {
+    background: #10244d;
+    color: #fff;
+    font-weight: 600;
 }
 
-@media (max-width: 992px){
-    .verification-stats{
-        gap:20px;
-    }
-    .verification-card{
-        width:220px;
-    }
+.verification-history td {
+    color: #334155;
+    overflow-wrap: anywhere;
 }
 
-@media (max-width: 768px){
-    .verification-hero h1{
-        font-size:38px;
+.verification-history tbody tr:nth-child(even) {
+    background: #f8faff;
+}
+
+.verification-history tbody tr:hover {
+    background: #edf3fc;
+}
+
+.verification-history td code {
+    display: inline-block;
+    max-width: 260px;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 0.85rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.verification-history td a {
+    color: #214d99;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* TABLETS */
+
+@media (max-width: 768px) {
+    .verification-hero {
+        padding: 48px 20px;
     }
-    .verification-form{
-        flex-direction:column;
-        align-items:center;
+
+    .verification-search,
+    .blockchain-section,
+    .verification-history {
+        padding: 36px 20px;
     }
-    .verification-form input{
-        width:100%;
-        max-width:400px;
+
+    .verification-stats {
+        gap: 18px;
+        padding: 24px 20px;
     }
-    .verification-history table,
-    .verification-history thead,
-    .verification-history tbody,
+
+    .blockchain-section .blockchain-card {
+        padding: 24px;
+    }
+
     .verification-history th,
-    .verification-history td,
-    .verification-history tr{
-        display:block;
-    }
-    .verification-history thead{
-        display:none;
-    }
-    .verification-history tr{
-        margin-bottom:15px;
-        border:1px solid #ddd;
-        border-radius:8px;
-        overflow:hidden;
-    }
-    .verification-history td{
-        text-align:right;
-        padding-left:50%;
-        position:relative;
-    }
-    .verification-history td::before{
-        content:attr(data-label);
-        position:absolute;
-        left:15px;
-        font-weight:bold;
-        text-align:left;
+    .verification-history td {
+        padding: 12px 14px;
+        font-size: 0.9rem;
     }
 }
 
-@media (max-width: 480px){
-    .verification-card{
-        width:100%;
+/* PHONES */
+
+@media (max-width: 480px) {
+    .verification-hero {
+        padding: 40px 16px;
+    }
+
+    .verification-search,
+    .blockchain-section,
+    .verification-history {
+        padding: 30px 16px;
+    }
+
+    .verification-stats {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 24px 16px;
+    }
+
+    .verification-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .verification-form input:not([type="hidden"]) {
+        flex: 0 1 auto;
+    }
+
+    .verification-form button {
+        width: 100%;
+    }
+
+    .blockchain-section .blockchain-card {
+        padding: 22px 18px;
+    }
+}
+
+/* REDUCED MOTION */
+
+@media (prefers-reduced-motion: reduce) {
+    .verification-form button {
+        transition: none;
     }
 }

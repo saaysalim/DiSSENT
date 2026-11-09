@@ -11,3 +11,7 @@ docs/uploads/*
 # OS / editor junk
 .DS_Store
 Thumbs.db
+
+# Private keys and uploaded reports
+*key.pem
+private/report-documents/

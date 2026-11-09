@@ -1,104 +1,286 @@
-.profile-section{
-    padding:60px 20px;
-    background:#f5f7fb;
-    min-height:80vh;
+/* PROFILE PAGE */
+
+.profile-page {
+    min-width: 0;
 }
 
-.profile-container{
-    max-width:900px;
-    margin:auto;
+.profile-page .profile-section {
+    min-height: 80vh;
+    padding: 56px 24px;
+    background: #f4f7fc;
 }
 
-.profile-header{
-    text-align:center;
-    margin-bottom:30px;
+.profile-page .profile-container {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
-.profile-avatar{
-    width:120px;
-    height:120px;
-    border-radius:50%;
-    background:#10244d;
-    color:white;
-    font-size:42px;
-    font-weight:bold;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    margin:0 auto 20px;
+/* PROFILE HEADER */
+
+.profile-page .profile-header {
+    margin-bottom: 32px;
+    text-align: center;
 }
 
-.profile-avatar-img{
-    width:120px;
-    height:120px;
-    border-radius:50%;
-    object-fit:cover;
-    margin:0 auto 20px;
-    display:block;
+.profile-page .profile-avatar,
+.profile-page .profile-avatar-img {
+    width: 112px;
+    height: 112px;
+    margin: 0 auto 20px;
+    border: 4px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 6px 20px rgba(16, 36, 77, 0.12);
 }
 
-.profile-header h1{
-    color:#10244d;
-    margin-bottom:10px;
+.profile-page .profile-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #10244d;
+    color: #fff;
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1;
+    overflow: hidden;
 }
 
-.profile-header p{
-    color:#666;
+.profile-page .profile-avatar-img {
+    display: block;
+    object-fit: cover;
 }
 
-.profile-card{
-    background:white;
-    padding:30px;
-    border-radius:12px;
-    box-shadow:0 4px 15px rgba(0,0,0,0.1);
-    margin-bottom:30px;
-    text-align:left;
+.profile-page .profile-header h1 {
+    margin: 0 0 10px;
+    color: #10244d;
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    line-height: 1.3;
+    overflow-wrap: anywhere;
 }
 
-.profile-card h2{
-    margin-bottom:20px;
-    color:#10244d;
+.profile-page .profile-header p {
+    margin: 0;
+    color: #526174;
+    line-height: 1.7;
 }
 
-.profile-form{
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-    margin-top:15px;
+/* ACCOUNT AND PASSWORD CARDS */
+
+.profile-page .profile-card {
+    min-width: 0;
+    margin-bottom: 28px;
+    padding: 32px;
+    border: 1px solid #e1e7f0;
+    border-radius: 16px;
+    background: #fff;
+    text-align: left;
+    overflow-wrap: anywhere;
+    box-shadow: 0 6px 20px rgba(16, 36, 77, 0.06);
 }
 
-.profile-form label{
-    font-weight:600;
-    margin-top:10px;
-    color:#10244d;
+.profile-page .profile-card:last-child {
+    margin-bottom: 0;
 }
 
-.profile-form input{
-    padding:12px;
-    border:1px solid #ccc;
-    border-radius:8px;
-    font-size:15px;
+.profile-page .profile-card h2 {
+    margin: 0 0 20px;
+    color: #10244d;
+    font-size: clamp(1.3rem, 2.5vw, 1.6rem);
+    line-height: 1.4;
 }
 
-.profile-form input:disabled{
-    background:#f4f4f4;
-    color:#888;
+.profile-page .profile-card > p {
+    margin-bottom: 10px;
+    color: #475569;
+    line-height: 1.7;
 }
 
-.profile-message{
-    background:#f4f4f4;
-    padding:12px;
-    margin-bottom:15px;
-    border-radius:8px;
-    text-align:center;
-    font-weight:bold;
+.profile-page .profile-card > p strong {
+    color: #10244d;
 }
 
-@media(max-width:480px){
-    .profile-section{
-        padding:40px 12px;
+/* FORMS */
+
+.profile-page .profile-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 24px;
+}
+
+.profile-page .profile-form label {
+    margin-top: 10px;
+    color: #10244d;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.profile-page .profile-form label:first-of-type {
+    margin-top: 0;
+}
+
+.profile-page .profile-form input:not([type="hidden"]) {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px solid #bbc7d8;
+    border-radius: 9px;
+    background: #fff;
+    color: #1e293b;
+    font: inherit;
+    font-size: 16px;
+    line-height: 1.5;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.profile-page .profile-form input:focus {
+    border-color: #285bb5;
+    outline: 2px solid #285bb5;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(40, 91, 181, 0.08);
+}
+
+/* Read-only email remains selectable and readable. */
+
+.profile-page .profile-form input[readonly],
+.profile-page .profile-form input:disabled {
+    border-color: #dce4ef;
+    background: #f1f5f9;
+    color: #526174;
+    opacity: 1;
+}
+
+.profile-page .profile-form input:disabled {
+    cursor: not-allowed;
+}
+
+/* PROFILE PICTURE UPLOAD */
+
+.profile-page .profile-form input[type="file"] {
+    padding: 10px;
+    background: #f8faff;
+    font-size: 0.9rem;
+}
+
+.profile-page .profile-form input[type="file"]::file-selector-button {
+    min-height: 40px;
+    margin-right: 12px;
+    padding: 8px 14px;
+    border: 1px solid #c6d4eb;
+    border-radius: 7px;
+    background: #e8effa;
+    color: #10244d;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.profile-page .profile-form input[type="file"]::file-selector-button:hover {
+    background: #dce7f8;
+}
+
+/* HELP TEXT */
+
+.profile-page .profile-help {
+    margin: 0;
+    color: #526174;
+    font-size: 0.85rem;
+    line-height: 1.7;
+}
+
+/* FORM BUTTONS — COLOURS COME FROM BASE.CSS */
+
+.profile-page .profile-form .btn-primary,
+.profile-page .profile-form .btn-secondary {
+    align-self: flex-start;
+    min-height: 48px;
+    margin-top: 14px;
+    padding: 12px 24px;
+}
+
+/* SUCCESS AND ERROR FEEDBACK */
+
+.profile-page .profile-message {
+    margin-bottom: 20px;
+    padding: 15px 18px;
+    border: 1px solid #dce4ef;
+    border-left-width: 5px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 600;
+    line-height: 1.6;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+.profile-page .profile-message--success {
+    border-color: #8ac8a0;
+    background: #edf9f0;
+    color: #185c32;
+}
+
+.profile-page .profile-message--error {
+    border-color: #e6a1a1;
+    background: #fff1f1;
+    color: #922828;
+}
+
+/* TABLETS */
+
+@media (max-width: 768px) {
+    .profile-page .profile-section {
+        padding: 40px 20px;
     }
-    .profile-card{
-        padding:20px;
+
+    .profile-page .profile-card {
+        padding: 26px;
+    }
+}
+
+/* PHONES */
+
+@media (max-width: 480px) {
+    .profile-page .profile-section {
+        padding: 32px 16px;
+    }
+
+    .profile-page .profile-avatar,
+    .profile-page .profile-avatar-img {
+        width: 92px;
+        height: 92px;
+    }
+
+    .profile-page .profile-avatar {
+        font-size: 34px;
+    }
+
+    .profile-page .profile-card {
+        padding: 22px 18px;
+        border-radius: 12px;
+    }
+
+    .profile-page .profile-form .btn-primary,
+    .profile-page .profile-form .btn-secondary {
+        align-self: stretch;
+        width: 100%;
+    }
+
+    .profile-page .profile-message {
+        padding: 14px;
+    }
+}
+
+/* REDUCED MOTION */
+
+@media (prefers-reduced-motion: reduce) {
+    .profile-page .profile-form input {
+        transition: none;
     }
 }

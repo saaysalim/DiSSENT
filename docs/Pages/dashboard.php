@@ -25,23 +25,11 @@ if(!isset($_SESSION['user_id'])){
 <?php include('../includes/header.php'); ?>
 
 <section class="dashboard-hero">
-
     <h1>
-        Welcome,
-        <?php echo e($_SESSION['fullname']); ?>
+        Welcome, <?php echo e($_SESSION['fullname'] ?? ''); ?>
     </h1>
 
-    <p>
-        Role:
-        <strong>
-            <?php echo e($_SESSION['role']); ?>
-        </strong>
-    </p>
-
-    <a href="logout.php" class="login-btn">
-        Logout
-    </a>
-
+    <p>Manage your reports, messages and recent updates.</p>
 </section>
 
 <section class="dashboard-stats">

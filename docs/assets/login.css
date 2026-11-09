@@ -1,0 +1,332 @@
+/*
+ * DiSSENT login-only styles.
+ *
+ * Keep base.css, auth.css and the registration styles unchanged.
+ */
+
+#dissent-login.login-section {
+    --login-ink: #17315d;
+    --login-muted: #4c5d75;
+    --login-accent: #354f91;
+    --login-line: #b3c0d4;
+    --login-focus: #1c60b8;
+
+    box-sizing: border-box;
+    display: block;
+
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+
+    height: auto;
+    min-height: 0;
+
+    margin: 0;
+    padding: clamp(1.25rem, 4vw, 3rem)
+             clamp(0.75rem, 3vw, 2rem);
+
+    background: #f5f7fb;
+    color: var(--login-ink);
+}
+
+#dissent-login *,
+#dissent-login *::before,
+#dissent-login *::after {
+    box-sizing: border-box;
+}
+
+/* Login card */
+
+#dissent-login .login-container {
+    position: static;
+
+    width: 100%;
+    max-width: 32rem;
+    min-width: 0;
+    height: auto;
+
+    margin: 0 auto;
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+
+    background: #fff;
+    color: var(--login-ink);
+
+    border: 1px solid #d9e1ee;
+    border-radius: 1rem;
+
+    box-shadow: 0 12px 35px rgb(23 49 93 / 7%);
+
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+/* Heading and introduction */
+
+#dissent-login h1 {
+    margin: 0 0 0.6rem;
+
+    color: var(--login-ink);
+
+    font-size: clamp(1.65rem, 4vw, 2.1rem);
+    line-height: 1.2;
+
+    text-align: left;
+}
+
+#dissent-login .login-intro,
+#dissent-login .login-help {
+    margin: 0;
+
+    color: var(--login-muted);
+
+    line-height: 1.6;
+    text-align: left;
+}
+
+/* Form layout */
+
+#dissent-login .login-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.2rem;
+
+    width: 100%;
+    min-width: 0;
+
+    margin: 1.5rem 0 0;
+    padding: 0;
+}
+
+#dissent-login .login-field {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+#dissent-login label {
+    display: block;
+
+    margin: 0 0 0.45rem;
+
+    color: var(--login-ink);
+
+    font-size: 1rem;
+    font-weight: 650;
+    line-height: 1.5;
+
+    text-align: left;
+}
+
+/* Inputs */
+
+#dissent-login .login-input {
+    display: block;
+
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
+    height: auto;
+    min-height: 3rem;
+
+    margin: 0;
+    padding: 0.75rem 0.85rem;
+
+    border: 1px solid var(--login-line);
+    border-radius: 0.6rem;
+
+    background: #fff;
+    color: #19283e;
+
+    font: inherit;
+    font-size: 1rem;
+    line-height: 1.5;
+    letter-spacing: normal;
+
+    box-shadow: none;
+}
+
+#dissent-login .login-input::placeholder {
+    color: #637086;
+    opacity: 1;
+}
+
+/* Password field and visibility control */
+
+#dissent-login .login-password-control {
+    display: block;
+    width: 100%;
+    min-width: 0;
+}
+
+#dissent-login .login-password-control[data-ready="true"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch;
+    gap: 0.5rem;
+}
+
+/* Common button styles */
+
+#dissent-login .login-password-toggle,
+#dissent-login .login-submit {
+    position: static;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    height: auto;
+    min-height: 3rem;
+
+    margin: 0;
+    padding: 0.75rem;
+
+    border: 1px solid var(--login-line);
+    border-radius: 0.6rem;
+
+    font: inherit;
+    font-weight: 650;
+    line-height: 1.5;
+    letter-spacing: normal;
+
+    text-align: center;
+    text-transform: none;
+
+    box-shadow: none;
+    transform: none;
+
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+/* Show/Hide button */
+
+#dissent-login .login-password-toggle {
+    width: auto;
+    min-width: 4.5rem;
+    max-width: 100%;
+
+    background: #edf2fa;
+    color: var(--login-ink);
+
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+#dissent-login .login-password-toggle[hidden] {
+    display: none !important;
+}
+
+#dissent-login .login-password-toggle:hover {
+    background: #dfe8f7;
+    transform: none;
+}
+
+/* Login button */
+
+#dissent-login .login-submit {
+    width: 100%;
+    min-width: 0;
+
+    border-color: var(--login-accent);
+    background: var(--login-accent);
+    color: #fff;
+
+    font-size: 1rem;
+}
+
+#dissent-login .login-submit:hover:not(:disabled) {
+    background: #24396f;
+    border-color: #24396f;
+    transform: none;
+}
+
+#dissent-login .login-submit:disabled {
+    opacity: 0.75;
+    cursor: wait;
+}
+
+/* Keyboard focus */
+
+#dissent-login .login-input:focus-visible,
+#dissent-login button:focus-visible,
+#dissent-login a:focus-visible,
+#dissent-login .login-message:focus {
+    outline: 3px solid var(--login-focus);
+    outline-offset: 3px;
+}
+
+#dissent-login .login-input:focus {
+    border-color: var(--login-focus);
+}
+
+/* Error messages */
+
+#dissent-login .login-message {
+    margin: 1.25rem 0 0;
+    padding: 0.85rem 1rem;
+
+    border: 1px solid #e4b8bb;
+    border-radius: 0.6rem;
+
+    background: #fff3f3;
+    color: #882831;
+
+    font-weight: 600;
+    line-height: 1.6;
+
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+/* Registration and password-reset links */
+
+#dissent-login .login-links {
+    margin: 1.5rem 0 0;
+    padding: 1.15rem 0 0;
+
+    border-top: 1px solid #dce3ee;
+
+    text-align: center;
+    line-height: 1.7;
+}
+
+#dissent-login .login-links p {
+    margin: 0.75rem 0 0;
+    color: var(--login-muted);
+}
+
+#dissent-login .login-links a {
+    color: var(--login-accent);
+
+    font-weight: 650;
+
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
+
+/* Small screens */
+
+@media (max-width: 30rem) {
+    #dissent-login.login-section {
+        padding: 1rem 0.75rem;
+    }
+
+    #dissent-login .login-container {
+        padding: 1.25rem 1rem;
+        border-radius: 0.75rem;
+    }
+}
+
+/* Very narrow screens and zoomed layouts */
+
+@media (max-width: 20rem) {
+    #dissent-login .login-password-control[data-ready="true"] {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    #dissent-login .login-password-toggle {
+        justify-self: start;
+    }
+}
