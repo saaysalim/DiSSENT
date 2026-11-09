@@ -17,6 +17,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Prepare Pages site
+        run: |
+          mkdir -p site
+          cp Cross-Border-Systems-using-Kafka-Broker-Architecture-and-Hyper-ledger-Fabric-main/index.html site/index.html
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v1
         with:
