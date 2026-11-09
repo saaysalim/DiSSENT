@@ -1,0 +1,107 @@
+# Builds the DiSSENT PHP pages into static HTML and deploys them to GitHub Pages.
+# Runs automatically on every push to main, or manually from the Actions tab.
+
+name: Build and deploy DiSSENT pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deployment at a time; a newer push cancels an older run.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Start PHP server
+        run: |
+          php -d display_errors=0 -S 127.0.0.1:8888 -t . > php-server.log 2>&1 &
+          sleep 3
+
+      - name: Render PHP pages to HTML
+        run: |
+          mkdir -p _site/docs/Pages
+          cp -r docs/assets _site/docs/assets
+          if [ -d site ]; then cp -r site _site/site; fi
+
+          echo "## DiSSENT page build report" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Page | HTTP status | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+
+          for f in docs/Pages/*.php; do
+            name=$(basename "$f" .php)
+            code=$(curl -s -L -o "_site/docs/Pages/$name.html" -w "%{http_code}" \
+                   "http://127.0.0.1:8888/docs/Pages/$name.php")
+            if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+              result="✅ Built"
+            else
+              result="⚠️ Needs backend (works locally only)"
+            fi
+            echo "$name.php -> HTTP $code"
+            echo "| $name | $code | $result |" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Make links point to the HTML pages
+        run: |
+          find _site -name "*.html" -exec sed -i -E 's/([A-Za-z0-9_-]+)\.php/\1.html/g' {} +
+
+      - name: Add homepage redirect
+        run: |
+          cat > _site/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; url=docs/Pages/home.html">
+            <title>DiSSENT</title>
+          </head>
+          <body>
+            <p>Opening DiSSENT… <a href="docs/Pages/home.html">Click here</a> if nothing happens.</p>
+          </body>
+          </html>
+          EOF
+          touch _site/.nojekyll
+
+      - name: Check the homepage was built
+        run: |
+          if [ ! -s _site/docs/Pages/home.html ]; then
+            echo "home.php did not render. PHP server log:"
+            cat php-server.log
+            exit 1
+          fi
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
