@@ -49,6 +49,7 @@ The platform combines a PHP website with a Java (Spring Boot) backend. Messages 
 | Messaging | Apache Kafka |
 | Blockchain | Hyperledger Fabric (smart contract written in Go) |
 | Database | MySQL 8 (website), MongoDB 7 (Spring Boot services) |
+| Email | PHPMailer (installed with Composer); Mailpit as the local test inbox |
 | Containers | Docker, Docker Compose |
 | Monitoring | OpenTelemetry (turned off by default; set `OTEL_SDK_DISABLED=false` to turn it on) |
 
@@ -87,7 +88,7 @@ DiSSENT-clean/
 │   ├── securecomm/                # Spring Boot service 1 (+ docker-compose.yml)
 │   └── securecomm2/               # Spring Boot service 2
 ├── database/migrations/           # SQL changes to run on the database (outside the website folder)
-├── docker/                        # Dockerfile for the PHP web container + MySQL init SQL
+├── docker/                        # Web container (Dockerfile, composer.json/.lock for PHPMailer) + MySQL init SQL
 ├── private/                       # Uploaded report documents (outside the web root, not pushed to GitHub)
 ├── site/                          # Static site assets
 ├── docker-compose.yml             # Website, MySQL and phpMyAdmin
@@ -127,6 +128,14 @@ DISSENT_API_KEY=<a long random value>
 
 - `APP_DEBUG: "1"` shows the password-reset link on the Forgot Password page, because email is not set up locally. **Never set this on a public server.**
 - `APP_URL: http://localhost:8888` is the address used inside reset links. On a public server, set it to the real address (for example `https://your-site.example`).
+
+### Email (`.env`)
+
+The website sends a **"Welcome to DiSSENT"** email after registration and a **"Reset your DiSSENT password"** email (link valid 60 minutes).
+
+- By default every email goes to **Mailpit**, a local test inbox: open **http://127.0.0.1:8025** to read them. Nothing leaves your computer.
+- To send real email, fill in `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` and `SMTP_SECURE` (`tls` for port 587, `ssl` for 465) in `.env`, then run `docker compose up -d`.
+- If an email cannot be sent, the visitor still sees the normal message; the reason is written to `docker logs dissent-web`.
 - After changing anything in `docker-compose.yml`, run `docker compose up -d` so the `web` container picks it up.
 
 ---
@@ -201,6 +210,8 @@ The website, MySQL and phpMyAdmin are bound to `127.0.0.1`, so they can only be 
 | http://localhost:8888/Pages/home.php | **DiSSENT website** (Docker: `dissent-web`) |
 | http://localhost:8888/Pages/login.php | Login page |
 | http://127.0.0.1:8089 | phpMyAdmin |
+| http://127.0.0.1:8025 | Mailpit test inbox (all emails the website sends locally) |
+| 127.0.0.1:1025 | Mailpit SMTP (used by the website) |
 | 127.0.0.1:3307 | MySQL (Docker: `dissent-mysql`, database `dissent_local`) |
 | http://localhost:8081 | SecureComm 1 API (a 401 "Missing or invalid X-API-Key header" means it is running) |
 | http://localhost:8082 | SecureComm 2 API (same 401 check) |
@@ -227,7 +238,8 @@ Inside Docker the website lives at `/var/www/html` (= `docs/`). Uploaded report 
 | Settings page says language/notification settings are "not available yet" | The `user_settings` table is missing. Run the database update in Option B (`database/migrations/2026-11-10_user_settings.sql`) |
 | PHP errors not shown on the page | Expected (`display_errors = Off`). See them with `docker logs dissent-web` |
 | Upload rejected | Files are limited to 6 MB (`upload_max_filesize`) |
-| Password reset email never arrives (local) | Expected: email is not set up locally. The Forgot Password page shows the reset link on screen while `APP_DEBUG: "1"` is set in `docker-compose.yml` |
+| Welcome or password reset email never arrives (local) | Open the Mailpit inbox at http://127.0.0.1:8025. If it is empty, check `docker compose ps` shows `dissent-mailpit` running and look for "email could not be sent" in `docker logs dissent-web`. The Forgot Password page also shows the link on screen while `APP_DEBUG: "1"` is set |
+| "PHPMailer is not installed" in the logs | The web container is old. Rebuild it with `docker compose up -d --build` |
 | "Your password needs …" when registering or changing a password | Passwords need at least 8 characters, an uppercase letter, a lowercase letter, a number and a special character. The checklist under the box ticks off each rule |
 | Page or menu looks old after an update | Hard refresh with **Ctrl + F5** so the browser loads the new CSS |
 | `Failed to connect to localhost:4317` | Should no longer appear: OpenTelemetry is disabled at startup. If it does, you are running an old build. Restart with `.\mvnw spring-boot:run` |
@@ -247,12 +259,12 @@ Every page uses the shared header, so all pages are **responsive** (phones, iPad
 | Home (`home.php`) | ✅ | Responsive. "Get Started" when logged out, "Go to Dashboard" when logged in |
 | About (`about.php`) | 🔄 | Responsive. Not sure if the text is final; please review the content |
 | Contact (`contact_us.php`) | ✅ | Responsive. The form saves messages to the `contact_messages` table; admins read them on the Admin page ("Contact messages") |
-| Register (`register.php`) | ✅ | Password rules (checked in PHP + live checklist), "Passwords match" message, eye icon, updated professional categories |
+| Register (`register.php`) | ✅ | Password rules (checked in PHP + live checklist), "Passwords match" message, eye icon, updated professional categories. Sends a "Welcome to DiSSENT" email |
 | Login (`login.php`) | ✅ | Same design as Register, eye icon, "You have been logged out" message |
-| Forgot Password (`forgot_password.php`) | 🔄 | Works and shows the same message for every email. Real email sending is not set up: locally the reset link is shown on screen (`APP_DEBUG`) |
+| Forgot Password (`forgot_password.php`) | ✅ | Emails a reset link valid for 60 minutes (locally to Mailpit) and shows the same message for every email. The link is also shown on screen when `APP_DEBUG=1`. Real email needs SMTP settings in `.env` |
 | Reset Password (`reset_password.php`) | ✅ | Same password rules, checklist and eye icon as Register. Links expire after 60 minutes |
 | Verification (`verification.php`) | 🔄 | Responsive; the history table scrolls inside its own box. Chain-integrity check needs `securecomm` (8081) running |
-| Dashboard (`dashboard.php`) | ✅ | Real numbers from the database (reports, published reports, active members, media organisations) and "Your Activity" (your reports and their status, messages in the last 7 days, your role) |
+| Dashboard (`dashboard.php`) | ✅ | Real numbers from the database (reports, published reports, active members, media organisations) and "Your Activity" (your reports and their status, messages in the last 7 days, your role). Quick Actions include My Profile and Settings |
 | Profile (`profile.php`) | ✅ | New layout. Edit name, category and picture; change password with the same rules and eye icons |
 | Messaging (`messaging.php`) | 🔄 | Works on phones. A deleted member's conversation stays readable as "Deleted user" but cannot be replied to. Sending works without Java; the "Secure Transfer" status needs both Java services, Kafka and MongoDB |
 | Media Centre (`media_center.php`) | 🔄 | Responsive. Publications and search come from the database; not sure whether the partners/updates text is final |
@@ -271,6 +283,9 @@ Newest first.
 
 | Date | Update |
 |---|---|
+| 10/11/2026 | Added email with PHPMailer: a "Welcome to DiSSENT" email after registration and a "Reset your DiSSENT password" email (link valid 60 minutes), in DiSSENT colours with a plain-text version. Added Mailpit as a local test inbox (http://127.0.0.1:8025); real SMTP can be set in `.env`. Sending problems are logged, never shown to visitors. |
+| 10/11/2026 | GitHub Pages preview: removed the fixed blue bar at the bottom. Submitting a form now shows a small friendly message below it ("This is a preview of DiSSENT…") instead of a browser alert, and nothing is sent, so there are no "405" errors. |
+| 10/11/2026 | Dashboard: added My Profile and Settings to Quick Actions (Settings was already in the header menu and phone sidebar). |
 | 10/11/2026 | GitHub Actions: deleted `gh-pages.yml`, which deployed at the same time as `deploy-dissent.yml` and made the live site change at random. Updated every action in `deploy-dissent.yml` to its newest version that runs on Node.js 24 (no more "Node.js 20 is deprecated" warnings). The build report now marks pages that need a login (dashboard, profile, settings, etc.) as "Needs login" instead of "Built". |
 | 10/11/2026 | Deleting an account no longer deletes the other person's conversation: messages are kept and shown from "Deleted user", the conversation can still be read but not replied to, and the server refuses new messages to a deleted account. |
 | 10/11/2026 | Reviewed the remaining pages so they all match: one shared page banner, button colour, message box and form-field style in `base.css`; removed duplicate and unused CSS; no inline styles left; every page checked at 390, 820, 1024, 1440 and 1600px as visitor, member and admin. Added a site icon (`favicon.ico`). |
@@ -310,12 +325,13 @@ Newest first.
 - [x] Let admins read Contact form messages (Admin page)
 - [x] Same design on every page (shared banner, buttons, message boxes and form fields)
 - [x] Deleted the old `gh-pages.yml` workflow; `deploy-dissent.yml` is the only one that deploys
+- [x] Send welcome and password reset emails (tested locally with Mailpit)
 
 **Still to do**
 - [ ] Translate the site and use the saved language preference
 - [ ] Send email notifications using the saved notification preferences
 - [ ] Let users edit or withdraw their own reports
-- [ ] Set up real email sending for password reset links
+- [ ] Put real SMTP settings in `.env` on the public server (emails currently go to the local Mailpit inbox)
 - [ ] Let admins mark contact messages as handled or delete them
 - [ ] Database: add foreign keys and a clean `schema.sql` (only `schema_updates.sql` and a database export exist now)
 - [ ] Public demo link using cloudflared (Cloudflare Tunnel)

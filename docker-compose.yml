@@ -43,11 +43,21 @@ services:
       # Origin used in emailed links (stops forged Host headers steering them).
       APP_URL: http://localhost:8888
       DISSENT_API_KEY: ${DISSENT_API_KEY:?Set DISSENT_API_KEY in .env}
+      # Email (PHPMailer). Empty values in .env mean: use the local Mailpit inbox.
+      # Put real SMTP settings in .env to send real email.
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-DiSSENT <no-reply@dissent.local>}
+      SMTP_SECURE: ${SMTP_SECURE:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
       mysql:
         condition: service_healthy
+      mailpit:
+        condition: service_started
 
   phpmyadmin:
     image: phpmyadmin:latest
@@ -62,6 +72,16 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+
+  # Local test inbox: catches every email the website sends (nothing leaves this computer).
+  # Inbox: http://127.0.0.1:8025   SMTP: 127.0.0.1:1025
+  mailpit:
+    image: axllent/mailpit:v1.33
+    container_name: dissent-mailpit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
 
 volumes:
   dissent-mysql-data:

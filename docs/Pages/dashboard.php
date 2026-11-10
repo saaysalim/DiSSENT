@@ -191,6 +191,14 @@ $show_number = static function ($value) {
             Media Centre
         </a>
 
+        <a href="profile.php" class="action-card">
+            My Profile
+        </a>
+
+        <a href="settings.php" class="action-card">
+            Settings
+        </a>
+
     </div>
 
 </section>

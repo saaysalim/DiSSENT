@@ -1360,6 +1360,16 @@ function app_base_url()
 }
 
 
+// Full address of another page in the same folder as the current page,
+// e.g. app_page_url('login.php') -> http://localhost:8888/Pages/login.php
+function app_page_url($page)
+{
+    $folder = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/Pages/index.php')), '/');
+
+    return app_base_url() . $folder . '/' . ltrim((string) $page, '/');
+}
+
+
 /* -------------------------------------------------
    Password-reset helpers
 ------------------------------------------------- */

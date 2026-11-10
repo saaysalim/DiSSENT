@@ -1,0 +1,14 @@
+{
+    "name": "dissent/web",
+    "description": "PHP libraries for the DiSSENT website. Installed into /var/www/vendor (outside the web root) by docker/web/Dockerfile.",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.2",
+        "phpmailer/phpmailer": "^7.1"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

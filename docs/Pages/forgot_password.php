@@ -2,6 +2,7 @@
 session_start();
 include('../backend/db.php');
 include('../backend/content.php');
+include('../backend/mailer.php');
 
 $message = "";
 $message_type = "success";
@@ -32,11 +33,11 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 
                 // http or https and host come from APP_URL (or the request);
                 // the folder comes from this script's real path, not the query string.
-                $page_folder = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/Pages/forgot_password.php')), '/');
-                $reset_link = app_base_url() . $page_folder . "/reset_password.php?token=" . $token;
+                $reset_link = app_page_url("reset_password.php?token=" . $token);
 
-                // Attempt to send email. On free hosting this may silently fail.
-                @mail($email, "DiSSENT Password Reset", "Click here to reset your password: " . $reset_link);
+                // "Reset your DiSSENT password" email (valid 60 minutes).
+                // A sending problem is logged only, never shown to the visitor.
+                send_password_reset_email($email, $reset_link);
 
                 // Local development only (APP_DEBUG=1): show the link on screen.
                 if(DEBUG_MODE){

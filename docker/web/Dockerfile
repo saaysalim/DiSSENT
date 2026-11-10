@@ -1,5 +1,16 @@
+# Stage 1: install PHP libraries (PHPMailer) with Composer.
+# Versions are pinned in composer.lock. Only the finished vendor/ folder is copied below.
+FROM composer:2.11 AS vendor
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --no-progress --prefer-dist --classmap-authoritative
+
+# Stage 2: the website.
 FROM php:8.2-apache
 RUN docker-php-ext-install mysqli pdo_mysql
+
+# PHP libraries live in /var/www/vendor, outside the web root (/var/www/html = docs/).
+COPY --from=vendor /app/vendor /var/www/vendor
 
 # Hardened PHP settings
 RUN { \

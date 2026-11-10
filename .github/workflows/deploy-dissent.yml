@@ -143,31 +143,72 @@ jobs:
           # Make links point to the HTML versions of the pages
           find _site -name "*.html" -exec sed -i -E 's/([A-Za-z0-9_-]+)\.php/\1.html/g' {} +
 
-          # Online preview mode: GitHub Pages cannot receive form data (it returns
-          # "405 Not Allowed"), so show a friendly message instead and add a banner.
+          # Online preview mode: GitHub Pages cannot receive form data (it would return
+          # "405 Not Allowed"). preview-mode.js stops forms before they are sent and shows
+          # a small message box below the form instead. No permanent banner.
           cat > _site/docs/assets/preview-mode.js <<'EOF'
           (function () {
-            var msg = 'This is the online preview of DiSSENT.\n\n' +
-                      'Registration, login and messaging need the database and backend, ' +
-                      'so they only work in the full version of the system.';
-            document.addEventListener('submit', function (e) {
-              e.preventDefault();
-              e.stopImmediatePropagation();
-              alert(msg);
+            // Online preview only (GitHub Pages cannot receive form data).
+            // Forms are stopped before they are sent, so there are no "405" errors,
+            // and a small message box explains why.
+            var MESSAGE = 'This is a preview of DiSSENT. Login, registration and messaging ' +
+                          'work in the full version. Please contact the DiSSENT team for a demo.';
+
+            var style = document.createElement('style');
+            style.textContent =
+              '.preview-note{display:flex;align-items:flex-start;gap:12px;margin:16px 0 0;' +
+              'padding:14px 16px;border:1px solid #bdcadf;border-left:4px solid #354f91;' +
+              'border-radius:10px;background:#f1f5fb;color:#10244d;font:15px/1.5 Arial,sans-serif;' +
+              'text-align:left;box-shadow:0 6px 18px rgba(16,36,77,.12)}' +
+              '.preview-note p{margin:0;flex:1}' +
+              '.preview-note a{color:#354f91;font-weight:700}' +
+              '.preview-note button{flex:0 0 auto;min-width:44px;min-height:44px;margin:-10px -8px -10px 0;' +
+              'border:0;border-radius:8px;background:transparent;color:#10244d;font-size:22px;cursor:pointer}' +
+              '.preview-note button:hover{background:#dfe8f7}' +
+              '.preview-note--floating{position:fixed;top:84px;left:50%;z-index:2000;width:min(520px,calc(100% - 32px));' +
+              'margin:0;transform:translateX(-50%)}';
+            document.head.appendChild(style);
+
+            function showNote(form) {
+              // Forms in the header (search) get a floating box; other forms get one right below them.
+              var floating = !!form.closest('#siteHeader');
+              var note = floating ? document.getElementById('previewNoteFloating') : form.nextElementSibling;
+
+              if (!note || !note.classList || !note.classList.contains('preview-note')) {
+                note = document.createElement('div');
+                note.className = 'preview-note' + (floating ? ' preview-note--floating' : '');
+                note.setAttribute('role', 'status');
+                if (floating) { note.id = 'previewNoteFloating'; }
+
+                var text = document.createElement('p');
+                text.appendChild(document.createTextNode(MESSAGE + ' '));
+                var contact = document.createElement('a');
+                contact.href = 'contact_us.html';
+                contact.textContent = 'Contact us';
+                text.appendChild(contact);
+
+                var close = document.createElement('button');
+                close.type = 'button';
+                close.setAttribute('aria-label', 'Close message');
+                close.textContent = '×';
+                close.addEventListener('click', function () { note.remove(); });
+
+                note.appendChild(text);
+                note.appendChild(close);
+
+                if (floating) { document.body.appendChild(note); }
+                else { form.insertAdjacentElement('afterend', note); }
+              }
+
+              note.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
+
+            // Capture phase: runs before the page's own scripts, so nothing is sent.
+            document.addEventListener('submit', function (event) {
+              event.preventDefault();
+              event.stopImmediatePropagation();
+              showNote(event.target);
             }, true);
-            function showBanner() {
-              var b = document.createElement('div');
-              b.textContent = 'Online preview: forms (register, login, messaging) are disabled here.';
-              b.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;' +
-                'background:#1f2a5c;color:#fff;text-align:center;padding:10px 16px;' +
-                'font:14px/1.4 Arial,sans-serif;';
-              document.body.appendChild(b);
-            }
-            if (document.readyState === 'loading') {
-              document.addEventListener('DOMContentLoaded', showBanner);
-            } else {
-              showBanner();
-            }
           })();
           EOF
           for f in _site/docs/Pages/*.html; do

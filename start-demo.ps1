@@ -143,5 +143,6 @@ Wait-Http 'securecomm2' 'http://localhost:8082/api/verification/mirror'    @(200
 Write-Host "`nDiSSENT is ready:" -ForegroundColor Green
 Write-Host "  Website     $HomeUrl"
 Write-Host '  phpMyAdmin  http://127.0.0.1:8089'
+Write-Host '  Emails      http://127.0.0.1:8025 (Mailpit test inbox)'
 Write-Host '  APIs        http://localhost:8081 (securecomm), http://localhost:8082 (securecomm2)'
 Start-Process $HomeUrl

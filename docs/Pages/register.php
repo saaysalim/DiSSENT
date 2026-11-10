@@ -6,6 +6,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/content.php';
+require_once __DIR__ . '/../backend/mailer.php';
 
 $message = '';
 $message_type = 'error';
@@ -150,6 +151,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             }
 
             if ($registration_created) {
+                // "Welcome to DiSSENT" email. A sending problem is logged only;
+                // the account exists either way, so the page still says success.
+                send_welcome_email($email, $fullname);
+
                 $_SESSION['dissent_registration_success'] = true;
                 header('Location: register.php', true, 303);
                 exit;

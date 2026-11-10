@@ -134,7 +134,8 @@
 
 .actions-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    /* Six actions: 3 + 3 on wide screens, 2 per row on tablets, 1 on phones. */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: stretch;
     gap: 24px;
 }
