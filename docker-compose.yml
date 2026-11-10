@@ -11,7 +11,7 @@ services:
       MYSQL_USER: dissent
       MYSQL_PASSWORD: dissent_dev
     ports:
-      - "3307:3306"
+      - "127.0.0.1:3307:3306"
     volumes:
       - dissent-mysql-data:/var/lib/mysql
       - ./docker/mysql-init:/docker-entrypoint-initdb.d
@@ -26,9 +26,10 @@ services:
     container_name: dissent-web
     restart: unless-stopped
     ports:
-      - "8888:80"
+      - "127.0.0.1:8888:80"
     volumes:
-      - ./:/var/www/html
+      - ./docs:/var/www/html
+      - ./private:/var/www/private
     environment:
       DB_HOST: mysql
       DB_PORT: "3306"
@@ -49,7 +50,7 @@ services:
     container_name: dissent-phpmyadmin
     restart: unless-stopped
     ports:
-      - "8089:80"
+      - "127.0.0.1:8089:80"
     environment:
       PMA_HOST: mysql
       PMA_USER: root

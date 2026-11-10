@@ -58,7 +58,6 @@ $partners = $content['partners'] ?? array();
    <link rel="stylesheet" href="../assets/css/base.css">
 <link rel="stylesheet" href="../assets/css/home.css">
 <link rel="stylesheet" href="../assets/css/media_center.css">
-<link rel="stylesheet" href="../assets/css/header.css">
 </head>
 
 <body>
