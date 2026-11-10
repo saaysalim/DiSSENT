@@ -22,9 +22,9 @@ if(!$conn){
 
 // securecomm (System1) — report verification ledger + secure message sending.
 define('BLOCKCHAIN_API_URL', getenv('BLOCKCHAIN_API_URL') ?: 'http://localhost:8081');
-define('BLOCKCHAIN_API_KEY', 'dev-only-change-me');
+define('BLOCKCHAIN_API_KEY', (string) getenv('DISSENT_API_KEY'));
 
 // securecomm2 (System2) — secure message verification/decryption status.
 define('MESSAGING_API_URL', getenv('MESSAGING_API_URL') ?: 'http://localhost:8082');
-define('MESSAGING_API_KEY', 'dev-only-change-me');
+define('MESSAGING_API_KEY', (string) getenv('DISSENT_API_KEY'));
 ?>

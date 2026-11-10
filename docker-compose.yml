@@ -37,6 +37,7 @@ services:
       DB_NAME: dissent_local
       BLOCKCHAIN_API_URL: http://host.docker.internal:8081
       MESSAGING_API_URL: http://host.docker.internal:8082
+      DISSENT_API_KEY: ${DISSENT_API_KEY:?Set DISSENT_API_KEY in .env}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

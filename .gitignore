@@ -21,3 +21,6 @@ docker/mysql-init/*.sql
 
 # DiSSENT database export (contains user accounts)
 docker/mysql-init/*.sql
+
+# Local secrets (shared DISSENT_API_KEY)
+.env

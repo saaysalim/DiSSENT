@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 
 /**
  * Every /api/** endpoint here will eventually be reachable from the public internet
@@ -15,10 +17,10 @@ import java.io.IOException;
  */
 public class ApiKeyFilter extends HttpFilter {
 
-    private final String expectedApiKey;
+    private final byte[] expectedApiKey;
 
     public ApiKeyFilter(String expectedApiKey) {
-        this.expectedApiKey = expectedApiKey;
+        this.expectedApiKey = expectedApiKey.getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
@@ -27,7 +29,8 @@ public class ApiKeyFilter extends HttpFilter {
 
         String providedKey = request.getHeader("X-API-Key");
 
-        if (providedKey == null || !providedKey.equals(expectedApiKey)) {
+        if (providedKey == null
+                || !MessageDigest.isEqual(providedKey.getBytes(StandardCharsets.UTF_8), expectedApiKey)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"Missing or invalid X-API-Key header\"}");

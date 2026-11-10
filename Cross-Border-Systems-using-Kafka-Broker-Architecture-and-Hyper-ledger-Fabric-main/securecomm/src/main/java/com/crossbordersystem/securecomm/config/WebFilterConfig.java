@@ -9,7 +9,12 @@ import org.springframework.context.annotation.Configuration;
 public class WebFilterConfig {
 
     @Bean
-    public FilterRegistrationBean<ApiKeyFilter> apiKeyFilter(@Value("${api.key}") String apiKey) {
+    public FilterRegistrationBean<ApiKeyFilter> apiKeyFilter(@Value("${api.key:}") String apiKey) {
+        // Fail fast: with an empty key, a request sending an empty X-API-Key header would pass.
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalStateException(
+                    "DISSENT_API_KEY is not set. Set it in the environment before starting this service.");
+        }
         FilterRegistrationBean<ApiKeyFilter> registration = new FilterRegistrationBean<>(new ApiKeyFilter(apiKey));
         registration.addUrlPatterns("/api/*");
         return registration;
