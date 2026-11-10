@@ -18,6 +18,7 @@ if(ini_get("session.use_cookies")){
 
 session_destroy();
 
-header("Location: login.php");
+// Fixed flag only; login.php shows "You have been logged out."
+header("Location: login.php?logged_out=1", true, 303);
 exit();
 ?>

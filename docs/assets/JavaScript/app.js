@@ -1,109 +1,244 @@
+/*
+ * DiSSENT shared site script (loaded on every page by includes/footer.php).
+ *
+ * Header navigation: at MOBILE_QUERY widths (phones and iPads) the menu links,
+ * search, language and account links live in a sidebar (#siteMenu) that slides
+ * in from the left. Keep MOBILE_QUERY identical to the matching media query in
+ * assets/css/base.css ("HEADER — PHONES AND TABLETS").
+ */
 (function () {
     "use strict";
 
+    var MOBILE_QUERY = "(max-width: 1024px)";
+
     function initialiseNavigation() {
-        const header = document.getElementById("siteHeader");
+        var header = document.getElementById("siteHeader");
 
         if (!header || header.dataset.navigationReady === "true") {
             return;
         }
 
-        const toggle = header.querySelector(".nav-toggle");
-        const navigation = document.getElementById("primaryNavigation");
-        const tools = document.getElementById("headerTools");
+        var toggle = header.querySelector(".nav-toggle");
+        var menu = document.getElementById("siteMenu");
+        var closeButton = menu ? menu.querySelector(".nav-close") : null;
+        var backdrop = document.querySelector(".site-menu-backdrop");
+        var languages = header.querySelector(".header-language-menu");
+        var languageToggle = languages ? languages.querySelector("summary") : null;
 
-        if (!toggle || !navigation || !tools) {
+        if (!toggle || !menu || !closeButton) {
             return;
         }
 
-        // Prevent duplicate handlers if this file is accidentally loaded twice.
+        // Prevent duplicate handlers if this file is loaded twice.
         header.dataset.navigationReady = "true";
 
-        const mobile = window.matchMedia("(max-width: 1400px)");
+        var mobile = window.matchMedia(MOBILE_QUERY);
+        var isOpen = false;
 
-        function focusIsInsideMenu() {
-            return (
-                navigation.contains(document.activeElement) ||
-                tools.contains(document.activeElement)
+        function closeLanguages(restoreFocus) {
+            if (!languages || !languages.open) {
+                return;
+            }
+
+            languages.open = false;
+
+            if (restoreFocus && languageToggle) {
+                languageToggle.focus();
+            }
+        }
+
+        function focusableItems() {
+            return Array.prototype.filter.call(
+                menu.querySelectorAll(
+                    "a[href], button:not([disabled]), input:not([disabled]), summary"
+                ),
+                function (item) {
+                    return item.offsetParent !== null;
+                }
             );
         }
 
-        function setMenu(open, restoreFocus = false) {
-            header.classList.toggle("nav-open", open);
+        // Dialog semantics only apply while the sidebar is open on small screens.
+        function setDialogSemantics(on) {
+            if (on) {
+                menu.setAttribute("role", "dialog");
+                menu.setAttribute("aria-modal", "true");
+                menu.setAttribute("aria-label", "Site menu");
+            } else {
+                menu.removeAttribute("role");
+                menu.removeAttribute("aria-modal");
+                menu.removeAttribute("aria-label");
+            }
+        }
 
-            toggle.setAttribute("aria-expanded", String(open));
+        function openMenu() {
+            if (!mobile.matches || isOpen) {
+                return;
+            }
+
+            isOpen = true;
+            header.classList.add("nav-open");
+            document.documentElement.classList.add("site-menu-open");
+            toggle.setAttribute("aria-expanded", "true");
+            setDialogSemantics(true);
+
+            if (backdrop) {
+                backdrop.hidden = false;
+            }
+
+            closeButton.focus();
+        }
+
+        function closeMenu(restoreFocus) {
+            if (!isOpen) {
+                return;
+            }
+
+            isOpen = false;
+            header.classList.remove("nav-open");
+            document.documentElement.classList.remove("site-menu-open");
+            toggle.setAttribute("aria-expanded", "false");
+            setDialogSemantics(false);
+            closeLanguages(false);
+
+            if (backdrop) {
+                backdrop.hidden = true;
+            }
+
             if (restoreFocus) {
                 toggle.focus();
             }
         }
 
         toggle.addEventListener("click", function () {
-            if (!mobile.matches) {
+            if (isOpen) {
+                closeMenu(true);
+            } else {
+                openMenu();
+            }
+        });
+
+        closeButton.addEventListener("click", function () {
+            closeMenu(true);
+        });
+
+        if (backdrop) {
+            backdrop.addEventListener("click", function () {
+                closeMenu(true);
+            });
+        }
+
+        // Close when a menu link is chosen (the page then navigates).
+        menu.addEventListener("click", function (event) {
+            var link = event.target.closest ? event.target.closest("a[href]") : null;
+
+            if (link && isOpen) {
+                closeMenu(false);
+            }
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (event.key === "Escape" || event.key === "Esc") {
+                if (languages && languages.open) {
+                    event.preventDefault();
+                    closeLanguages(true);
+                    return;
+                }
+
+                if (isOpen) {
+                    event.preventDefault();
+                    closeMenu(true);
+                }
+
                 return;
             }
 
-            setMenu(!header.classList.contains("nav-open"));
-        });
+            // Keep keyboard focus inside the open sidebar.
+            if (event.key === "Tab" && isOpen) {
+                var items = focusableItems();
 
-        header.addEventListener("keydown", function (event) {
-            if (
-                event.key === "Escape" &&
-                mobile.matches &&
-                header.classList.contains("nav-open")
-            ) {
-                event.preventDefault();
-                setMenu(false, true);
+                if (items.length === 0) {
+                    return;
+                }
+
+                var first = items[0];
+                var last = items[items.length - 1];
+
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                } else if (!menu.contains(document.activeElement)) {
+                    event.preventDefault();
+                    first.focus();
+                }
             }
         });
 
+        // Close the language list when clicking anywhere outside it.
         document.addEventListener("click", function (event) {
-            if (
-                mobile.matches &&
-                header.classList.contains("nav-open") &&
-                !header.contains(event.target)
-            ) {
-                setMenu(false, focusIsInsideMenu());
+            if (languages && languages.open && !languages.contains(event.target)) {
+                closeLanguages(languages.contains(document.activeElement));
             }
         });
 
         function handleScreenChange() {
-            const toggleHadFocus = document.activeElement === toggle;
-
-            setMenu(false, mobile.matches && focusIsInsideMenu());
-
-            if (!mobile.matches && toggleHadFocus) {
-                const homeLink = header.querySelector(".logo a");
-
-                if (homeLink) {
-                    homeLink.focus();
-                }
+            if (!mobile.matches && isOpen) {
+                closeMenu(false);
             }
         }
 
         if (typeof mobile.addEventListener === "function") {
             mobile.addEventListener("change", handleScreenChange);
-        } else {
+        } else if (typeof mobile.addListener === "function") {
             mobile.addListener(handleScreenChange);
         }
 
-        // Hide the mobile menu only after its controls are ready.
-        const preserveFocus = mobile.matches && focusIsInsideMenu();
+        // Restore a clean state when the page comes back from the back/forward cache.
+        window.addEventListener("pageshow", function (event) {
+            if (event.persisted) {
+                closeMenu(false);
+            }
+        });
 
-        setMenu(false);
         header.classList.add("menu-ready");
+    }
 
-        if (preserveFocus) {
-            toggle.focus();
+    function initialiseHeaderSearch() {
+        var form = document.querySelector("#siteHeader .header-search");
+        var input = form ? form.querySelector('input[name="q"]') : null;
+
+        if (!form || !input || form.dataset.searchReady === "true") {
+            return;
         }
+
+        form.dataset.searchReady = "true";
+
+        input.addEventListener("input", function () {
+            input.setCustomValidity("");
+        });
+
+        form.addEventListener("submit", function (event) {
+            input.value = input.value.trim();
+
+            if (input.value === "") {
+                event.preventDefault();
+                input.setCustomValidity("Enter something to search for.");
+                input.reportValidity();
+            }
+        });
+    }
+
+    function initialise() {
+        initialiseNavigation();
+        initialiseHeaderSearch();
     }
 
     if (document.readyState === "loading") {
-        document.addEventListener(
-            "DOMContentLoaded",
-            initialiseNavigation,
-            { once: true }
-        );
+        document.addEventListener("DOMContentLoaded", initialise, { once: true });
     } else {
-        initialiseNavigation();
+        initialise();
     }
 })();

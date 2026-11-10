@@ -95,8 +95,8 @@ foreach ($partners as $partner) {
 
 <main class="about-page">
 
-    <section class="about-hero" aria-labelledby="aboutHeading">
-        <div class="about-hero-content">
+    <section class="page-hero" aria-labelledby="aboutHeading">
+        <div>
             <h1 id="aboutHeading">About DiSSENT</h1>
 
             <p>

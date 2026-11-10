@@ -4,47 +4,6 @@
     min-width: 0;
 }
 
-/* HERO */
-
-.contact-page .contact-hero {
-    min-height: 340px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 70px 24px;
-    text-align: center;
-    background:
-        linear-gradient(
-            rgba(16, 36, 77, 0.85),
-            rgba(16, 36, 77, 0.85)
-        ),
-        url("../images/image_333.jpg");
-    background-size: cover;
-    background-position: center;
-    color: #fff;
-}
-
-.contact-page .contact-hero-content {
-    width: 100%;
-    max-width: 850px;
-    margin: 0 auto;
-}
-
-.contact-page .contact-hero h1 {
-    margin: 0 0 20px;
-    font-size: clamp(2rem, 4vw, 3.4rem);
-    line-height: 1.2;
-    overflow-wrap: anywhere;
-}
-
-.contact-page .contact-hero p {
-    max-width: 720px;
-    margin: 0 auto;
-    font-size: clamp(1rem, 2vw, 1.2rem);
-    line-height: 1.8;
-    color: #edf3ff;
-}
-
 /* PAGE LAYOUT */
 
 .contact-page .contact-section {
@@ -65,10 +24,10 @@
 .contact-page .contact-form-container {
     min-width: 0;
     padding: clamp(24px, 3vw, 40px);
-    border: 1px solid #e1e7f0;
-    border-radius: 16px;
+    border: 1px solid var(--card-border);
+    border-radius: var(--card-radius);
     background: #fff;
-    box-shadow: 0 6px 20px rgba(16, 36, 77, 0.06);
+    box-shadow: var(--card-shadow);
     overflow-wrap: anywhere;
 }
 
@@ -118,33 +77,6 @@
 
 /* SUCCESS AND ERROR MESSAGES */
 
-.contact-page .contact-notice {
-    margin: 0 0 28px;
-    padding: 16px 20px;
-    border: 1px solid;
-    border-left-width: 5px;
-    border-radius: 10px;
-    overflow-wrap: anywhere;
-}
-
-.contact-page .contact-notice p {
-    margin: 0;
-    font-weight: 600;
-    line-height: 1.6;
-}
-
-.contact-page .contact-notice--success {
-    border-color: #8ac8a0;
-    background: #edf9f0;
-    color: #185c32;
-}
-
-.contact-page .contact-notice--error {
-    border-color: #e6a1a1;
-    background: #fff1f1;
-    color: #922828;
-}
-
 /* FORM */
 
 .contact-page .contact-form {
@@ -172,8 +104,8 @@
     min-width: 0;
     margin: 0;
     padding: 13px 15px;
-    border: 1px solid #bbc7d8;
-    border-radius: 9px;
+    border: 1px solid var(--field-border);
+    border-radius: var(--field-radius);
     background: #fff;
     color: #1e293b;
     font: inherit;
@@ -201,10 +133,9 @@
 
 .contact-page .contact-form input:focus,
 .contact-page .contact-form textarea:focus {
-    border-color: #285bb5;
-    outline: 2px solid #285bb5;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 4px rgba(40, 91, 181, 0.08);
+    border-color: var(--field-focus);
+    outline: 3px solid rgba(28, 96, 184, 0.35);
+    outline-offset: 1px;
 }
 
 .contact-page .contact-form .contact-help {
@@ -223,8 +154,8 @@
     margin-top: 12px;
     padding: 14px 22px;
     border: 2px solid transparent;
-    border-radius: 9px;
-    background: #10244d;
+    border-radius: var(--field-radius);
+    background: var(--button-color);
     color: #fff;
     font: inherit;
     font-size: 16px;
@@ -237,7 +168,7 @@
 }
 
 .contact-page .contact-btn:hover {
-    background: #214d99;
+    background: var(--button-hover);
     box-shadow: 0 4px 12px rgba(16, 36, 77, 0.15);
 }
 
@@ -265,20 +196,11 @@
         padding: 44px 24px;
     }
 
-    .contact-page .contact-hero {
-        min-height: 280px;
-        padding: 56px 24px;
-    }
 }
 
 /* PHONES */
 
 @media (max-width: 480px) {
-    .contact-page .contact-hero {
-        min-height: 240px;
-        padding: 44px 16px;
-    }
-
     .contact-page .contact-section {
         padding: 32px 16px;
     }
@@ -286,16 +208,13 @@
     .contact-page .contact-info,
     .contact-page .contact-form-container {
         padding: 22px 18px;
-        border-radius: 12px;
+        border-radius: var(--card-radius);
     }
 
     .contact-page .contact-details {
         padding: 16px;
     }
 
-    .contact-page .contact-notice {
-        padding: 14px 16px;
-    }
 }
 
 /* REDUCED MOTION */

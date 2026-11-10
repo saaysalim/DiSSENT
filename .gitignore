@@ -24,3 +24,6 @@ docker/mysql-init/*.sql
 
 # Local secrets (shared DISSENT_API_KEY)
 .env
+
+# Claude Code instructions (local only)
+CLAUDE.md

@@ -4,47 +4,6 @@
     min-width: 0;
 }
 
-/* HERO */
-
-.about-page .about-hero {
-    min-height: 340px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 70px 24px;
-    background:
-        linear-gradient(
-            rgba(16, 36, 77, 0.85),
-            rgba(16, 36, 77, 0.85)
-        ),
-        url("../images/image_333.jpg");
-    background-size: cover;
-    background-position: center;
-    color: #fff;
-    text-align: center;
-}
-
-.about-page .about-hero-content {
-    width: 100%;
-    max-width: 850px;
-    margin: 0 auto;
-}
-
-.about-page .about-hero h1 {
-    margin-bottom: 20px;
-    font-size: clamp(2rem, 4vw, 3.4rem);
-    line-height: 1.2;
-    overflow-wrap: anywhere;
-}
-
-.about-page .about-hero p {
-    max-width: 740px;
-    margin: 0 auto;
-    color: #edf3ff;
-    font-size: clamp(1rem, 2vw, 1.2rem);
-    line-height: 1.8;
-}
-
 /* SECTION LAYOUT */
 
 .about-page .about-section,
@@ -110,14 +69,14 @@
     min-width: 0;
     height: auto;
     padding: 28px 24px;
-    border: 1px solid #e1e7f0;
-    border-radius: 14px;
+    border: 1px solid var(--card-border);
+    border-radius: var(--card-radius);
     background: #fff;
     color: #10244d;
     text-align: center;
     text-decoration: none;
     overflow-wrap: anywhere;
-    box-shadow: 0 6px 20px rgba(16, 36, 77, 0.06);
+    box-shadow: var(--card-shadow);
 }
 
 .about-page .tech-card h3,
@@ -251,11 +210,6 @@
 /* SMALL TABLETS AND PHONES */
 
 @media (max-width: 700px) {
-    .about-page .about-hero {
-        min-height: 280px;
-        padding: 56px 24px;
-    }
-
     .about-page .about-section,
     .about-page .technology-section,
     .about-page .benefits-section,
@@ -279,11 +233,6 @@
 /* SMALL PHONES */
 
 @media (max-width: 480px) {
-    .about-page .about-hero {
-        min-height: 240px;
-        padding: 44px 16px;
-    }
-
     .about-page .about-section,
     .about-page .technology-section,
     .about-page .benefits-section,

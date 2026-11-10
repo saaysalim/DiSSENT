@@ -568,21 +568,21 @@ $status_labels = array(
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<section class="reports-hero">
-    <h1>Reports Centre</h1>
+<section class="page-hero" aria-labelledby="reportsHeading">
+    <h1 id="reportsHeading">Reports Centre</h1>
     <p>Submit a report, attach a document and follow its review status.</p>
 </section>
 
 <main class="reports-page">
 
     <?php if (is_string($success) && $success !== ''): ?>
-        <div class="report-notice report-notice-success" role="status">
+        <div class="notice notice--success" role="status">
             <?php echo e($success); ?>
         </div>
     <?php endif; ?>
 
     <?php if (!empty($errors)): ?>
-        <div class="report-notice report-notice-error" role="alert">
+        <div class="notice notice--error" role="alert">
             <strong>Please check your submission:</strong>
             <ul>
                 <?php foreach ($errors as $error): ?>

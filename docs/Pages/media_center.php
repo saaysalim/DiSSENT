@@ -66,7 +66,7 @@ $partners = $content['partners'] ?? array();
 
 <main class="media-page">
 
-    <section class="media-hero" aria-labelledby="mediaHeading">
+    <section class="page-hero" aria-labelledby="mediaHeading">
         <h1 id="mediaHeading">Media Centre</h1>
 
         <p>
@@ -74,8 +74,8 @@ $partners = $content['partners'] ?? array();
             cross-border media teams.
         </p>
 
-        <div class="media-hero-actions">
-            <a href="#publications" class="btn-secondary">
+        <div class="page-hero__actions">
+            <a href="#publications" class="btn-primary">
                 Browse publications
             </a>
 
@@ -118,7 +118,7 @@ $partners = $content['partners'] ?? array();
         </form>
 
         <?php if ($search_error !== ''): ?>
-            <p class="media-notice media-notice-error" role="alert">
+            <p class="notice notice--error" role="alert">
                 <?php echo e($search_error); ?>
             </p>
         <?php endif; ?>
@@ -143,7 +143,7 @@ $partners = $content['partners'] ?? array();
 
         <?php if ($publications_error !== ''): ?>
 
-            <div class="media-notice media-notice-error" role="alert">
+            <div class="notice notice--error" role="alert">
                 <p><?php echo e($publications_error); ?></p>
             </div>
 
@@ -160,7 +160,7 @@ $partners = $content['partners'] ?? array();
 
                     <a
                         href="media_center.php#publications"
-                        class="btn-secondary"
+                        class="btn-primary"
                     >
                         Browse all publications
                     </a>
@@ -171,7 +171,7 @@ $partners = $content['partners'] ?? array();
                         Reports awaiting review are not publicly listed.
                     </p>
 
-                    <a href="reports.php" class="btn-secondary">
+                    <a href="reports.php" class="btn-primary">
                         Submit a report
                     </a>
                 <?php endif; ?>
@@ -291,7 +291,7 @@ $partners = $content['partners'] ?? array();
 
         <?php if ($updates_error !== ''): ?>
 
-            <p class="media-notice" role="status">
+            <p class="notice" role="status">
                 <?php echo e($updates_error); ?>
             </p>
 

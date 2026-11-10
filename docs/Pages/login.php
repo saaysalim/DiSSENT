@@ -30,7 +30,27 @@ if (!empty($_SESSION['user_id'])) {
 }
 
 $message = '';
+$message_type = 'error';
 $email = '';
+
+/*
+ * Shown once after logout.php redirects here. The text is fixed,
+ * so nothing from the URL is ever printed.
+ */
+if (
+    ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' &&
+    ($_GET['logged_out'] ?? '') === '1'
+) {
+    $message = 'You have been logged out.';
+    $message_type = 'success';
+} elseif (
+    ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' &&
+    ($_GET['account_deleted'] ?? '') === '1'
+) {
+    // Shown once after settings.php deletes the account.
+    $message = 'Your account has been deleted.';
+    $message_type = 'success';
+}
 
 /*
  * Escape values before placing them into HTML.
@@ -237,66 +257,28 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - DiSSENT</title>
-
-    <!-- Existing shared styles -->
-    <link
-        rel="stylesheet"
-        href="../assets/css/base.css"
-    >
-
-    <link
-        rel="stylesheet"
-        href="../assets/css/auth.css"
-    >
-
-    <!-- Login-only responsive styles -->
-    <link
-        rel="stylesheet"
-        href="../assets/css/login-enhancements.css?v=1"
-    >
-
-    <!-- Matches your existing JavaScript folder -->
-    <script
-        src="../assets/JavaScript/login-passwords.js?v=1"
-        defer
-    ></script>
+    <link rel="stylesheet" href="../assets/css/base.css">
+    <link rel="stylesheet" href="../assets/css/auth.css?v=5">
+    <script src="../assets/JavaScript/auth-forms.js?v=2" defer></script>
 </head>
-
 <body>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<section
-    id="dissent-login"
-    class="login-section"
-    aria-labelledby="login-title"
->
-    <div class="login-container">
-
-        <h1 id="login-title">
-            Login to DiSSENT
-        </h1>
-
-        <p class="login-intro">
-            Access your media workspace, reports and collaboration tools.
-        </p>
+<main class="auth-section" aria-labelledby="login-title">
+    <div class="auth-card">
+        <h1 id="login-title">Login to DiSSENT</h1>
+        <p class="auth-intro">Access your media workspace, reports and collaboration tools.</p>
 
         <?php if ($message !== ''): ?>
             <div
-                id="login-message"
-                class="login-message"
-                role="alert"
-                tabindex="-1"
+                class="auth-message auth-message--<?php echo $login_escape($message_type); ?>"
+                role="<?php echo $message_type === 'success' ? 'status' : 'alert'; ?>"
+                <?php echo $message_type === 'error' ? 'tabindex="-1"' : ''; ?>
             >
                 <?php echo $login_escape($message); ?>
             </div>
@@ -304,21 +286,17 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
         <form
             id="dissent-login-form"
-            class="login-form"
+            class="auth-form"
             method="POST"
             action="login.php"
+            data-auth-form
         >
             <?php echo csrf_field(); ?>
 
-            <!-- Email address -->
-            <div class="login-field">
-
-                <label for="login-email">
-                    Email address
-                </label>
-
+            <div class="auth-field">
+                <label for="login-email">Email address</label>
                 <input
-                    class="login-input"
+                    class="auth-input"
                     id="login-email"
                     type="email"
                     name="email"
@@ -333,17 +311,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 >
             </div>
 
-            <!-- Password and Show/Hide button -->
-            <div class="login-field">
-
-                <label for="login-password">
-                    Password
-                </label>
-
-                <div class="login-password-control">
-
+            <div class="auth-field">
+                <label for="login-password">Password</label>
+                <div class="password-field">
                     <input
-                        class="login-input"
+                        class="auth-input"
                         id="login-password"
                         type="password"
                         name="password"
@@ -353,54 +325,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                         spellcheck="false"
                         required
                     >
-
-                    <button
-                        id="login-password-toggle"
-                        class="login-password-toggle"
-                        type="button"
-                        aria-controls="login-password"
-                        aria-label="Show password"
-                        hidden
-                    >
-                        Show
-                    </button>
-
+                    <?php echo password_toggle_html('login-password'); ?>
                 </div>
             </div>
 
-            <noscript>
-                <p class="login-help">
-                    You can still log in with JavaScript disabled.
-                    Your password will remain hidden.
-                </p>
-            </noscript>
+            <p class="auth-forgot"><a href="forgot_password.php">Forgot password?</a></p>
 
-            <button
-                id="login-submit"
-                class="login-submit"
-                type="submit"
-            >
-                Log in
-            </button>
-
+            <button class="auth-submit" type="submit" data-busy-text="Logging in…">Log in</button>
         </form>
 
-        <div class="login-links">
-
-            <a href="forgot_password.php">
-                Forgot password?
-            </a>
-
-            <p>
-                Don't have an account?
-                <a href="register.php">
-                    Register
-                </a>
-            </p>
-
+        <div class="auth-links">
+            <p>Don't have an account? <a href="register.php">Register</a></p>
         </div>
     </div>
-</section>
+</main>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 

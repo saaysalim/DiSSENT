@@ -243,13 +243,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             !password_verify($current_password, $user['password'])
         ) {
             $password_message = 'Current password is incorrect.';
-        } elseif ($text_length($new_password) < 8) {
-            $password_message = 'New password must contain at least 8 characters.';
-        } elseif (
-            strlen($new_password) > 72 ||
-            strpos($new_password, "\0") !== false
-        ) {
-            $password_message = 'This password is too long or contains an unsupported character. Please choose another.';
+        } elseif (($new_password_problem = password_policy_message($new_password)) !== '') {
+            $password_message = $new_password_problem;
         } elseif ($new_password !== $confirm_password) {
             $password_message = 'New passwords do not match.';
         } elseif (password_verify($new_password, $user['password'])) {
@@ -320,6 +315,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // The password hash is not needed when rendering the page.
 unset($user['password']);
 
+$category_suggestions = array(
+    'Journalist',
+    'Freelance Journalist',
+    'Media Organisation',
+    'Fact Checker',
+    'Researcher / Investigator',
+    'NGO / Human Rights Organisation',
+    'Other',
+);
+
 $created_timestamp = strtotime((string) ($user['created_at'] ?? ''));
 $member_since = $created_timestamp !== false
     ? date('d M Y', $created_timestamp)
@@ -327,7 +332,6 @@ $member_since = $created_timestamp !== false
 ?>
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -335,123 +339,145 @@ $member_since = $created_timestamp !== false
     <title>My Profile - DiSSENT</title>
 
     <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/profile.css">
+    <link rel="stylesheet" href="../assets/css/auth.css?v=5">
+    <link rel="stylesheet" href="../assets/css/profile.css?v=2">
+    <script src="../assets/JavaScript/auth-forms.js?v=2" defer></script>
 </head>
 
 <body>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<main class="profile-page">
-    <section class="profile-section" aria-labelledby="profileHeading">
-        <div class="profile-container">
+<main class="auth-section profile-page" aria-labelledby="profileHeading">
+    <div class="profile-container">
 
-            <div class="profile-header">
-                <?php echo get_avatar_html($user); ?>
+        <div class="profile-summary">
+            <?php echo get_avatar_html($user); ?>
 
-                <h1 id="profileHeading">
-                    <?php echo e($user['fullname']); ?>
-                </h1>
+            <div class="profile-summary__text">
+                <h1 id="profileHeading"><?php echo e($user['fullname']); ?></h1>
+                <p class="profile-summary__email"><?php echo e($user['email']); ?></p>
 
-                <p>Manage your profile and account settings.</p>
+                <ul class="profile-facts">
+                    <li><span>Account role</span> <?php echo e($user['role']); ?></li>
+                    <?php if ($organisation_value !== ''): ?>
+                        <li><span>Category</span> <?php echo e($organisation_value); ?></li>
+                    <?php endif; ?>
+                    <li><span>Member since</span> <?php echo e($member_since); ?></li>
+                </ul>
             </div>
+        </div>
 
-            <?php if ($message !== ''): ?>
-                <div
-                    class="profile-message profile-message--<?php echo e($message_type); ?>"
-                    role="<?php echo $message_type === 'error' ? 'alert' : 'status'; ?>"
-                >
-                    <?php echo e($message); ?>
-                </div>
-            <?php endif; ?>
+        <div class="profile-grid">
 
-            <div class="profile-card">
-                <h2>Account Information</h2>
+            <section class="auth-card profile-card" aria-labelledby="profileDetailsHeading">
+                <h2 id="profileDetailsHeading">Profile details</h2>
+                <p class="auth-intro">Update your name, category and picture.</p>
 
-                <p>
-                    <strong>Account role:</strong>
-                    <?php echo e($user['role']); ?>
-                </p>
-
-                <p>
-                    <strong>Member since:</strong>
-                    <?php echo e($member_since); ?>
-                </p>
+                <?php if ($message !== ''): ?>
+                    <div
+                        class="auth-message auth-message--<?php echo e($message_type); ?>"
+                        role="<?php echo $message_type === 'error' ? 'alert' : 'status'; ?>"
+                        <?php echo $message_type === 'error' ? 'tabindex="-1"' : ''; ?>
+                    >
+                        <?php echo e($message); ?>
+                    </div>
+                <?php endif; ?>
 
                 <form
                     method="POST"
                     action="profile.php"
                     enctype="multipart/form-data"
-                    class="profile-form"
+                    class="auth-form"
+                    data-auth-form
                 >
                     <?php echo csrf_field(); ?>
 
                     <input type="hidden" name="update_profile" value="1">
 
-                    <label for="fullname">Full name</label>
-                    <input
-                        type="text"
-                        id="fullname"
-                        name="fullname"
-                        autocomplete="name"
-                        maxlength="100"
-                        value="<?php echo e($fullname_value); ?>"
-                        required
-                    >
+                    <div class="auth-field">
+                        <label for="fullname">Full name</label>
+                        <input
+                            class="auth-input"
+                            type="text"
+                            id="fullname"
+                            name="fullname"
+                            placeholder="Enter your full name"
+                            autocomplete="name"
+                            autocapitalize="words"
+                            maxlength="100"
+                            value="<?php echo e($fullname_value); ?>"
+                            required
+                        >
+                    </div>
 
-                    <label for="email">Email address (read-only)</label>
-                    <input
-                        type="email"
-                        id="email"
-                        autocomplete="email"
-                        value="<?php echo e($user['email']); ?>"
-                        readonly
-                    >
+                    <div class="auth-field">
+                        <label for="email">Email address</label>
+                        <input
+                            class="auth-input"
+                            type="email"
+                            id="email"
+                            autocomplete="email"
+                            value="<?php echo e($user['email']); ?>"
+                            aria-describedby="emailHelp"
+                            readonly
+                        >
+                        <small id="emailHelp" class="auth-help">Your email address cannot be changed here.</small>
+                    </div>
 
-                    <label for="organisation">
-                        Organisation or job type
-                    </label>
-                    <input
-                        type="text"
-                        id="organisation"
-                        name="organisation"
-                        maxlength="100"
-                        value="<?php echo e($organisation_value); ?>"
-                        aria-describedby="organisationHelp"
-                    >
+                    <div class="auth-field">
+                        <label for="organisation">Professional category</label>
+                        <input
+                            class="auth-input"
+                            type="text"
+                            id="organisation"
+                            name="organisation"
+                            list="categorySuggestions"
+                            autocomplete="organization-title"
+                            maxlength="100"
+                            value="<?php echo e($organisation_value); ?>"
+                            aria-describedby="organisationHelp"
+                        >
+                        <datalist id="categorySuggestions">
+                            <?php foreach ($category_suggestions as $suggestion): ?>
+                                <option value="<?php echo e($suggestion); ?>"></option>
+                            <?php endforeach; ?>
+                        </datalist>
+                        <small id="organisationHelp" class="auth-help">
+                            Pick a suggestion or type your own. This does not change your account permissions.
+                        </small>
+                    </div>
 
-                    <p id="organisationHelp" class="profile-help">
-                        This describes your work. It does not change
-                        your account permissions.
-                    </p>
+                    <div class="auth-field">
+                        <label for="profile_picture">Profile picture</label>
+                        <input
+                            class="auth-input"
+                            type="file"
+                            id="profile_picture"
+                            name="profile_picture"
+                            accept="image/jpeg,image/png,image/gif"
+                            aria-describedby="pictureHelp"
+                        >
+                        <small id="pictureHelp" class="auth-help">
+                            JPG, PNG or GIF. Leave empty to keep your current picture.
+                        </small>
+                    </div>
 
-                    <label for="profile_picture">Profile picture</label>
-                    <input
-                        type="file"
-                        id="profile_picture"
-                        name="profile_picture"
-                        accept="image/jpeg,image/png,image/gif"
-                        aria-describedby="pictureHelp"
-                    >
-
-                    <p id="pictureHelp" class="profile-help">
-                        Choose a JPG, PNG or GIF image. Leave this empty
-                        to keep your current picture.
-                    </p>
-
-                    <button type="submit" class="btn-primary">
+                    <button type="submit" class="auth-submit" data-busy-text="Saving…">
                         Save Changes
                     </button>
                 </form>
-            </div>
+            </section>
 
-            <div class="profile-card">
-                <h2>Change Password</h2>
+            <section class="auth-card profile-card" aria-labelledby="passwordHeading">
+                <h2 id="passwordHeading">Change password</h2>
+                <p class="auth-intro">Enter your current password, then choose a new one.</p>
 
                 <?php if ($password_message !== ''): ?>
                     <div
-                        class="profile-message profile-message--<?php echo e($password_message_type); ?>"
+                        class="auth-message auth-message--<?php echo e($password_message_type); ?>"
                         role="<?php echo $password_message_type === 'error' ? 'alert' : 'status'; ?>"
+                        <?php echo $password_message_type === 'error' ? 'tabindex="-1"' : ''; ?>
                     >
                         <?php echo e($password_message); ?>
                     </div>
@@ -460,57 +486,81 @@ $member_since = $created_timestamp !== false
                 <form
                     method="POST"
                     action="profile.php"
-                    class="profile-form"
+                    class="auth-form"
+                    data-auth-form
                 >
                     <?php echo csrf_field(); ?>
 
                     <input type="hidden" name="change_password" value="1">
 
-                    <label for="current_password">Current password</label>
-                    <input
-                        type="password"
-                        id="current_password"
-                        name="current_password"
-                        autocomplete="current-password"
-                        required
-                    >
+                    <!-- Lets password managers save the new password for this account. -->
+                    <input type="email" autocomplete="username" value="<?php echo e($user['email']); ?>" readonly hidden>
 
-                    <label for="new_password">New password</label>
-                    <input
-                        type="password"
-                        id="new_password"
-                        name="new_password"
-                        autocomplete="new-password"
-                        minlength="8"
-                        aria-describedby="passwordHelp"
-                        required
-                    >
+                    <div class="auth-field">
+                        <label for="current_password">Current password</label>
+                        <div class="password-field">
+                            <input
+                                class="auth-input"
+                                type="password"
+                                id="current_password"
+                                name="current_password"
+                                autocomplete="current-password"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                required
+                            >
+                            <?php echo password_toggle_html('current_password'); ?>
+                        </div>
+                    </div>
 
-                    <p id="passwordHelp" class="profile-help">
-                        Use at least 8 characters. Choose a unique password
-                        that you do not use on another website.
-                    </p>
+                    <div class="auth-field">
+                        <label for="new_password">New password</label>
+                        <div class="password-field">
+                            <input
+                                class="auth-input"
+                                type="password"
+                                id="new_password"
+                                name="new_password"
+                                autocomplete="new-password"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                minlength="8"
+                                aria-describedby="newPasswordRules"
+                                required
+                            >
+                            <?php echo password_toggle_html('new_password'); ?>
+                        </div>
+                        <?php echo password_rules_html('newPasswordRules', 'new_password'); ?>
+                    </div>
 
-                    <label for="confirm_password">
-                        Confirm new password
-                    </label>
-                    <input
-                        type="password"
-                        id="confirm_password"
-                        name="confirm_password"
-                        autocomplete="new-password"
-                        minlength="8"
-                        required
-                    >
+                    <div class="auth-field">
+                        <label for="confirm_password">Confirm new password</label>
+                        <div class="password-field">
+                            <input
+                                class="auth-input"
+                                type="password"
+                                id="confirm_password"
+                                name="confirm_password"
+                                autocomplete="new-password"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                minlength="8"
+                                aria-describedby="newPasswordMatch"
+                                required
+                            >
+                            <?php echo password_toggle_html('confirm_password'); ?>
+                        </div>
+                        <?php echo password_match_html('newPasswordMatch', 'confirm_password', 'new_password'); ?>
+                    </div>
 
-                    <button type="submit" class="btn-secondary">
+                    <button type="submit" class="auth-submit auth-submit--secondary" data-busy-text="Updating…">
                         Update Password
                     </button>
                 </form>
-            </div>
+            </section>
 
         </div>
-    </section>
+    </div>
 </main>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>

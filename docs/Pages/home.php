@@ -31,8 +31,8 @@ $is_logged_in = isset($_SESSION['user_id']);
 <main id="main-content">
 
     <!-- Hero -->
-    <section class="hero" aria-labelledby="homeHeading">
-        <div class="hero-content">
+    <section class="page-hero page-hero--alt page-hero--tall" aria-labelledby="homeHeading">
+        <div>
             <h1 id="homeHeading">
                 Journalism and Collaboration Across Borders
             </h1>
@@ -43,7 +43,7 @@ $is_logged_in = isset($_SESSION['user_id']);
                 with media teams and follow editorial review.
             </p>
 
-            <div class="hero-buttons">
+            <div class="page-hero__actions">
                 <?php if ($is_logged_in): ?>
                     <a href="dashboard.php" class="btn-primary">
                         Go to Dashboard

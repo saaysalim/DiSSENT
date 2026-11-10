@@ -407,6 +407,23 @@ try {
     error_log('DiSSENT: admin activity could not be loaded.');
 }
 
+$contact_messages = array();
+$contact_total = 0;
+$contact_failed = false;
+
+try {
+    $contact_total = db_count('contact_messages');
+    $contact_messages = db_rows(
+        "SELECT id, full_name, email, subject, message, created_at
+         FROM contact_messages
+         ORDER BY created_at DESC, id DESC
+         LIMIT 50"
+    );
+} catch (Throwable $exception) {
+    $contact_failed = true;
+    error_log('DiSSENT: contact messages could not be loaded.');
+}
+
 $status_labels = array(
     'Pending' => 'Pending review',
     'Approved' => 'Approved for publication',
@@ -431,23 +448,33 @@ $status_labels = array(
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<main class="review-page">
-
-    <h1>Report Review</h1>
+<section class="page-hero" aria-labelledby="adminHeading">
+    <h1 id="adminHeading">Report Review</h1>
 
     <p>
         Read submissions and decide whether they are suitable for publication.
         Publication approval and blockchain recording are separate.
     </p>
+</section>
+
+<main class="review-page">
+
+    <nav class="review-sections" aria-label="Admin sections">
+        <ul>
+            <li><a href="#submittedReports">Submitted reports</a></li>
+            <li><a href="#adminActivity">Recent activity</a></li>
+            <li><a href="#contactMessages">Contact messages</a></li>
+        </ul>
+    </nav>
 
     <?php if ($notice !== ''): ?>
-        <div class="review-notice" role="status">
+        <div class="notice notice--success" role="status">
             <?php echo e($notice); ?>
         </div>
     <?php endif; ?>
 
     <?php if (!empty($errors)): ?>
-        <div class="review-notice review-error" role="alert">
+        <div class="notice notice--error" role="alert">
             <ul>
                 <?php foreach ($errors as $error): ?>
                     <li><?php echo e($error); ?></li>
@@ -458,7 +485,7 @@ $status_labels = array(
 
     <?php if ($load_failed): ?>
 
-        <div class="review-notice review-error" role="alert">
+        <div class="notice notice--error" role="alert">
             Reports could not be loaded. Please check the PHP terminal
             for errors and try again.
         </div>
@@ -488,7 +515,7 @@ $status_labels = array(
         </div>
 
         <?php if ($stats['legacy_verified'] > 0): ?>
-            <div class="review-notice">
+            <div class="notice">
                 <p>
                     <strong>
                         <?php echo $stats['legacy_verified']; ?>
@@ -505,7 +532,7 @@ $status_labels = array(
             </div>
         <?php endif; ?>
 
-        <h2>Submitted Reports</h2>
+        <h2 id="submittedReports">Submitted Reports</h2>
 
         <?php if (empty($reports)): ?>
             <div class="review-card">
@@ -714,7 +741,7 @@ $status_labels = array(
 
     <?php endif; ?>
 
-    <h2>Recent Admin Activity</h2>
+    <h2 id="adminActivity">Recent Admin Activity</h2>
 
     <?php if ($activity_failed): ?>
 
@@ -741,6 +768,54 @@ $status_labels = array(
         </ul>
 
     <?php endif; ?>
+
+    <section class="review-contact" id="contactMessages" aria-labelledby="contactMessagesHeading">
+        <h2 id="contactMessagesHeading">Contact messages</h2>
+
+        <?php if ($contact_failed): ?>
+            <div class="notice notice--error" role="alert">
+                Contact messages could not be loaded. Please try again later.
+            </div>
+        <?php elseif ($contact_total === 0): ?>
+            <p class="review-muted">No messages have been sent through the Contact page yet.</p>
+        <?php else: ?>
+            <p class="review-muted">
+                <?php echo (int) $contact_total; ?> message<?php echo $contact_total === 1 ? '' : 's'; ?>, newest first.
+                <?php if ($contact_total > count($contact_messages)): ?>
+                    Showing the latest <?php echo count($contact_messages); ?>.
+                <?php endif; ?>
+            </p>
+
+            <div class="review-contact-list">
+                <?php foreach ($contact_messages as $contact): ?>
+                    <?php
+                        $contact_subject = trim((string) $contact['subject']) !== ''
+                            ? (string) $contact['subject']
+                            : '(No subject)';
+                        $contact_time = strtotime((string) $contact['created_at']);
+                    ?>
+                    <details class="review-contact-item">
+                        <summary>
+                            <span class="review-contact-subject"><?php echo e($contact_subject); ?></span>
+                            <span class="review-contact-meta">
+                                <?php echo e($contact['full_name']); ?>
+                                · <time datetime="<?php echo e(date('c', $contact_time ?: time())); ?>"><?php echo e($contact_time ? date('d M Y, H:i', $contact_time) : ''); ?></time>
+                            </span>
+                        </summary>
+
+                        <div class="review-contact-body">
+                            <p>
+                                <strong>From:</strong>
+                                <?php echo e($contact['full_name']); ?>
+                                (<a href="mailto:<?php echo e(rawurlencode((string) $contact['email'])); ?>"><?php echo e($contact['email']); ?></a>)
+                            </p>
+                            <p class="review-contact-text"><?php echo nl2br(e($contact['message'])); ?></p>
+                        </div>
+                    </details>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </section>
 
 </main>
 

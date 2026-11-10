@@ -5,23 +5,42 @@ include("../backend/content.php");
 
 require_login();
 
-$user_id = $_SESSION['user_id'];
+$user_id = (int) $_SESSION['user_id'];
 
-$stmt = mysqli_prepare($conn, "SELECT id, fullname, role FROM users WHERE id != ? ORDER BY fullname ASC");
-mysqli_stmt_bind_param($stmt, 'i', $user_id);
+// Active members, plus deleted accounts you already have a conversation with
+// (so you can still read it). Deleted accounts are listed last.
+$stmt = mysqli_prepare($conn, "
+    SELECT u.id, u.fullname, u.role
+    FROM users u
+    WHERE u.id != ?
+      AND (
+          u.role <> 'deleted'
+          OR EXISTS (
+              SELECT 1 FROM messages m
+              WHERE (m.sender_id = u.id AND m.receiver_id = ?)
+                 OR (m.sender_id = ? AND m.receiver_id = u.id)
+          )
+      )
+    ORDER BY (u.role = 'deleted') ASC, u.fullname ASC
+");
+mysqli_stmt_bind_param($stmt, 'iii', $user_id, $user_id, $user_id);
 mysqli_stmt_execute($stmt);
 $contacts = mysqli_stmt_get_result($stmt);
 
 $receiver_id = isset($_GET['user']) ? (int)$_GET['user'] : 0;
 $receiver = null;
 
-if($receiver_id){
-    $stmt = mysqli_prepare($conn, "SELECT * FROM users WHERE id = ?");
+if($receiver_id > 0 && $receiver_id !== $user_id){
+    // Only the columns the page needs (never the password hash).
+    $stmt = mysqli_prepare($conn, "SELECT id, fullname, role FROM users WHERE id = ?");
     mysqli_stmt_bind_param($stmt, 'i', $receiver_id);
     mysqli_stmt_execute($stmt);
     $result = mysqli_stmt_get_result($stmt);
-    $receiver = mysqli_fetch_assoc($result);
+    $receiver = mysqli_fetch_assoc($result) ?: null;
 }
+
+// A deleted account's conversation can be read but not replied to.
+$receiver_deleted = $receiver !== null && $receiver['role'] === 'deleted';
 
 $messages = null;
 $last_message_id = 0;
@@ -31,7 +50,7 @@ if($receiver){
         SELECT * FROM messages
         WHERE (sender_id = ? AND receiver_id = ?)
         OR (sender_id = ? AND receiver_id = ?)
-        ORDER BY sent_at ASC
+        ORDER BY sent_at ASC, id ASC
     ");
     mysqli_stmt_bind_param($stmt, 'iiii', $user_id, $receiver_id, $receiver_id, $user_id);
     mysqli_stmt_execute($stmt);
@@ -54,8 +73,8 @@ if($receiver){
 
 <?php include("../includes/header.php"); ?>
 
-<section class="message-hero">
-    <h1>Secure Messaging</h1>
+<section class="page-hero" aria-labelledby="messagingHeading">
+    <h1 id="messagingHeading">Secure Messaging</h1>
     <p>Communicate securely with trusted journalists, media organisations and verification partners.</p>
 </section>
 
@@ -65,29 +84,30 @@ if($receiver){
 
         <h2>Contacts</h2>
 
-        <input type="text" id="contactSearch" class="contact-search" placeholder="Search by name or role...">
+        <label for="contactSearch" class="visually-hidden">Search contacts</label>
+        <input type="search" id="contactSearch" class="contact-search" placeholder="Search by name or role..." autocomplete="off">
 
         <div id="contactListItems">
             <?php while($contact = mysqli_fetch_assoc($contacts)){ ?>
 
                 <a href="messaging.php?user=<?php echo (int)$contact['id']; ?>#chatArea"
                 class="contact-item <?php echo ($receiver_id == $contact['id']) ? 'active' : ''; ?>"
-                data-name="<?php echo strtolower(e($contact['fullname'])); ?>"
-                data-role="<?php echo strtolower(e($contact['role'])); ?>">
+                data-name="<?php echo e(mb_strtolower($contact['fullname'], 'UTF-8')); ?>"
+                data-role="<?php echo e(mb_strtolower($contact['role'] === 'deleted' ? 'account deleted' : $contact['role'], 'UTF-8')); ?>">
 
                     <strong><?php echo e($contact['fullname']); ?></strong>
-                    <small><?php echo e($contact['role']); ?></small>
+                    <small><?php echo $contact['role'] === 'deleted' ? 'Account deleted' : e($contact['role']); ?></small>
 
                 </a>
 
             <?php } ?>
         </div>
 
-        <p id="noContactsFound" class="no-message" style="display:none;">No contacts match your search.</p>
+        <p id="noContactsFound" class="no-message" hidden>No contacts match your search.</p>
 
     </div>
 
-    <div class="chat-area" id="chatArea" style="scroll-margin-top: 100px;">
+    <div class="chat-area" id="chatArea">
 
         <div class="chat-header">
             <div class="chat-avatar" aria-hidden="true">
@@ -98,9 +118,15 @@ if($receiver){
             </div>
             <div class="chat-heading-text">
                 <h2><?php echo $receiver ? e($receiver['fullname']) : 'Your conversations'; ?></h2>
-                <p><?php echo $receiver
-                    ? 'Conversation with ' . e($receiver['fullname'])
-                    : 'Choose a contact to start a conversation.'; ?></p>
+                <p><?php
+                    if ($receiver_deleted) {
+                        echo 'This account has been deleted. You can read your past messages, but you cannot reply.';
+                    } elseif ($receiver) {
+                        echo 'Conversation with ' . e($receiver['fullname']);
+                    } else {
+                        echo 'Choose a contact to start a conversation.';
+                    }
+                ?></p>
             </div>
         </div>
 
@@ -170,11 +196,18 @@ if($receiver){
             name="message"
             rows="3"
             aria-label="Write a message"
-            placeholder="<?php echo $receiver
-                ? 'Write a message…'
-                : 'Select a contact before writing a message.'; ?>"
+            maxlength="5000"
+            placeholder="<?php
+                if ($receiver_deleted) {
+                    echo 'You cannot reply to a deleted account.';
+                } elseif ($receiver) {
+                    echo 'Write a message…';
+                } else {
+                    echo 'Select a contact before writing a message.';
+                }
+            ?>"
             required
-            <?php if (!$receiver): ?>disabled<?php endif; ?>
+            <?php if (!$receiver || $receiver_deleted): ?>disabled<?php endif; ?>
         ></textarea>
 
         <button
@@ -182,7 +215,7 @@ if($receiver){
             class="send-btn composer-send"
             aria-label="Send message"
             title="Send message"
-            <?php if (!$receiver): ?>disabled<?php endif; ?>
+            <?php if (!$receiver || $receiver_deleted): ?>disabled<?php endif; ?>
         >
             <svg
                 viewBox="0 0 24 24"
@@ -283,12 +316,11 @@ if($receiver){
                 item.dataset.name.includes(query) ||
                 item.dataset.role.includes(query);
 
-            item.style.display = matches ? '' : 'none';
+            item.hidden = !matches;
             if (matches) visible++;
         });
 
-        document.getElementById('noContactsFound').style.display =
-            visible ? 'none' : 'block';
+        document.getElementById('noContactsFound').hidden = visible > 0;
     });
 
     // Fetch the selected conversation, then replace only the chat contents.

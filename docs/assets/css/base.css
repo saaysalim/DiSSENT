@@ -8,6 +8,17 @@
     --white: #ffffff;
     --border-radius: 12px;
     --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+    /* Shared by every page (buttons, form fields, cards, messages). */
+    --button-color: #354f91;
+    --button-hover: #24396f;
+    --field-border: #b3c0d4;
+    --field-radius: 0.6rem;
+    --field-focus: #1c60b8;
+    --card-border: #d9e1ee;
+    --card-radius: 1rem;
+    --card-shadow: 0 12px 35px rgba(23, 49, 93, 0.07);
+    --muted-text: #4c5d75;
 }
 
 /* BASE */
@@ -117,13 +128,13 @@ summary:focus-visible {
 
 .login-btn,
 .btn-primary {
-    background: var(--secondary-color);
+    background: var(--button-color);
     color: #fff;
 }
 
 .login-btn:hover,
 .btn-primary:hover {
-    background: #214d99;
+    background: var(--button-hover);
     color: #fff;
 }
 
@@ -303,6 +314,8 @@ summary:focus-visible {
     flex: 0 0 auto;
     width: 44px;
     margin: 0;
+    /* Space between the globe button and the account links */
+    margin-inline-end: 12px;
     padding: 0;
     border: 0;
     background: transparent;
@@ -334,8 +347,8 @@ summary:focus-visible {
 
 #siteHeader .header-language-menu summary svg {
     display: block;
-    width: 23px;
-    height: 23px;
+    width: 20px;
+    height: 20px;
     pointer-events: none;
 }
 
@@ -349,12 +362,13 @@ summary:focus-visible {
     top: calc(100% + 10px);
     right: 0;
     z-index: 100;
-    width: 240px;
-    max-width: calc(100vw - 40px);
+    width: 130px;
+    min-width: 0;
+    max-width: calc(100vw - 32px);
     max-height: 65vh;
     overflow-y: auto;
     margin: 0;
-    padding: 16px;
+    padding: 12px;
     border: 1px solid #dbe3ef;
     border-radius: 14px;
     background: #fff;
@@ -388,14 +402,6 @@ summary:focus-visible {
     border-bottom: 1px solid #edf1f7;
     color: var(--text-color);
     font-size: 0.95rem;
-}
-
-#siteHeader .header-language-dropdown .language-note {
-    margin: 12px 0 0;
-    color: #526174;
-    font-size: 0.8rem;
-    font-weight: 400;
-    line-height: 1.5;
 }
 
 /* PROFILE, LOGIN AND LOGOUT */
@@ -476,7 +482,15 @@ summary:focus-visible {
     background: rgba(255, 255, 255, 0.12);
 }
 
-.header-visually-hidden {
+/* Elements with the hidden attribute stay hidden, even if a page sets display. */
+
+[hidden] {
+    display: none !important;
+}
+
+/* SCREEN-READER-ONLY TEXT */
+
+.visually-hidden {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -488,101 +502,166 @@ summary:focus-visible {
     white-space: nowrap;
 }
 
-/* COMPACT HEADER — LAPTOPS, TABLETS AND PHONES */
+/* MESSAGE BOXES — success / error / information.
+   .notice is for every page; .auth-message is the same box (account pages). */
 
-@media (max-width: 1400px) {
-    #siteHeader {
-        flex-wrap: wrap;
-        justify-content: flex-start;
-        gap: 12px;
-        padding: 14px 20px;
-    }
-
-    #siteHeader .logo {
-        order: 1;
-    }
-
-    #siteHeader.menu-ready .nav-toggle {
-        display: flex;
-        order: 0;
-    }
-
-    #siteHeader #primaryNavigation {
-        order: 2;
-        flex: 1 1 100%;
-        width: 100%;
-        padding-top: 12px;
-        border-top: 1px solid rgba(255, 255, 255, 0.18);
-    }
-
-    #siteHeader #primaryNavigation ul {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 6px 12px;
-    }
-
-    #siteHeader #primaryNavigation a {
-        padding: 12px 8px;
-        text-align: center;
-        white-space: normal;
-    }
-
-    #siteHeader #primaryNavigation a:hover,
-    #siteHeader #primaryNavigation a.active {
-        background: rgba(255, 255, 255, 0.08);
-    }
-
-    #siteHeader #headerTools {
-        order: 3;
-        flex: 1 1 100%;
-        flex-wrap: wrap;
-        justify-content: flex-start;
-        width: 100%;
-        gap: 12px;
-        padding-top: 12px;
-        border-top: 1px solid rgba(255, 255, 255, 0.18);
-    }
-
-    #siteHeader .header-search {
-        flex: 1 1 100%;
-        width: 100%;
-        max-width: none;
-    }
-
-    #siteHeader .header-language-dropdown {
-        right: auto;
-        left: 0;
-    }
-
-    #siteHeader.menu-ready:not(.nav-open) #primaryNavigation,
-    #siteHeader.menu-ready:not(.nav-open) #headerTools {
-        display: none;
-    }
+.notice,
+.auth-message {
+    margin: 1.25rem 0 0;
+    padding: 0.85rem 1rem;
+    border: 1px solid #bdcadf;
+    border-left-width: 4px;
+    border-radius: 0.6rem;
+    background: #f1f5fb;
+    color: var(--primary-color);
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
 }
 
-/* SMALL PHONES */
+.notice:focus,
+.auth-message:focus {
+    outline: 3px solid var(--field-focus);
+    outline-offset: 3px;
+}
+
+.notice--error,
+.auth-message--error {
+    border-color: #e4b8bb;
+    background: #fff3f3;
+    color: #882831;
+}
+
+.notice--success,
+.auth-message--success {
+    border-color: #a9cdbb;
+    background: #edf8f1;
+    color: #20553b;
+}
+
+.auth-message--debug {
+    border-color: #f0c36d;
+    background: #fff8e6;
+    color: #5c4300;
+    font-weight: 400;
+}
+
+.auth-message--debug strong {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.notice p,
+.notice ul {
+    margin: 0;
+}
+
+.notice ul {
+    margin-top: 0.35rem;
+    padding-left: 1.2rem;
+}
+
+.notice li + li {
+    margin-top: 0.2rem;
+}
+
+.auth-message--debug a {
+    color: #3d3000;
+    word-break: break-all;
+}
+
+/* PAGE HERO BANNER — the dark photo banner at the top of each page.
+   .page-hero--alt uses the second photo; .page-hero--tall is the home page. */
+
+.page-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-height: 300px;
+    padding: clamp(56px, 8vw, 96px) 24px;
+    background:
+        linear-gradient(rgba(16, 36, 77, 0.85), rgba(16, 36, 77, 0.85)),
+        url("../images/image_333.jpg") center / cover no-repeat;
+    background-color: var(--primary-color);
+    color: #fff;
+    text-align: center;
+}
+
+.page-hero--alt {
+    background-image:
+        linear-gradient(rgba(16, 36, 77, 0.85), rgba(16, 36, 77, 0.85)),
+        url("../images/image_111.jpg");
+}
+
+.page-hero--tall {
+    min-height: 70vh;
+}
+
+.page-hero > * {
+    width: 100%;
+    max-width: 860px;
+    margin-inline: auto;
+}
+
+.page-hero h1 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(2rem, 4.5vw, 3.4rem);
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.page-hero h1 + p {
+    max-width: 760px;
+    margin: 16px auto 0;
+    color: #edf3ff;
+    font-size: clamp(1rem, 2vw, 1.2rem);
+    line-height: 1.8;
+}
+
+/* Buttons inside a hero: white outline style. */
+.page-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 24px;
+}
+
+.page-hero__actions .btn-primary {
+    border-color: #fff;
+}
+
+.page-hero__actions .btn-secondary {
+    border-color: #fff;
+    color: #fff;
+}
+
+.page-hero__actions .btn-secondary:hover {
+    background: #fff;
+    color: var(--primary-color);
+}
+
+.page-hero a:focus-visible {
+    outline-color: #fff;
+}
 
 @media (max-width: 480px) {
-    #siteHeader {
-        padding: 12px 16px;
+    .page-hero {
+        min-height: 0;
+        padding: 44px 16px;
     }
 
-    #siteHeader .logo {
-        font-size: 24px;
+    .page-hero--tall {
+        min-height: 60vh;
     }
 
-    #siteHeader #primaryNavigation ul {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 6px;
-    }
-
-    #siteHeader #headerTools {
-        gap: 10px;
-    }
-
-    #siteHeader #headerTools > a.login-btn {
-        max-width: 140px;
-        padding-inline: 10px;
+    .page-hero__actions > a {
+        width: 100%;
     }
 }
 
@@ -605,7 +684,11 @@ footer .footer-links {
 }
 
 footer .footer-links a {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
     padding: 10px 4px;
     color: #fff;
     text-decoration: none;
@@ -630,7 +713,6 @@ footer p {
 .action-card,
 .verification-card,
 .report-card,
-.media-card,
 .featured-card,
 .partner-card,
 .tech-card,
@@ -645,7 +727,6 @@ footer p {
     .action-card,
     .verification-card,
     .report-card,
-    .media-card,
     .featured-card,
     .partner-card,
     .tech-card,
@@ -680,26 +761,291 @@ footer p {
     }
 }
 
-/* Space between the globe button and profile */
-#siteHeader .header-language-menu {
-    position: relative;
-    flex-shrink: 0;
-    margin-inline-end: 12px;
-}
+/* =========================================================
+   HEADER LAYOUT CONTAINER (all widths)
+   ========================================================= */
 
-/* Smaller language dropdown */
-#siteHeader .header-language-dropdown {
-    box-sizing: border-box;
-    width: 130px;
+#siteHeader .site-menu {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 16px;
     min-width: 0;
-    max-width: calc(100vw - 32px);
-    padding: 12px;
-    inset-inline-start: auto;
-    inset-inline-end: 0;
 }
 
-/* Slightly smaller globe inside the button */
-#siteHeader .header-language-menu summary svg {
-    width: 20px;
-    height: 20px;
+#siteHeader .site-menu-top {
+    display: none;
+}
+
+.site-menu-backdrop {
+    display: none;
+}
+
+/* LAPTOPS AND iPad LANDSCAPE (1025–1599px): two-row header.
+   Logo and tools on the first row, menu links centred on the second.
+   (The full menu, incl. FAQ, Settings and Admin, only fits on one row from 1600px.) */
+
+@media (min-width: 1025px) and (max-width: 1599px) {
+    #siteHeader {
+        flex-wrap: wrap;
+        row-gap: 6px;
+        padding: 12px 24px 6px;
+    }
+
+    #siteHeader .site-menu {
+        display: contents;
+    }
+
+    #siteHeader .logo {
+        order: 1;
+    }
+
+    #siteHeader #headerTools {
+        order: 2;
+        margin-inline-start: auto;
+    }
+
+    #siteHeader #primaryNavigation {
+        order: 3;
+        flex: 1 1 100%;
+        width: 100%;
+        border-top: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    #siteHeader #primaryNavigation ul {
+        gap: 0 20px;
+    }
+
+    #siteHeader #primaryNavigation a {
+        padding: 8px 4px;
+    }
+
+    #siteHeader #headerTools > a.header-account {
+        display: block;
+        max-width: 200px;
+        padding: 11px 16px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow-wrap: normal;
+    }
+}
+
+/* =========================================================
+   HEADER — PHONES AND TABLETS (up to 1024px, incl. iPad)
+   Keep this breakpoint identical to MOBILE_QUERY in
+   assets/JavaScript/app.js.
+   ========================================================= */
+
+@media (max-width: 1024px) {
+    #siteHeader {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        gap: 12px;
+        padding: 12px 20px;
+    }
+
+    #siteHeader .logo {
+        font-size: 24px;
+    }
+
+    #siteHeader .logo a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+
+    /* Without JavaScript the menu simply stacks under the logo. */
+    #siteHeader .site-menu {
+        flex: 1 1 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    #siteHeader #primaryNavigation ul {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        flex-wrap: nowrap;
+        gap: 2px;
+    }
+
+    #siteHeader #primaryNavigation a {
+        display: flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 1rem;
+        white-space: normal;
+    }
+
+    #siteHeader #primaryNavigation a:hover,
+    #siteHeader #primaryNavigation a.active,
+    #siteHeader #primaryNavigation a[aria-current="page"] {
+        background: rgba(255, 255, 255, 0.1);
+        text-decoration: none;
+    }
+
+    #siteHeader #primaryNavigation a[aria-current="page"] {
+        box-shadow: inset 3px 0 0 #c3d8ff;
+    }
+
+    #siteHeader #headerTools {
+        flex-direction: column;
+        align-items: stretch;
+        flex-wrap: nowrap;
+        gap: 12px;
+        width: 100%;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    #siteHeader .header-search {
+        flex: 0 0 auto;
+        width: 100%;
+        max-width: none;
+    }
+
+    #siteHeader .header-language-menu {
+        width: 100%;
+        margin-inline-end: 0;
+    }
+
+    #siteHeader .header-language-menu summary {
+        justify-content: flex-start;
+        gap: 10px;
+        width: 100%;
+        height: auto;
+        min-height: 44px;
+        padding: 8px 14px;
+        border-radius: 8px;
+    }
+
+    #siteHeader .header-language-menu summary::after {
+        content: "Language";
+        font-size: 1rem;
+    }
+
+    #siteHeader .header-language-dropdown {
+        position: static;
+        width: 100%;
+        max-width: none;
+        margin-top: 8px;
+        box-shadow: none;
+    }
+
+    #siteHeader #headerTools > a.login-btn {
+        width: 100%;
+        max-width: none;
+        padding: 10px 16px;
+        font-size: 1rem;
+    }
+
+    /* ----- Sidebar (JavaScript available) ----- */
+
+    html.has-js #siteHeader {
+        flex-wrap: nowrap;
+    }
+
+    html.has-js #siteHeader .nav-toggle {
+        display: flex;
+    }
+
+    html.has-js #siteHeader .site-menu {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 1001;
+        width: min(340px, 86vw);
+        height: 100vh;
+        height: 100dvh;
+        padding: 16px 16px max(24px, env(safe-area-inset-bottom));
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        background: var(--primary-color);
+        box-shadow: 8px 0 30px rgba(0, 0, 0, 0.3);
+        transform: translateX(-100%);
+        visibility: hidden;
+        transition:
+            transform 0.25s ease,
+            visibility 0s linear 0.25s;
+    }
+
+    html.has-js #siteHeader.nav-open {
+        z-index: 1001;
+    }
+
+    html.has-js #siteHeader.nav-open .site-menu {
+        transform: translateX(0);
+        visibility: visible;
+        transition: transform 0.25s ease;
+    }
+
+    html.has-js #siteHeader .site-menu-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    #siteHeader .site-menu-title {
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    #siteHeader .nav-close {
+        display: inline-flex;
+        flex: 0 0 44px;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        background: transparent;
+        color: #fff;
+        cursor: pointer;
+    }
+
+    #siteHeader .nav-close:hover {
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+    #siteHeader .nav-close:focus-visible {
+        outline-color: #90c7ff;
+    }
+
+    html.has-js .site-menu-backdrop:not([hidden]) {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: rgba(8, 18, 40, 0.55);
+    }
+
+    /* Stop the page behind the sidebar from scrolling. */
+    html.site-menu-open,
+    html.site-menu-open body {
+        overflow: hidden;
+    }
+}
+
+@media (max-width: 480px) {
+    #siteHeader {
+        padding: 12px 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.has-js #siteHeader .site-menu,
+    html.has-js #siteHeader.nav-open .site-menu {
+        transition: none;
+    }
 }

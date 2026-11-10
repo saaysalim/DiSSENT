@@ -231,8 +231,8 @@ if ($chain_intact === true) {
 
 <main class="verification-page">
 
-    <section class="verification-hero">
-        <h1>Report Verification</h1>
+    <section class="page-hero" aria-labelledby="verificationHeading">
+        <h1 id="verificationHeading">Report Verification</h1>
 
         <p>
             Find a reviewed report, inspect its recorded hashes,
@@ -499,6 +499,7 @@ if ($chain_intact === true) {
                 Choose “View Record” to request the current service record.
             </p>
 
+            <div class="table-scroll" role="region" aria-label="Recent report verification records" tabindex="0">
             <table>
                 <caption>Recent report verification records</caption>
 
@@ -584,6 +585,7 @@ if ($chain_intact === true) {
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            </div>
 
         <?php endif; ?>
 

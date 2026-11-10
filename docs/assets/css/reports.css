@@ -1,23 +1,4 @@
-.reports-hero {
-    padding: clamp(60px, 8vw, 110px) 6%;
-    text-align: center;
-    background:
-        linear-gradient(rgba(16, 36, 77, .85), rgba(16, 36, 77, .85)),
-        url("../images/image_333.jpg") center / cover;
-    color: #fff;
-}
 
-.reports-hero h1 {
-    font-size: clamp(2rem, 5vw, 3.4rem);
-    line-height: 1.2;
-    margin-bottom: 18px;
-}
-
-.reports-hero p {
-    max-width: 750px;
-    margin: auto;
-    font-size: clamp(1rem, 2vw, 1.2rem);
-}
 
 .reports-page {
     max-width: 1140px;
@@ -42,9 +23,9 @@
     padding: 28px;
     background: #fff;
     color: #202838;
-    border: 1px solid #dce2ed;
-    border-radius: 16px;
-    box-shadow: 0 6px 20px rgba(25, 37, 74, .06);
+    border: 1px solid var(--card-border);
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
     text-align: left;
 }
 
@@ -82,8 +63,8 @@
     width: 100%;
     min-width: 0;
     padding: 12px 14px;
-    border: 1px solid #8794ab;
-    border-radius: 8px;
+    border: 1px solid var(--field-border);
+    border-radius: var(--field-radius);
     background: #fff;
     color: #202838;
     font: inherit;
@@ -133,9 +114,9 @@
     justify-self: start;
     min-height: 44px;
     border: 0;
-    border-radius: 8px;
+    border-radius: var(--field-radius);
     padding: 13px 22px;
-    background: #244b91;
+    background: var(--button-color);
     color: #fff;
     font: inherit;
     font-weight: 600;
@@ -144,35 +125,12 @@
 }
 
 .reports-page .report-submit:hover {
-    background: #19386f;
+    background: var(--button-hover);
 }
 
 .reports-page :is(input, textarea, button, a):focus-visible {
-    outline: 3px solid #4a90e2;
+    outline: 3px solid #648bdb;
     outline-offset: 3px;
-}
-
-.reports-page .report-notice {
-    margin-bottom: 24px;
-    padding: 16px 20px;
-    border-radius: 10px;
-    line-height: 1.6;
-    overflow-wrap: anywhere;
-}
-
-.reports-page .report-notice-success {
-    background: #e8f5ed;
-    color: #175834;
-}
-
-.reports-page .report-notice-error {
-    background: #fff0ef;
-    color: #8a2420;
-}
-
-.reports-page .report-notice ul {
-    margin: 8px 0;
-    padding-left: 22px;
 }
 
 .reports-page .reports-grid {

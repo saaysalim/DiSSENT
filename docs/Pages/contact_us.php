@@ -150,8 +150,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <main class="contact-page">
 
-    <section class="contact-hero" aria-labelledby="contactHeading">
-        <div class="contact-hero-content">
+    <section class="page-hero" aria-labelledby="contactHeading">
+        <div>
             <h1 id="contactHeading">Contact DiSSENT</h1>
 
             <p>
@@ -167,7 +167,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     >
         <?php if ($message !== ''): ?>
             <div
-                class="contact-notice contact-notice--<?php
+                class="notice notice--<?php
                     echo $contact_escape($message_type);
                 ?>"
                 role="<?php

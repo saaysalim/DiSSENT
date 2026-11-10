@@ -1,36 +1,38 @@
-/* PROFILE PAGE */
-
-.profile-page {
-    min-width: 0;
-}
-
-.profile-page .profile-section {
-    min-height: 80vh;
-    padding: 56px 24px;
-    background: #f4f7fc;
-}
+/* =========================================================
+   PROFILE PAGE
+   Form fields, messages, eye buttons and checklist come from
+   auth.css; this file only lays out the page.
+   ========================================================= */
 
 .profile-page .profile-container {
     width: 100%;
-    max-width: 900px;
+    max-width: 1080px;
     margin: 0 auto;
 }
 
-/* PROFILE HEADER */
+/* ---------- Summary: avatar, name, facts ---------- */
 
-.profile-page .profile-header {
-    margin-bottom: 32px;
-    text-align: center;
+.profile-summary {
+    display: flex;
+    align-items: center;
+    gap: clamp(1rem, 3vw, 1.75rem);
+    margin: 0 0 clamp(1.25rem, 3vw, 2rem);
+    padding: clamp(1.25rem, 3vw, 1.75rem);
+    border: 1px solid #d9e1ee;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 12px 35px rgba(23, 49, 93, 0.07);
 }
 
 .profile-page .profile-avatar,
 .profile-page .profile-avatar-img {
-    width: 112px;
-    height: 112px;
-    margin: 0 auto 20px;
+    flex: 0 0 auto;
+    width: 104px;
+    height: 104px;
+    margin: 0;
     border: 4px solid #fff;
     border-radius: 50%;
-    box-shadow: 0 6px 20px rgba(16, 36, 77, 0.12);
+    box-shadow: 0 6px 20px rgba(16, 36, 77, 0.14);
 }
 
 .profile-page .profile-avatar {
@@ -39,7 +41,7 @@
     justify-content: center;
     background: #10244d;
     color: #fff;
-    font-size: 42px;
+    font-size: 40px;
     font-weight: 700;
     line-height: 1;
     overflow: hidden;
@@ -50,237 +52,93 @@
     object-fit: cover;
 }
 
-.profile-page .profile-header h1 {
-    margin: 0 0 10px;
-    color: #10244d;
-    font-size: clamp(1.8rem, 4vw, 2.5rem);
-    line-height: 1.3;
+.profile-summary__text {
+    min-width: 0;
+}
+
+.profile-summary h1 {
+    margin: 0;
+    color: var(--auth-ink);
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    line-height: 1.25;
     overflow-wrap: anywhere;
 }
 
-.profile-page .profile-header p {
-    margin: 0;
-    color: #526174;
-    line-height: 1.7;
+.profile-summary__email {
+    margin: 0.2rem 0 0;
+    color: var(--auth-muted);
+    overflow-wrap: anywhere;
 }
 
-/* ACCOUNT AND PASSWORD CARDS */
+.profile-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.85rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.profile-facts li {
+    padding: 0.3rem 0.75rem;
+    border: 1px solid #d9e1ee;
+    border-radius: 999px;
+    background: #f5f7fb;
+    color: var(--auth-ink);
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.profile-facts li span {
+    color: var(--auth-muted);
+    font-weight: 400;
+}
+
+/* ---------- Two cards ---------- */
+
+.profile-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(1.25rem, 3vw, 2rem);
+    align-items: start;
+}
 
 .profile-page .profile-card {
-    min-width: 0;
-    margin-bottom: 28px;
-    padding: 32px;
-    border: 1px solid #e1e7f0;
-    border-radius: 16px;
-    background: #fff;
-    text-align: left;
-    overflow-wrap: anywhere;
-    box-shadow: 0 6px 20px rgba(16, 36, 77, 0.06);
-}
-
-.profile-page .profile-card:last-child {
-    margin-bottom: 0;
-}
-
-.profile-page .profile-card h2 {
-    margin: 0 0 20px;
-    color: #10244d;
-    font-size: clamp(1.3rem, 2.5vw, 1.6rem);
-    line-height: 1.4;
-}
-
-.profile-page .profile-card > p {
-    margin-bottom: 10px;
-    color: #475569;
-    line-height: 1.7;
-}
-
-.profile-page .profile-card > p strong {
-    color: #10244d;
-}
-
-/* FORMS */
-
-.profile-page .profile-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 24px;
-}
-
-.profile-page .profile-form label {
-    margin-top: 10px;
-    color: #10244d;
-    font-size: 0.95rem;
-    font-weight: 600;
-    line-height: 1.5;
-}
-
-.profile-page .profile-form label:first-of-type {
-    margin-top: 0;
-}
-
-.profile-page .profile-form input:not([type="hidden"]) {
-    display: block;
-    width: 100%;
-    min-width: 0;
-    min-height: 48px;
+    max-width: none;
     margin: 0;
-    padding: 12px 14px;
-    border: 1px solid #bbc7d8;
-    border-radius: 9px;
-    background: #fff;
-    color: #1e293b;
-    font: inherit;
-    font-size: 16px;
-    line-height: 1.5;
-    transition:
-        border-color 0.15s ease,
-        box-shadow 0.15s ease;
 }
 
-.profile-page .profile-form input:focus {
-    border-color: #285bb5;
-    outline: 2px solid #285bb5;
-    outline-offset: 2px;
-    box-shadow: 0 0 0 4px rgba(40, 91, 181, 0.08);
+.profile-page .profile-card .auth-form {
+    margin-top: 1.25rem;
 }
 
-/* Read-only email remains selectable and readable. */
-
-.profile-page .profile-form input[readonly],
-.profile-page .profile-form input:disabled {
-    border-color: #dce4ef;
-    background: #f1f5f9;
-    color: #526174;
-    opacity: 1;
-}
-
-.profile-page .profile-form input:disabled {
-    cursor: not-allowed;
-}
-
-/* PROFILE PICTURE UPLOAD */
-
-.profile-page .profile-form input[type="file"] {
-    padding: 10px;
-    background: #f8faff;
-    font-size: 0.9rem;
-}
-
-.profile-page .profile-form input[type="file"]::file-selector-button {
-    min-height: 40px;
-    margin-right: 12px;
-    padding: 8px 14px;
-    border: 1px solid #c6d4eb;
-    border-radius: 7px;
-    background: #e8effa;
-    color: #10244d;
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.profile-page .profile-form input[type="file"]::file-selector-button:hover {
-    background: #dce7f8;
-}
-
-/* HELP TEXT */
-
-.profile-page .profile-help {
-    margin: 0;
-    color: #526174;
-    font-size: 0.85rem;
-    line-height: 1.7;
-}
-
-/* FORM BUTTONS — COLOURS COME FROM BASE.CSS */
-
-.profile-page .profile-form .btn-primary,
-.profile-page .profile-form .btn-secondary {
-    align-self: flex-start;
-    min-height: 48px;
-    margin-top: 14px;
-    padding: 12px 24px;
-}
-
-/* SUCCESS AND ERROR FEEDBACK */
-
-.profile-page .profile-message {
-    margin-bottom: 20px;
-    padding: 15px 18px;
-    border: 1px solid #dce4ef;
-    border-left-width: 5px;
-    border-radius: 10px;
-    background: #f1f5f9;
-    color: #334155;
-    font-weight: 600;
-    line-height: 1.6;
-    text-align: left;
-    overflow-wrap: anywhere;
-}
-
-.profile-page .profile-message--success {
-    border-color: #8ac8a0;
-    background: #edf9f0;
-    color: #185c32;
-}
-
-.profile-page .profile-message--error {
-    border-color: #e6a1a1;
-    background: #fff1f1;
-    color: #922828;
-}
-
-/* TABLETS */
-
-@media (max-width: 768px) {
-    .profile-page .profile-section {
-        padding: 40px 20px;
-    }
-
-    .profile-page .profile-card {
-        padding: 26px;
+/* Side by side on wide screens */
+@media (min-width: 1024px) {
+    .profile-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
-/* PHONES */
+/* Phones: stack the summary */
+@media (max-width: 560px) {
+    .profile-summary {
+        flex-direction: column;
+        text-align: center;
+    }
 
-@media (max-width: 480px) {
-    .profile-page .profile-section {
-        padding: 32px 16px;
+    .profile-facts {
+        justify-content: center;
     }
 
     .profile-page .profile-avatar,
     .profile-page .profile-avatar-img {
-        width: 92px;
-        height: 92px;
+        width: 88px;
+        height: 88px;
     }
 
     .profile-page .profile-avatar {
         font-size: 34px;
-    }
-
-    .profile-page .profile-card {
-        padding: 22px 18px;
-        border-radius: 12px;
-    }
-
-    .profile-page .profile-form .btn-primary,
-    .profile-page .profile-form .btn-secondary {
-        align-self: stretch;
-        width: 100%;
-    }
-
-    .profile-page .profile-message {
-        padding: 14px;
-    }
-}
-
-/* REDUCED MOTION */
-
-@media (prefers-reduced-motion: reduce) {
-    .profile-page .profile-form input {
-        transition: none;
     }
 }

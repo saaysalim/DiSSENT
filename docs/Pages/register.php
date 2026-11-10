@@ -17,10 +17,12 @@ $organisation = '';
 // Keep the existing POST field "role" and database column "organisation".
 $registration_categories = [
     'Journalist',
+    'Freelance Journalist',
     'Media Organisation',
-    'Cross-Border Partner',
     'Fact Checker',
-    'Investigator',
+    'Researcher / Investigator',
+    'NGO / Human Rights Organisation',
+    'Other',
 ];
 
 // Local closures avoid adding global helper functions to the existing project.
@@ -32,11 +34,6 @@ $registration_post_text = static function (string $key): string {
 $registration_escape = static function (string $value): string {
     return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 };
-
-// Preserve the existing eight-character minimum. Reject overlong bcrypt input
-// rather than allowing the hashing algorithm to silently truncate it.
-$registration_min_password_characters = 8;
-$registration_max_password_bytes = PASSWORD_DEFAULT === PASSWORD_BCRYPT ? 72 : 1024;
 
 // A successful POST redirects back to this page so refresh does not resubmit it.
 if (($_SESSION['dissent_registration_success'] ?? false) === true) {
@@ -73,13 +70,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $message = 'Please enter a valid email address.';
         } elseif (!in_array($organisation, $registration_categories, true)) {
             $message = 'Please choose one of the listed professional categories.';
-        } elseif (strpos($password, "\0") !== false) {
-            $message = 'The password contains an unsupported character. Please choose another password.';
-        } elseif (strlen($password) > $registration_max_password_bytes) {
-            $message = 'The password is too long for the current password-hashing configuration. Please use a shorter passphrase.';
-        } elseif (preg_match('/\A.{' . $registration_min_password_characters . ',}\z/us', $password) !== 1) {
-            // /u counts Unicode characters rather than UTF-8 bytes; /s includes newlines.
-            $message = 'Password must contain at least eight valid characters.';
+        } elseif (($registration_password_problem = password_policy_message($password)) !== '') {
+            // Same rules as reset password and profile (backend/content.php).
+            $message = $registration_password_problem;
         } elseif ($password !== $confirm_password) {
             $message = 'Passwords do not match.';
         } else {
@@ -172,58 +165,58 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - DiSSENT</title>
     <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/auth.css">
-    <!-- Registration-only additions; shared CSS is not replaced. -->
-    <link
-    rel="stylesheet"
-    href="../assets/css/register.css?v=3"
->
-
-<script
-    src="../assets/JavaScript/register-passwords.js?v=3"
-    defer
-></script>
+    <link rel="stylesheet" href="../assets/css/auth.css?v=5">
+    <script src="../assets/JavaScript/auth-forms.js?v=2" defer></script>
 </head>
 <body>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<section id="dissent-registration" class="register-section" aria-labelledby="register-title">
-    <div class="register-container">
+<main class="auth-section" aria-labelledby="register-title">
+    <div class="auth-card">
         <h1 id="register-title">Create Account</h1>
-        <p class="register-intro">Register to access the DiSSENT media workspace.</p>
-        <p class="register-required">All fields are required.</p>
+        <p class="auth-intro">Register to access the DiSSENT media workspace.</p>
+        <p class="auth-note">All fields are required.</p>
 
         <?php if ($message !== ''): ?>
             <div
-                class="register-message register-message--<?php echo $registration_escape($message_type); ?>"
+                class="auth-message auth-message--<?php echo $registration_escape($message_type); ?>"
                 role="<?php echo $message_type === 'success' ? 'status' : 'alert'; ?>"
+                <?php echo $message_type === 'error' ? 'tabindex="-1"' : ''; ?>
             >
                 <?php echo $registration_escape($message); ?>
             </div>
         <?php endif; ?>
 
-        <form id="dissent-register-form" class="register-form" method="POST" action="register.php">
+        <form
+            id="dissent-register-form"
+            class="auth-form"
+            method="POST"
+            action="register.php"
+            data-auth-form
+        >
             <?php echo csrf_field(); ?>
 
-            <div class="register-field">
+            <div class="auth-field">
                 <label for="register-fullname">Full name</label>
                 <input
-                    class="register-input"
+                    class="auth-input"
                     id="register-fullname"
                     type="text"
                     name="fullname"
                     placeholder="Enter your full name"
                     autocomplete="name"
+                    autocapitalize="words"
+                    maxlength="100"
                     value="<?php echo $registration_escape($fullname); ?>"
                     required
                 >
             </div>
 
-            <div class="register-field">
+            <div class="auth-field">
                 <label for="register-email">Email address</label>
                 <input
-                    class="register-input"
+                    class="auth-input"
                     id="register-email"
                     type="email"
                     name="email"
@@ -238,9 +231,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 >
             </div>
 
-            <div class="register-field">
+            <div class="auth-field">
                 <label for="register-category">Professional category</label>
-                <select class="register-select" id="register-category" name="role" required>
+                <select class="auth-select" id="register-category" name="role" aria-describedby="register-category-help" required>
                     <option value="">Choose a category</option>
                     <?php foreach ($registration_categories as $category): ?>
                         <option
@@ -249,13 +242,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                         ><?php echo $registration_escape($category); ?></option>
                     <?php endforeach; ?>
                 </select>
+                <small class="auth-help" id="register-category-help">This describes your work. It does not change your account permissions.</small>
             </div>
 
-            <div class="register-field">
+            <div class="auth-field">
                 <label for="register-password">Password</label>
-                <div class="register-password-control">
+                <div class="password-field">
                     <input
-                        class="register-input"
+                        class="auth-input"
                         id="register-password"
                         type="password"
                         name="password"
@@ -263,28 +257,20 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                         autocomplete="new-password"
                         autocapitalize="none"
                         spellcheck="false"
-                        minlength="<?php echo $registration_min_password_characters; ?>"
-                        aria-describedby="register-password-help"
+                        minlength="8"
+                        aria-describedby="register-password-rules"
                         required
                     >
-                    <button
-                        class="register-password-toggle"
-                        type="button"
-                        data-password-toggle
-                        data-password-label="password"
-                        aria-controls="register-password"
-                        aria-label="Show password"
-                        hidden
-                    >Show</button>
+                    <?php echo password_toggle_html('register-password'); ?>
                 </div>
-                <small class="register-help" id="register-password-help">Use at least eight characters. Do not reuse an important account's password.</small>
+                <?php echo password_rules_html('register-password-rules', 'register-password'); ?>
             </div>
 
-            <div class="register-field">
+            <div class="auth-field">
                 <label for="register-confirm-password">Confirm password</label>
-                <div class="register-password-control">
+                <div class="password-field">
                     <input
-                        class="register-input"
+                        class="auth-input"
                         id="register-confirm-password"
                         type="password"
                         name="confirm_password"
@@ -292,33 +278,23 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                         autocomplete="new-password"
                         autocapitalize="none"
                         spellcheck="false"
-                        minlength="<?php echo $registration_min_password_characters; ?>"
+                        minlength="8"
+                        aria-describedby="register-password-match"
                         required
                     >
-                    <button
-                        class="register-password-toggle"
-                        type="button"
-                        data-password-toggle
-                        data-password-label="password confirmation"
-                        aria-controls="register-confirm-password"
-                        aria-label="Show password confirmation"
-                        hidden
-                    >Show</button>
+                    <?php echo password_toggle_html('register-confirm-password'); ?>
                 </div>
+                <?php echo password_match_html('register-password-match', 'register-confirm-password', 'register-password'); ?>
             </div>
 
-            <noscript>
-                <p class="register-help">The Show/Hide buttons need JavaScript. You can still register with your passwords hidden.</p>
-            </noscript>
-
-            <button class="register-submit" type="submit">Register</button>
+            <button class="auth-submit" type="submit" data-busy-text="Creating account…">Register</button>
         </form>
 
-        <div class="register-links">
+        <div class="auth-links">
             <p>Already have an account? <a href="login.php">Log in</a></p>
         </div>
     </div>
-</section>
+</main>
 
 <?php include __DIR__ . '/../includes/footer.php'; ?>
 

@@ -1,34 +1,3 @@
-/* MESSAGING HERO */
-
-.message-hero {
-    padding: 64px 24px;
-    text-align: center;
-    background:
-        linear-gradient(
-            rgba(16, 36, 77, 0.85),
-            rgba(16, 36, 77, 0.85)
-        ),
-        url("../images/image_333.jpg");
-    background-size: cover;
-    background-position: center;
-    color: #fff;
-}
-
-.message-hero h1 {
-    margin: 0 0 18px;
-    font-size: clamp(2rem, 4vw, 3.4rem);
-    line-height: 1.2;
-    overflow-wrap: anywhere;
-}
-
-.message-hero p {
-    max-width: 760px;
-    margin: 0 auto;
-    color: #edf3ff;
-    font-size: clamp(1rem, 2vw, 1.2rem);
-    line-height: 1.8;
-}
-
 /* MAIN LAYOUT */
 
 .message-container {
@@ -44,10 +13,10 @@
 .message-container .conversation-list,
 .message-container .chat-area {
     min-width: 0;
-    border: 1px solid #e1e7f0;
-    border-radius: 14px;
+    border: 1px solid var(--card-border);
+    border-radius: var(--card-radius);
     background: #fff;
-    box-shadow: 0 6px 20px rgba(16, 36, 77, 0.06);
+    box-shadow: var(--card-shadow);
 }
 
 /* CONTACT LIST */
@@ -77,8 +46,8 @@
     min-height: 46px;
     margin: 0 0 18px;
     padding: 12px 14px;
-    border: 1px solid #bbc7d8;
-    border-radius: 9px;
+    border: 1px solid var(--field-border);
+    border-radius: var(--field-radius);
     background: #f8faff;
     color: #1e293b;
     font: inherit;
@@ -91,9 +60,9 @@
 }
 
 .conversation-list .contact-search:focus {
-    border-color: #285bb5;
-    outline: 2px solid #285bb5;
-    outline-offset: 2px;
+    border-color: var(--field-focus);
+    outline: 3px solid rgba(28, 96, 184, 0.35);
+    outline-offset: 1px;
 }
 
 .conversation-list .contact-item {
@@ -172,6 +141,11 @@
 }
 
 /* SCROLLABLE MESSAGE HISTORY */
+
+/* Leave room above the chat when a contact link jumps to it. */
+#chatArea {
+    scroll-margin-top: 100px;
+}
 
 .chat-area .messages-box {
     height: 400px;
@@ -262,8 +236,8 @@
     resize: vertical;
     margin: 0 0 14px;
     padding: 14px 16px;
-    border: 1px solid #bbc7d8;
-    border-radius: 10px;
+    border: 1px solid var(--field-border);
+    border-radius: var(--field-radius);
     background: #f8faff;
     color: #1e293b;
     font: inherit;
@@ -279,9 +253,9 @@
 }
 
 .chat-area textarea:focus {
-    border-color: #285bb5;
-    outline: 2px solid #285bb5;
-    outline-offset: 2px;
+    border-color: var(--field-focus);
+    outline: 3px solid rgba(28, 96, 184, 0.35);
+    outline-offset: 1px;
 }
 
 .chat-area .send-btn {
@@ -292,8 +266,8 @@
     max-width: 100%;
     padding: 13px 28px;
     border: 2px solid transparent;
-    border-radius: 9px;
-    background: #10244d;
+    border-radius: var(--field-radius);
+    background: var(--button-color);
     color: #fff;
     font: inherit;
     font-size: 16px;
@@ -304,7 +278,7 @@
 }
 
 .chat-area .send-btn:hover {
-    background: #214d99;
+    background: var(--button-hover);
 }
 
 .chat-area .send-btn:focus-visible {
@@ -404,10 +378,6 @@
 /* STACK CONTACTS ABOVE CHAT ON SMALLER SCREENS */
 
 @media (max-width: 800px) {
-    .message-hero {
-        padding: 48px 20px;
-    }
-
     .message-container {
         flex-direction: column;
         align-items: stretch;
@@ -432,10 +402,6 @@
 /* SMALL PHONES */
 
 @media (max-width: 480px) {
-    .message-hero {
-        padding: 40px 16px;
-    }
-
     .message-container {
         gap: 20px;
         padding: 28px 16px;
@@ -444,7 +410,7 @@
     .message-container .conversation-list,
     .message-container .chat-area {
         padding: 16px;
-        border-radius: 12px;
+        border-radius: var(--card-radius);
     }
 
     .message-container .conversation-list {
@@ -558,5 +524,37 @@
         flex-basis: 42px;
         width: 42px;
         height: 42px;
+    }
+}
+
+/* RESPONSIVE: phones and small tablets (contacts above chat) */
+
+@media (max-width: 800px) {
+    /* Only the contact list scrolls; heading and search stay visible. */
+    .message-container .conversation-list {
+        max-height: none;
+        overflow: visible;
+    }
+
+    .conversation-list #contactListItems {
+        max-height: min(40vh, 320px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-width: thin;
+    }
+
+    /* Chat box sized to the screen so the composer stays reachable. */
+    .chat-area .messages-box {
+        height: clamp(240px, 50vh, 460px);
+        height: clamp(240px, 50dvh, 460px);
+    }
+
+    .chat-area textarea {
+        height: 96px;
+        min-height: 80px;
+    }
+
+    .chat-area .send-btn {
+        width: 100%;
     }
 }
