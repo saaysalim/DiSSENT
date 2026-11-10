@@ -15,3 +15,9 @@ Thumbs.db
 # Private keys and uploaded reports
 *key.pem
 private/report-documents/
+
+# DiSSENT database export (contains user accounts)
+docker/mysql-init/*.sql
+
+# DiSSENT database export (contains user accounts)
+docker/mysql-init/*.sql

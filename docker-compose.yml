@@ -1,0 +1,61 @@
+name: dissent
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: dissent-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: dissent_root_dev
+      MYSQL_DATABASE: dissent_local
+      MYSQL_USER: dissent
+      MYSQL_PASSWORD: dissent_dev
+    ports:
+      - "3307:3306"
+    volumes:
+      - dissent-mysql-data:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pdissent_root_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  web:
+    build: ./docker/web
+    container_name: dissent-web
+    restart: unless-stopped
+    ports:
+      - "8888:80"
+    volumes:
+      - ./:/var/www/html
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: dissent
+      DB_PASSWORD: dissent_dev
+      DB_NAME: dissent_local
+      BLOCKCHAIN_API_URL: http://host.docker.internal:8081
+      MESSAGING_API_URL: http://host.docker.internal:8082
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: dissent-phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8089:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: dissent_root_dev
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  dissent-mysql-data:
