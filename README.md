@@ -59,7 +59,7 @@ The platform combines a PHP + Bootstrap website with a Java (Spring Boot) backen
   Browser
      │
      ▼
-  PHP Website (docs/)  ──────►  MySQL (Docker)
+  PHP Website (docs/, Docker)  ──►  MySQL (Docker)
      │
      ▼
   SecureComm 1 (Spring Boot)  ──► Kafka ──►  SecureComm 2 (Spring Boot)
@@ -85,8 +85,12 @@ DiSSENT-clean/
 │   ├── docker and Shell files/    # Docker and setup scripts
 │   ├── securecomm/                # Spring Boot service 1 (+ docker-compose.yml)
 │   └── securecomm2/               # Spring Boot service 2
-├── private/                       # Uploaded report documents (not pushed to GitHub)
+├── docker/                        # Dockerfile for the PHP web container + MySQL init SQL
+├── private/                       # Uploaded report documents (outside the web root, not pushed to GitHub)
 ├── site/                          # Static site assets
+├── docker-compose.yml             # Website, MySQL and phpMyAdmin
+├── start-demo.ps1                 # One-click start script
+├── .env.example                   # Format of the local .env (DISSENT_API_KEY)
 └── README.md
 ```
 
@@ -96,12 +100,26 @@ DiSSENT-clean/
 
 Install these before running the project:
 
-- **Docker Desktop**: runs MySQL, Kafka, nginx and the other containers
+- **Docker Desktop**: runs the website (PHP + Apache), MySQL, phpMyAdmin, Kafka, MongoDB and the Fabric network
 - **Java 17 or newer**: check with `java -version`
-- **XAMPP**: only its PHP is used (`C:\xampp\php\php.exe`). You do **not** need to start XAMPP's Apache or MySQL.
+- **Hyperledger Fabric test-network** (in WSL2): needed for report verification. See the Fabric section of the [backend README](Cross-Border-Systems-using-Kafka-Broker-Architecture-and-Hyper-ledger-Fabric-main/README.md)
 - **Git** and **VS Code** (recommended)
 
-> Maven does not need to be installed. The project uses the Maven Wrapper (`mvnw`).
+> Maven does not need to be installed. Both services use the Maven Wrapper (`mvnw`).
+> XAMPP is no longer needed. PHP now runs inside the `dissent-web` Docker container.
+
+### Shared API key (`.env`)
+
+PHP and both Spring Boot services authenticate to each other with one shared key, `DISSENT_API_KEY`, stored in a `.env` file in the `DiSSENT-clean` folder:
+
+```
+DISSENT_API_KEY=<a long random value>
+```
+
+- `.env` is in `.gitignore`. **Never commit it.** `.env.example` shows the format.
+- `start-demo.ps1` creates `.env` with a random key if it is missing.
+- Docker Compose reads `.env` automatically. The Java services read the key from the environment and **refuse to start without it**.
+- If you change the key, restart all three: the `web` container, `securecomm` and `securecomm2`.
 
 ---
 
@@ -110,59 +128,72 @@ Install these before running the project:
 ### Option A: One-click start (recommended)
 
 1. Open **Docker Desktop** and wait until it is running.
-2. Open a terminal in the `DiSSENT-clean` folder and run:
+2. Start the Fabric test-network if it is not already running (check with `docker ps` for `peer0.org1.example.com`).
+3. Open a terminal in the `DiSSENT-clean` folder and run:
    ```powershell
    powershell -ExecutionPolicy Bypass -File .\start-demo.ps1
    ```
-3. Chrome opens the homepage automatically.
+   The script starts the Docker containers and opens `securecomm` and `securecomm2` in their own windows with `DISSENT_API_KEY` set. It then waits until everything answers and opens the homepage.
 
 ### Option B: Step by step
 
-**Step 1: Start Docker containers**
+**Step 1: Start the website, MySQL and phpMyAdmin** (from `DiSSENT-clean`)
+```powershell
+docker compose up -d --build
+docker compose ps
+```
+
+**Step 2: Start Kafka, Zookeeper and MongoDB**
 ```powershell
 cd ".\Cross-Border-Systems-using-Kafka-Broker-Architecture-and-Hyper-ledger-Fabric-main\securecomm"
 docker compose up -d
-docker ps
 ```
 
-**Step 2: Start Spring Boot (SecureComm 1)**
+**Step 3: Start SecureComm 1 (port 8081)**
 In VS Code, right-click the `securecomm` folder → **Open in Integrated Terminal**, then:
 ```powershell
+$env:DISSENT_API_KEY = (Get-Content ..\..\.env | Where-Object { $_ -like 'DISSENT_API_KEY=*' }) -replace '^DISSENT_API_KEY=',''
 .\mvnw spring-boot:run
 ```
 Wait for: `Started ...Application in X seconds`
 
-**Step 3: Start Spring Boot (SecureComm 2)**
-Right-click `securecomm2` → **Open in Integrated Terminal**, then:
-```powershell
-.\mvnw spring-boot:run
-```
+**Step 4: Start SecureComm 2 (port 8082)**
+Right-click `securecomm2` → **Open in Integrated Terminal**, then run the same two lines.
 
-**Step 4: Start the PHP website**
-Open a new terminal in `DiSSENT-clean`:
-```powershell
-C:\xampp\php\php.exe -S 127.0.0.1:8888
-```
-Leave this terminal open. Closing it stops the website.
+The first line loads the key into that terminal only, without printing it. Run it in every new terminal before `mvnw`.
 
 **Step 5: Open the website**
 ```
-http://127.0.0.1:8888/docs/Pages/home.php
+http://localhost:8888/Pages/home.php
 ```
 
-After editing a PHP file: save (**Ctrl + S**) and refresh the browser (**F5**). No restart needed.
+After editing a PHP or CSS file: save (**Ctrl + S**) and refresh the browser (**F5**). `docs/` is mounted into the container, so no restart is needed. After changing `docker/web/Dockerfile`, run `docker compose up -d --build`.
+
+**Stopping**
+```powershell
+docker compose down        # website, MySQL, phpMyAdmin (data is kept)
+```
+Close the two Spring Boot windows (or press **Ctrl + C** in them). Do **not** add `-v` to `docker compose down` unless you want to wipe the database.
 
 ---
 
 ## Addresses and Ports
 
+The website, MySQL and phpMyAdmin are bound to `127.0.0.1`, so they can only be reached from this computer.
+
 | Address | What it is |
 |---|---|
-| http://127.0.0.1:8888/docs/Pages/home.php | **DiSSENT website** |
-| http://localhost:8080 | SecureComm Spring Boot API (a 401 "Authentication required" message means it is running) |
-| localhost:3306 | MySQL (inside Docker) |
-| localhost:80 | nginx (inside Docker) |
-| localhost:4317 | OpenTelemetry collector (optional monitoring) |
+| http://localhost:8888/Pages/home.php | **DiSSENT website** (Docker: `dissent-web`) |
+| http://localhost:8888/Pages/login.php | Login page |
+| http://127.0.0.1:8089 | phpMyAdmin |
+| 127.0.0.1:3307 | MySQL (Docker: `dissent-mysql`, database `dissent_local`) |
+| http://localhost:8081 | SecureComm 1 API (a 401 "Missing or invalid X-API-Key header" means it is running) |
+| http://localhost:8082 | SecureComm 2 API (same 401 check) |
+| localhost:9092 | Kafka |
+| localhost:27017 | MongoDB |
+| localhost:7050 / 7051 / 9051 | Fabric orderer / peer0.org1 / peer0.org2 |
+
+Inside Docker the website lives at `/var/www/html` (= `docs/`). Uploaded report files live at `/var/www/private` (= `private/`), outside the web root, so they cannot be downloaded by URL.
 
 ---
 
@@ -170,13 +201,17 @@ After editing a PHP file: save (**Ctrl + S**) and refresh the browser (**F5**). 
 
 | Problem | Fix |
 |---|---|
-| `.\gradlew is not recognized` | The project uses Maven, not Gradle. Use `.\mvnw spring-boot:run` |
-| `Cannot start maven from wrapper` | `.mvn\wrapper\maven-wrapper.properties` is missing. Recreate it (see the Maven Wrapper docs) |
-| `php is not recognized` | Use the full path: `C:\xampp\php\php.exe` |
-| Browser shows `502 Bad Gateway` | You opened `localhost` without a port. Use `127.0.0.1:8888` |
-| `ERR_INVALID_RESPONSE` on port 8000 | Port 8000 is used by another program. Use port `8888` |
-| XAMPP says port 80 / 3306 in use by Docker | Normal. MySQL runs in Docker. Do not start XAMPP's Apache or MySQL |
-| `Failed to connect to localhost:4317` | Monitoring collector is not running. The app still works. Start it with `docker compose up -d` or add `management.tracing.enabled=false` to `application.properties` |
+| `DISSENT_API_KEY is not set` when starting Java | Run the `$env:DISSENT_API_KEY = ...` line (Option B, Step 3) in that terminal first, or use `start-demo.ps1` |
+| `Set DISSENT_API_KEY in .env` from `docker compose` | `.env` is missing or empty. Copy `.env.example` to `.env` and set a long random value, or run `start-demo.ps1` |
+| Messages show status "unknown" / reports stay "Unconfirmed" | The key differs between PHP and Java, or a Java service is not running. Restart all three after changing `.env` |
+| `404 Not Found` on `/docs/...` | The website root is now `docs/` itself. Remove `/docs` from the URL: `http://localhost:8888/Pages/home.php` |
+| Website not reachable from phone / another PC | Expected. Ports are bound to `127.0.0.1` for security |
+| `Cannot start maven from wrapper` | `.mvn\wrapper\maven-wrapper.properties` is missing in that service folder |
+| `port is already allocated` for 27017 | Another MongoDB container is already running. That is fine: both services use whatever is on 27017 |
+| Report approval fails / Fabric errors in the Java window | The Fabric test-network is not running. Start it, then restart both Java services |
+| PHP errors not shown on the page | Expected (`display_errors = Off`). See them with `docker logs dissent-web` |
+| Upload rejected | Files are limited to 6 MB (`upload_max_filesize`) |
+| `Failed to connect to localhost:4317` | Should no longer appear: OpenTelemetry is disabled at startup. If it does, you are running an old build. Restart with `.\mvnw spring-boot:run` |
 | Path errors after unzipping | Windows path limit (260 characters). Keep the project in a short folder path |
 
 ---
@@ -211,6 +246,7 @@ After editing a PHP file: save (**Ctrl + S**) and refresh the browser (**F5**). 
 | Date | Update |
 |---|---|
 | 09/11/2026 | Updated login, register and other pages with new CSS and JavaScript. Cleaned up project folder structure. Fixed Maven Wrapper so Spring Boot runs with `.\mvnw spring-boot:run`. Set up local PHP server for testing. Removed private keys and uploaded files from the repository. |
+| 10/11/2026 | Moved the website into Docker (`docs/` is the web root, `private/` is outside it, ports bound to 127.0.0.1). Hardened PHP settings. Fixed CSS 404s. PHP and both Spring Boot services now share one `DISSENT_API_KEY` from `.env`. Added `start-demo.ps1`. |
 | | |
 
 > Add a new row each time you push important changes.
