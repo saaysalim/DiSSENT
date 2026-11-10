@@ -93,7 +93,6 @@ DiSSENT-clean/
 ├── docker-compose.yml             # Website, MySQL and phpMyAdmin
 ├── start-demo.ps1                 # One-click start script
 ├── .env.example                   # Format of the local .env (DISSENT_API_KEY)
-├── CLAUDE.md                      # Notes and rules for the Claude Code assistant (local only, not pushed)
 └── README.md
 ```
 
@@ -272,6 +271,7 @@ Newest first.
 
 | Date | Update |
 |---|---|
+| 10/11/2026 | GitHub Actions: deleted `gh-pages.yml`, which deployed at the same time as `deploy-dissent.yml` and made the live site change at random. Updated every action in `deploy-dissent.yml` to its newest version that runs on Node.js 24 (no more "Node.js 20 is deprecated" warnings). The build report now marks pages that need a login (dashboard, profile, settings, etc.) as "Needs login" instead of "Built". |
 | 10/11/2026 | Deleting an account no longer deletes the other person's conversation: messages are kept and shown from "Deleted user", the conversation can still be read but not replied to, and the server refuses new messages to a deleted account. |
 | 10/11/2026 | Reviewed the remaining pages so they all match: one shared page banner, button colour, message box and form-field style in `base.css`; removed duplicate and unused CSS; no inline styles left; every page checked at 390, 820, 1024, 1440 and 1600px as visitor, member and admin. Added a site icon (`favicon.ico`). |
 | 10/11/2026 | Dashboard now shows real numbers from the database and your own activity instead of fixed example values. |
@@ -309,9 +309,9 @@ Newest first.
 - [x] Show real numbers on the Dashboard
 - [x] Let admins read Contact form messages (Admin page)
 - [x] Same design on every page (shared banner, buttons, message boxes and form fields)
+- [x] Deleted the old `gh-pages.yml` workflow; `deploy-dissent.yml` is the only one that deploys
 
 **Still to do**
-- [ ] Delete the old `.github/workflows/gh-pages.yml` workflow (replaced by `deploy-dissent.yml`)
 - [ ] Translate the site and use the saved language preference
 - [ ] Send email notifications using the saved notification preferences
 - [ ] Let users edit or withdraw their own reports

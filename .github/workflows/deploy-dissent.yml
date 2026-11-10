@@ -1,6 +1,8 @@
-#Builds every DiSSENT PHP page in its own job, reports the status of each page,
+# Builds every DiSSENT PHP page in its own job, reports the status of each page,
 # then deploys the site to GitHub Pages.
 # Runs automatically on every push to main, or manually from the Actions tab.
+# This is the only workflow that deploys to GitHub Pages.
+# All actions use versions that run on Node.js 24.
 
 name: Build and deploy DiSSENT pages
 
@@ -28,7 +30,7 @@ jobs:
       pages: ${{ steps.list.outputs.pages }}
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: List PHP pages
         id: list
@@ -56,7 +58,7 @@ jobs:
         page: ${{ fromJson(needs.find-pages.outputs.pages) }}
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -68,18 +70,25 @@ jobs:
           php -d display_errors=0 -S 127.0.0.1:8888 -t . > php-server.log 2>&1 &
           sleep 2
           mkdir -p out
-          code=$(curl -s -L -o "out/${{ matrix.page }}.html" -w "%{http_code}" \
+          result=$(curl -s -L -o "out/${{ matrix.page }}.html" -w "%{http_code} %{url_effective}" \
                           "http://127.0.0.1:8888/docs/Pages/${{ matrix.page }}.php")
-          echo "${{ matrix.page }} $code" > "out/${{ matrix.page }}.status"
-          echo "HTTP $code"
-          if [ "$code" -ge 200 ] && [ "$code" -lt 400 ] && [ -s "out/${{ matrix.page }}.html" ]; then
+          code=${result%% *}
+          final=${result#* }
+          # Pages that need a login redirect to login.php (there is no database here).
+          kind=page
+          case "$final" in */login.php*) [ "${{ matrix.page }}" != "login" ] && kind=login ;; esac
+          echo "${{ matrix.page }} $code $kind" > "out/${{ matrix.page }}.status"
+          echo "HTTP $code ($final)"
+          if [ "$kind" = "login" ]; then
+            echo "::notice title=${{ matrix.page }}.php::Needs a login, so the online preview shows the login page."
+          elif [ "$code" -ge 200 ] && [ "$code" -lt 400 ] && [ -s "out/${{ matrix.page }}.html" ]; then
             echo "✅ ${{ matrix.page }} built"
           else
             echo "::warning title=${{ matrix.page }}.php::Returned HTTP $code. This page needs the database or backend, so it only fully works locally."
           fi
 
       - name: Save built page
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: page-${{ matrix.page }}
           path: out/
@@ -93,10 +102,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Collect built pages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: page-*
           path: pages
@@ -111,8 +120,10 @@ jobs:
             echo "| Page | HTTP status | Result |"
             echo "|---|---|---|"
             for s in pages/*.status; do
-              read -r name code < "$s"
-              if [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
+              read -r name code kind < "$s"
+              if [ "$kind" = "login" ]; then
+                result="🔒 Needs login (preview shows the login page)"
+              elif [ "$code" -ge 200 ] && [ "$code" -lt 400 ]; then
                 result="✅ Built"
               else
                 result="⚠️ Needs backend (works locally only)"
@@ -185,9 +196,11 @@ jobs:
           fi
 
       - name: Upload site
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: _site
+          # v4+ leaves out dotfiles by default; keep .nojekyll in the site.
+          include-hidden-files: true
 
   # 4. Publish to GitHub Pages
   deploy:
@@ -200,4 +213,4 @@ jobs:
     steps:
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
