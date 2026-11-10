@@ -8,7 +8,8 @@
     1. Checks Docker is running
     2. Makes sure .env holds DISSENT_API_KEY (creates a random one if missing; never prints it)
     3. Starts the website, MySQL and phpMyAdmin (docker compose in this folder)
-    4. Starts Kafka/Zookeeper and MongoDB if nothing is listening on their ports yet
+    4. Starts Kafka/Zookeeper if nothing is listening on 9092, and DiSSENT's own MongoDB
+       container ("mongo", host port 27018). It never uses another project's MongoDB.
     5. Warns if the Hyperledger Fabric network is not running
     6. Opens securecomm (8081) and securecomm2 (8082) in their own windows with the key set
     7. Waits until everything answers, then opens the homepage
@@ -91,18 +92,17 @@ try {
 Write-Ok 'Website containers started'
 
 # 4. Kafka + MongoDB ----------------------------------------------------------------
-Write-Step 'Checking Kafka (9092) and MongoDB (27017)'
-$needed = @()
-if (Test-Port 9092)  { Write-Ok 'Kafka already running' }   else { $needed += 'zookeeper', 'kafka' }
-if (Test-Port 27017) { Write-Ok 'MongoDB already running' } else { $needed += 'mongo' }
-if ($needed.Count -gt 0) {
-    Push-Location (Join-Path $JavaRoot 'securecomm')
-    try {
-        docker compose up -d @needed
-        if ($LASTEXITCODE -ne 0) { throw "Could not start: $($needed -join ', ')" }
-    } finally { Pop-Location }
-    Write-Ok "Started: $($needed -join ', ')"
-}
+Write-Step 'Starting Kafka (9092) and DiSSENT MongoDB (27018)'
+# Always DiSSENT's own "mongo" container; "up -d" is a no-op if it is already running as configured.
+$needed = @('mongo')
+if (Test-Port 9092) { Write-Ok 'Kafka already running' } else { $needed += 'zookeeper', 'kafka' }
+Push-Location (Join-Path $JavaRoot 'securecomm')
+try {
+    docker compose up -d @needed
+    if ($LASTEXITCODE -ne 0) { throw "Could not start: $($needed -join ', ')" }
+} finally { Pop-Location }
+if (Test-Port 27018) { Write-Ok 'DiSSENT MongoDB is up on 27018' }
+else { Write-Warn 'Nothing answers on port 27018. Check: docker ps --filter name=^mongo$' }
 
 # 5. Hyperledger Fabric ------------------------------------------------------------
 Write-Step 'Checking Hyperledger Fabric (orderer 7050, peers 7051 / 9051)'

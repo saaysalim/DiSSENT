@@ -190,7 +190,7 @@ The website, MySQL and phpMyAdmin are bound to `127.0.0.1`, so they can only be 
 | http://localhost:8081 | SecureComm 1 API (a 401 "Missing or invalid X-API-Key header" means it is running) |
 | http://localhost:8082 | SecureComm 2 API (same 401 check) |
 | localhost:9092 | Kafka |
-| localhost:27017 | MongoDB |
+| 127.0.0.1:27018 | MongoDB (Docker: `mongo`, DiSSENT's own; databases `securecomm` and `securecomm2`) |
 | localhost:7050 / 7051 / 9051 | Fabric orderer / peer0.org1 / peer0.org2 |
 
 Inside Docker the website lives at `/var/www/html` (= `docs/`). Uploaded report files live at `/var/www/private` (= `private/`), outside the web root, so they cannot be downloaded by URL.
@@ -207,7 +207,7 @@ Inside Docker the website lives at `/var/www/html` (= `docs/`). Uploaded report 
 | `404 Not Found` on `/docs/...` | The website root is now `docs/` itself. Remove `/docs` from the URL: `http://localhost:8888/Pages/home.php` |
 | Website not reachable from phone / another PC | Expected. Ports are bound to `127.0.0.1` for security |
 | `Cannot start maven from wrapper` | `.mvn\wrapper\maven-wrapper.properties` is missing in that service folder |
-| `port is already allocated` for 27017 | Another MongoDB container is already running. That is fine: both services use whatever is on 27017 |
+| `port is already allocated` for 27018 | Something else is using 27018. Find it with `docker ps`. DiSSENT uses only its own `mongo` container on 27018, never the `mongodb` container on 27017 |
 | Report approval fails / Fabric errors in the Java window | The Fabric test-network is not running. Start it, then restart both Java services |
 | PHP errors not shown on the page | Expected (`display_errors = Off`). See them with `docker logs dissent-web` |
 | Upload rejected | Files are limited to 6 MB (`upload_max_filesize`) |

@@ -101,7 +101,7 @@ Example:
 
 Running Spring Boot Messaging Services
 securecomm and securecomm2 share ONE Kafka/Zookeeper/Mongo stack (both apps'
-application.properties already point at localhost:9092 and localhost:27017,
+application.properties already point at localhost:9092 and localhost:27018,
 just with separate Mongo databases) — only securecomm/docker-compose.yml needs
 to be started, not a second one per system.
 
