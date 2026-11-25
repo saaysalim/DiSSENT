@@ -195,3 +195,89 @@ function send_password_reset_email($email, $reset_link)
 
     return send_app_email($email, 'Reset your DiSSENT password', $content['html'], $content['text'], 'password reset');
 }
+
+
+// "Your DiSSENT password was changed" (reset, Profile and Settings).
+function send_password_changed_email($email)
+{
+    $time = (new DateTime('now', new DateTimeZone('Europe/Dublin')))->format('j F Y, H:i');
+
+    $content = email_layout(
+        'Your DiSSENT password was changed',
+        array(
+            'The password for your DiSSENT account was changed on ' . $time . ' (Irish time).',
+            "If this was you, you do not need to do anything. If this wasn't you, reset your password now.",
+        ),
+        'Reset my password',
+        app_page_url('forgot_password.php'),
+        'You receive this email every time your password changes, to help keep your account safe.'
+    );
+
+    return send_app_email($email, 'Your DiSSENT password was changed', $content['html'], $content['text'], 'password changed');
+}
+
+
+// "Your DiSSENT account has been deleted" (Settings). Uses the address from before the deletion.
+function send_account_deleted_email($email)
+{
+    $content = email_layout(
+        'Your DiSSENT account has been deleted',
+        array(
+            'Your DiSSENT account has been deleted, as requested in Settings. You can no longer log in with it.',
+            'Reports that were already approved stay published, and people you messaged keep their conversations. Your name is replaced with "Deleted user" in both places.',
+        ),
+        'Contact the DiSSENT team',
+        app_page_url('contact_us.php'),
+        "If you did not delete your account, please contact the DiSSENT team."
+    );
+
+    return send_app_email($email, 'Your DiSSENT account has been deleted', $content['html'], $content['text'], 'account deleted');
+}
+
+
+// Automatic reply to the Contact form. Anyone can type someone else's address, so it
+// repeats nothing the visitor typed.
+function send_contact_reply_email($email)
+{
+    $content = email_layout(
+        'We received your message',
+        array(
+            'Hello,',
+            'Thank you for contacting DiSSENT. We received your message and the team will read it.',
+        ),
+        'Visit DiSSENT',
+        app_page_url('home.php'),
+        'If you did not write to us, you can ignore this email.'
+    );
+
+    return send_app_email($email, 'We received your message', $content['html'], $content['text'], 'contact reply');
+}
+
+
+// Tells ADMIN_EMAIL that a Contact message arrived (not its full text).
+function send_contact_admin_email($name, $email, $subject)
+{
+    $to = trim((string) getenv('ADMIN_EMAIL'));
+
+    if ($to === '') {
+        if (mail_settings()['host'] !== 'mailpit') {
+            error_log('DiSSENT: contact notification not sent: ADMIN_EMAIL is empty.');
+            return false;
+        }
+        $to = 'admin@dissent.local';
+    }
+
+    $content = email_layout(
+        'New contact message',
+        array(
+            'Someone used the Contact form on DiSSENT.',
+            'From: ' . $name . ' (' . $email . ')',
+            'Subject: ' . (trim((string) $subject) !== '' ? $subject : '(No subject)'),
+        ),
+        'Read it on the Admin page',
+        app_page_url('admin.php') . '#contactMessages',
+        'The full message is only shown on the Admin page.'
+    );
+
+    return send_app_email($to, 'New contact message on DiSSENT', $content['html'], $content['text'], 'contact notification');
+}

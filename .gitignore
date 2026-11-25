@@ -27,3 +27,7 @@ docker/mysql-init/*.sql
 
 # Claude Code instructions (local only)
 CLAUDE.md
+
+# Files attached to messages, and database backups (personal data)
+private/message-files/
+database/backups/

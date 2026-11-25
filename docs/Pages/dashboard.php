@@ -44,7 +44,7 @@ try {
     $my_latest = mysqli_fetch_all(mysqli_stmt_get_result($stmt), MYSQLI_ASSOC);
     mysqli_stmt_close($stmt);
 
-    $stmt = mysqli_prepare($conn, 'SELECT COUNT(*) FROM messages WHERE receiver_id = ? AND sent_at >= NOW() - INTERVAL 7 DAY');
+    $stmt = mysqli_prepare($conn, 'SELECT COUNT(*) FROM messages WHERE receiver_id = ? AND status = \'delivered\' AND COALESCE(delivered_at, sent_at) >= NOW() - INTERVAL 7 DAY');
     mysqli_stmt_bind_param($stmt, 'i', $user_id);
     mysqli_stmt_execute($stmt);
     $messages_week = (int) mysqli_fetch_row(mysqli_stmt_get_result($stmt))[0];

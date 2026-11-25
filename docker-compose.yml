@@ -51,6 +51,8 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-DiSSENT <no-reply@dissent.local>}
       SMTP_SECURE: ${SMTP_SECURE:-}
+      # Who gets an email when someone uses the Contact form.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

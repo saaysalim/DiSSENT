@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/content.php';
+require_once __DIR__ . '/../backend/mailer.php';
 
 $message = '';
 $message_type = '';
@@ -121,6 +122,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($saved) {
+            // Emails are optional extras: problems are logged, never shown.
+            // At most one reply per address in 10 minutes (anyone can type someone
+            // else's address), and no flood of notifications to the admin.
+            try {
+                $statement = mysqli_prepare(
+                    $conn,
+                    'SELECT COALESCE(SUM(email = ?), 0), COUNT(*)
+                     FROM contact_messages
+                     WHERE created_at >= NOW() - INTERVAL 10 MINUTE'
+                );
+
+                if (!$statement) {
+                    throw new RuntimeException('Contact count unavailable.');
+                }
+
+                mysqli_stmt_bind_param($statement, 's', $fields['email']);
+                mysqli_stmt_execute($statement);
+                $recent = mysqli_fetch_row(mysqli_stmt_get_result($statement));
+                mysqli_stmt_close($statement);
+
+                if ((int) $recent[0] === 1 && (int) $recent[1] <= 20) {
+                    send_contact_reply_email($fields['email']);
+                }
+                if ((int) $recent[1] <= 20) {
+                    send_contact_admin_email($fields['full_name'], $fields['email'], $fields['subject']);
+                }
+            } catch (Throwable $exception) {
+                error_log('DiSSENT: contact emails failed: ' . get_class($exception));
+            }
+
             $_SESSION['contact_success'] = true;
 
             // Redirect after a successful POST so refreshing

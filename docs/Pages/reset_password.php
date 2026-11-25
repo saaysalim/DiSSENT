@@ -2,6 +2,7 @@
 session_start();
 include('../backend/db.php');
 include('../backend/content.php');
+include('../backend/mailer.php');
 
 $token = $_GET['token'] ?? ($_POST['token'] ?? '');
 $token = is_string($token) ? $token : '';
@@ -43,11 +44,16 @@ if(!$reset){
             mysqli_stmt_bind_param($stmt, 'ss', $hashed_password, $reset['email']);
             mysqli_stmt_execute($stmt);
 
-            consume_reset_token($token);
+            if(mysqli_stmt_affected_rows($stmt) === 1){
+                consume_reset_token($token);
+                send_password_changed_email($reset['email']);
 
-            $message = "Password updated successfully. You can now log in.";
-            $message_type = "success";
-            $valid = false; // hide the form after success
+                $message = "Password updated successfully. You can now log in.";
+                $message_type = "success";
+                $valid = false; // hide the form after success
+            }else{
+                $message = "Your password could not be changed. Please try again later.";
+            }
         }
     }
 }
@@ -59,7 +65,7 @@ if(!$reset){
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset Password - DiSSENT</title>
     <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/auth.css?v=5">
+    <link rel="stylesheet" href="../assets/css/auth.css?v=6">
     <script src="../assets/JavaScript/auth-forms.js?v=2" defer></script>
 </head>
 <body>
@@ -120,7 +126,7 @@ if(!$reset){
                             id="reset-confirm-password"
                             type="password"
                             name="confirm_password"
-                            placeholder="Enter the new password again"
+                            placeholder="Repeat the password"
                             autocomplete="new-password"
                             autocapitalize="none"
                             spellcheck="false"

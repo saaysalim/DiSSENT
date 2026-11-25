@@ -36,7 +36,7 @@ jobs:
         id: list
         run: |
           # Backend endpoints, not pages people visit. Edit this list if needed.
-          skip="logout send_message get_new_messages message_status"
+          skip="logout send_message get_new_messages message_status message_file review_message"
           pages=()
           for f in docs/Pages/*.php; do
             name=$(basename "$f" .php)
@@ -138,6 +138,7 @@ jobs:
           mkdir -p _site/docs/Pages
           cp pages/*.html _site/docs/Pages/
           cp -r docs/assets _site/docs/assets
+          cp docs/favicon.ico _site/docs/favicon.ico
           if [ -d site ]; then cp -r site _site/site; fi
 
           # Make links point to the HTML versions of the pages

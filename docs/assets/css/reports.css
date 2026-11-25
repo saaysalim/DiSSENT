@@ -213,6 +213,13 @@
     overflow-wrap: anywhere;
 }
 
+.reports-page dd > a {
+    display: inline-flex;
+    align-items: center;
+    min-width: 44px;
+    min-height: 44px;
+}
+
 .reports-page a:hover {
     color: #10244d;
 }

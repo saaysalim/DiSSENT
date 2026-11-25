@@ -275,7 +275,8 @@ function require_admin()
 
     if (!$is_admin) {
         http_response_code(403);
-        exit('You do not have permission to access this page.');
+        require __DIR__ . '/../includes/no_permission.php';
+        exit();
     }
 }
 
@@ -780,7 +781,7 @@ function faq_items()
                 ),
                 array(
                     'q' => 'How do I delete my account?',
-                    'a' => 'Open Settings and go to "Delete my account". Enter your password, tick the confirmation box and press "Delete my account". Your login, settings and unpublished reports (with their documents) are removed. Reports that were already approved stay published, and the people you talked to keep their conversations with you; in both places your name is replaced with "Deleted user". This cannot be undone.',
+                    'a' => 'Open Settings and go to "Delete my account". Enter your password, tick the confirmation box and press "Delete my account". Your login, settings, unpublished reports (with their documents) and the files you attached to messages are removed, and messages waiting for review are withdrawn. Reports that were already approved stay published, and the people you talked to keep the text of their conversations with you; in both places your name is replaced with "Deleted user". This cannot be undone.',
                     'links' => array('settings.php' => 'Open Settings'),
                 ),
             ),
@@ -853,14 +854,26 @@ function faq_items()
                     'steps' => array(
                         'Open Messaging from the menu.',
                         'Choose a person from the Contacts list. You can search by name or role.',
-                        'Type your message in the box at the bottom.',
-                        'Press the send button (paper plane). Your message appears in the conversation.',
+                        'Type your message in the box at the bottom. You can also attach one file.',
+                        'Press the send button (paper plane). Your message appears in the conversation. Some messages are reviewed before the other person sees them.',
                     ),
                     'links' => array('messaging.php' => 'Open Messaging'),
                 ),
                 array(
                     'q' => 'What do the message statuses mean?',
-                    'a' => 'Each message shows a "Secure Transfer" badge. "Pending" means DiSSENT is waiting for confirmation. "Verified ✓" means an encrypted and signed copy travelled between the two DiSSENT systems and the second system checked the signature and decrypted it. "Failed" means that check did not succeed. In every case your message is still saved and shown to the other person.',
+                    'a' => 'Each message shows a "Secure Transfer" badge. "Pending" means DiSSENT is waiting for confirmation. "Verified ✓" means an encrypted and signed copy travelled between the two DiSSENT systems and the second system checked the signature and decrypted it. "Failed" means that check did not succeed. In all three cases the message was delivered on the site. Messages that are reviewed first also show "Waiting for review", "Approved" or "Rejected" to the sender.',
+                ),
+                array(
+                    'q' => 'What can I attach to a message?',
+                    'a' => 'One file per message: a JPG, PNG or WebP image, or a PDF, up to 5 MB. Press "Attach a file", choose it, and send. You can send a file without any text. Images show as a small preview and PDFs as a download link. Every message with a file is reviewed first.',
+                ),
+                array(
+                    'q' => 'Why is my message "Waiting for review"?',
+                    'a' => 'Before delivery, each message is checked automatically. It is held if it has a file, or seems to contain a phone number, an email address, an ID or passport number, or a bank account number. An administrator then approves or rejects it. Until it is approved, the other person cannot see it. If it is rejected, they never see it, and you see "Rejected" with a reason if one was given. The check is simple and sometimes holds harmless messages.',
+                ),
+                array(
+                    'q' => 'Is hidden information removed from my files?',
+                    'a' => 'For images, yes: they are saved again without EXIF data such as the GPS position. What you can see in the picture, and the file name, stay. For PDFs, no: hidden details such as the author name can remain, so remove them before sending.',
                 ),
                 array(
                     'q' => 'Who can I message?',
@@ -878,7 +891,7 @@ function faq_items()
                 ),
                 array(
                     'q' => 'Who can see my messages?',
-                    'a' => 'Only you and the person you are talking to can see your messages on the site. Messages are stored in the DiSSENT database, so people who manage the server could technically access them. Never send passwords in a message.',
+                    'a' => 'You and the person you are talking to. If a message is held for review, an administrator can read it and open its file to decide, and the decision is logged. Administrators cannot open the file after deciding. Messages are stored in the DiSSENT database, so people who manage the server could technically access them. Never send passwords in a message.',
                 ),
                 array(
                     'q' => 'How is my data protected?',
@@ -1063,7 +1076,8 @@ function account_change_password($user_id, $current_password, $new_password, $co
 //
 // Removed:    unpublished reports (pending/rejected) and their PDF files and
 //             records, settings, password-reset tokens, contact-form messages
-//             sent from the account's email, and the profile picture.
+//             sent from the account's email, the profile picture, and the files
+//             they attached to messages. Messages waiting for review are withdrawn.
 // Kept:       approved (published) reports, because they are public and
 //             recorded with the verification service, and messages, so the
 //             other person keeps their conversation. Both now show
@@ -1126,6 +1140,16 @@ function account_delete($user_id)
         }
 
         mysqli_stmt_close($stmt);
+
+        require_once __DIR__ . '/messages.php';
+
+        foreach (messages_prepare_account_deletion($user_id) as $stored_name) {
+            $path = message_file_path($stored_name);
+
+            if ($path !== null) {
+                $files_to_remove[] = $path;
+            }
+        }
 
         $statements = array(
             "DELETE d FROM report_documents d JOIN reports r ON r.id = d.report_id

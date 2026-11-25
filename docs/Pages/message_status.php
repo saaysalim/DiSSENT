@@ -86,6 +86,7 @@ try {
         "SELECT id
          FROM messages
          WHERE envelope_id = ?
+           AND status = 'delivered'
            AND (sender_id = ? OR receiver_id = ?)
          LIMIT 1"
     );

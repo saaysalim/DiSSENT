@@ -262,7 +262,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - DiSSENT</title>
     <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/auth.css?v=5">
+    <link rel="stylesheet" href="../assets/css/auth.css?v=6">
     <script src="../assets/JavaScript/auth-forms.js?v=2" defer></script>
 </head>
 <body>

@@ -7,7 +7,8 @@ RUN composer install --no-dev --no-interaction --no-progress --prefer-dist --cla
 
 # Stage 2: the website.
 FROM php:8.2-apache
-RUN docker-php-ext-install mysqli pdo_mysql
+# gd and exif: clean images sent in messages (removes EXIF/GPS data, keeps the photo upright).
+RUN apt-get update     && apt-get install -y --no-install-recommends libjpeg62-turbo-dev libpng-dev libwebp-dev     && docker-php-ext-configure gd --with-jpeg --with-webp     && docker-php-ext-install -j"$(nproc)" mysqli pdo_mysql gd exif     && rm -rf /var/lib/apt/lists/*
 
 # PHP libraries live in /var/www/vendor, outside the web root (/var/www/html = docs/).
 COPY --from=vendor /app/vendor /var/www/vendor

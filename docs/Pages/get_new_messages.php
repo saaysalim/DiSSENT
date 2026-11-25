@@ -1,65 +1,56 @@
 <?php
+// New and changed messages of one conversation, for the chat page (polled).
 session_start();
-include("../backend/db.php");
-include("../backend/content.php");
+require_once __DIR__ . '/../backend/db.php';
+require_once __DIR__ . '/../backend/content.php';
+require_once __DIR__ . '/../backend/messages.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');
 
-// This is polled by messaging.php: answer with JSON, never a login redirect.
+// Answer with JSON, never a login redirect.
 $user_id = filter_var(
     $_SESSION['user_id'] ?? null,
     FILTER_VALIDATE_INT,
     array('options' => array('min_range' => 1))
 );
 
-if ($user_id === false) {
+if ($user_id === false || $user_id === null) {
     http_response_code(401);
-    echo json_encode(array());
+    echo json_encode(array('items' => array()));
     exit();
 }
 
 // The session is not changed here; release its lock for other requests.
 session_write_close();
 
-$receiver_id = isset($_GET['receiver_id']) && is_string($_GET['receiver_id']) ? (int) $_GET['receiver_id'] : 0;
-$last_id = isset($_GET['last_id']) && is_string($_GET['last_id']) ? max(0, (int) $_GET['last_id']) : 0;
+$receiver_id = is_string($_GET['receiver_id'] ?? null) ? (int) $_GET['receiver_id'] : 0;
+$since = is_string($_GET['since'] ?? null) ? $_GET['since'] : '';
 
-if ($receiver_id <= 0) {
-    echo json_encode(array());
+if ($receiver_id <= 0 || preg_match('/\A\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3,6}\z/', $since) !== 1) {
+    http_response_code(400);
+    echo json_encode(array('items' => array()));
     exit();
 }
 
 try {
-    $stmt = mysqli_prepare($conn, "
-        SELECT id, sender_id, message, sent_at, envelope_id
-        FROM messages
-        WHERE ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?))
-        AND id > ?
-        ORDER BY sent_at ASC, id ASC
-    ");
-    mysqli_stmt_bind_param($stmt, 'iiiii', $user_id, $receiver_id, $receiver_id, $user_id, $last_id);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
+    // Taken before reading, so nothing that changes in between is missed.
+    $cursor = messages_cursor();
+    $other = messages_rows('SELECT fullname FROM users WHERE id = ?', 'i', array($receiver_id));
+    $items = array();
 
-    $new_messages = array();
-
-    while ($row = mysqli_fetch_assoc($result)) {
-        $new_messages[] = array(
+    foreach (messages_visible($user_id, $receiver_id, 'AND m.changed_at >= ?', 's', array($since)) as $row) {
+        $items[] = array(
             'id' => (int) $row['id'],
-            'is_sender' => ((int) $row['sender_id'] === $user_id),
-            // Escaped here; messaging.php decodes it and inserts it as plain text.
-            'message' => e($row['message']),
-            'sent_at' => $row['sent_at'],
-            'envelope_id' => $row['envelope_id']
+            'rev' => message_rev($row),
+            'html' => message_html($row, $user_id, $other[0]['fullname'] ?? ''),
         );
     }
 
-    mysqli_stmt_close($stmt);
-    echo json_encode($new_messages);
+    echo json_encode(array('cursor' => $cursor, 'items' => $items), JSON_INVALID_UTF8_SUBSTITUTE);
 } catch (Throwable $error) {
     error_log('DiSSENT: loading new messages failed: ' . get_class($error));
     http_response_code(503);
-    echo json_encode(array());
+    echo json_encode(array('items' => array()));
 }

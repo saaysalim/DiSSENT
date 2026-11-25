@@ -290,6 +290,10 @@
 }
 
 .verification-history td a {
+    display: inline-flex;
+    align-items: center;
+    min-width: 44px;
+    min-height: 44px;
     color: #214d99;
     text-decoration: underline;
     text-underline-offset: 3px;

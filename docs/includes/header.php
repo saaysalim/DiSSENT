@@ -51,6 +51,7 @@ $header_escape = static function ($value) {
 };
 ?>
 
+<link rel="icon" href="../favicon.ico?v=2" sizes="16x16 32x32 48x48" type="image/x-icon">
 <script>document.documentElement.classList.add('has-js');</script>
 
 <header id="siteHeader">

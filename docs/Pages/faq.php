@@ -35,7 +35,7 @@ $faq_sections = faq_items();
         <input
             type="search"
             id="faqSearch"
-            placeholder="For example: password, upload, rejected"
+            placeholder="Try: password, upload, rejected"
             autocomplete="off"
             aria-describedby="faqSearchStatus"
             hidden

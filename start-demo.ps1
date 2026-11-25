@@ -8,7 +8,8 @@
     1. Checks Docker is running
     2. Makes sure .env holds DISSENT_API_KEY (creates a random one if missing; never prints it)
     3. Starts the website, MySQL and phpMyAdmin (docker compose in this folder)
-    4. Starts Kafka/Zookeeper if nothing is listening on 9092, and DiSSENT's own MongoDB
+    4. Starts Kafka/Zookeeper if nothing is listening on 9092 (stopped containers that already
+       exist are started with "docker start"), and DiSSENT's own MongoDB
        container ("mongo", host port 27018). It never uses another project's MongoDB.
     5. Warns if the Hyperledger Fabric network is not running
     6. Opens securecomm (8081) and securecomm2 (8082) in their own windows with the key set
@@ -95,10 +96,26 @@ Write-Ok 'Website containers started'
 Write-Step 'Starting Kafka (9092) and DiSSENT MongoDB (27018)'
 # Always DiSSENT's own "mongo" container; "up -d" is a no-op if it is already running as configured.
 $needed = @('mongo')
-if (Test-Port 9092) { Write-Ok 'Kafka already running' } else { $needed += 'zookeeper', 'kafka' }
+if (Test-Port 9092) {
+    Write-Ok 'Kafka already running'
+} else {
+    # Containers named "zookeeper" / "kafka" may already exist but be stopped. Creating them again
+    # would fail with "container name already in use", so start the existing ones instead.
+    $existing = @(docker ps -a --format '{{.Names}}')
+    foreach ($name in 'zookeeper', 'kafka') {
+        if ($existing -contains $name) {
+            docker start $name | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "Could not start the existing container '$name'. See: docker logs $name" }
+            Write-Ok "Started existing container: $name"
+        } else {
+            $needed += $name
+        }
+    }
+}
 Push-Location (Join-Path $JavaRoot 'securecomm')
 try {
-    docker compose up -d @needed
+    # --no-deps: only create what is listed; zookeeper/kafka are handled above.
+    docker compose up -d --no-deps @needed
     if ($LASTEXITCODE -ne 0) { throw "Could not start: $($needed -join ', ')" }
 } finally { Pop-Location }
 if (Test-Port 27018) { Write-Ok 'DiSSENT MongoDB is up on 27018' }

@@ -156,6 +156,35 @@
     line-height: 1.55;
 }
 
+.auth-input[aria-invalid="true"] {
+    border-color: var(--auth-bad);
+}
+
+.auth-field-error {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 16px;
+    margin: 0.35rem 0 0;
+    color: var(--auth-bad);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.auth-field-error a {
+    display: inline-flex;
+    align-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    color: var(--auth-accent);
+    text-underline-offset: 0.2em;
+}
+
+/* Submit button that is a link (no-permission page). */
+a.auth-submit {
+    text-decoration: none;
+}
+
 /* ---------- Password box with eye button inside ---------- */
 
 .password-field {

@@ -17,11 +17,13 @@ The platform combines a PHP website with a Java (Spring Boot) backend. Messages 
 5. [Prerequisites](#prerequisites)
 6. [How to Run the Project](#how-to-run-the-project)
 7. [Addresses and Ports](#addresses-and-ports)
-8. [Troubleshooting](#troubleshooting)
-9. [Page Progress](#page-progress)
-10. [Progress Log](#progress-log)
-11. [Future Work](#future-work)
-12. [Team](#team)
+8. [Sharing a Demo Link](#sharing-a-demo-link)
+9. [Custom Domain dissent.ie (planned)](#custom-domain-dissentie-planned)
+10. [Troubleshooting](#troubleshooting)
+11. [Page Progress](#page-progress)
+12. [Progress Log](#progress-log)
+13. [Future Work](#future-work)
+14. [Team](#team)
 
 ---
 
@@ -29,7 +31,8 @@ The platform combines a PHP website with a Java (Spring Boot) backend. Messages 
 
 - User registration, login, logout and password reset (strong password rules checked in PHP and shown live)
 - Journalist dashboard and profile (edit name, category, picture and password)
-- Secure messaging between journalists and media teams
+- Secure messaging between journalists and media teams, with one image or PDF per message
+- Messages with files or personal details are held until an administrator approves them
 - Report submission and editorial review
 - Media Centre for published content
 - Admin panel
@@ -89,11 +92,11 @@ DiSSENT-clean/
 │   └── securecomm2/               # Spring Boot service 2
 ├── database/migrations/           # SQL changes to run on the database (outside the website folder)
 ├── docker/                        # Web container (Dockerfile, composer.json/.lock for PHPMailer) + MySQL init SQL
-├── private/                       # Uploaded report documents (outside the web root, not pushed to GitHub)
+├── private/                       # Report documents and message files (outside the web root, not pushed to GitHub)
 ├── site/                          # Static site assets
-├── docker-compose.yml             # Website, MySQL and phpMyAdmin
+├── docker-compose.yml             # Website, MySQL, phpMyAdmin and Mailpit
 ├── start-demo.ps1                 # One-click start script
-├── .env.example                   # Format of the local .env (DISSENT_API_KEY)
+├── .env.example                   # Format of the local .env (DISSENT_API_KEY, SMTP settings, ADMIN_EMAIL)
 └── README.md
 ```
 
@@ -126,17 +129,19 @@ DISSENT_API_KEY=<a long random value>
 
 ### Local-only settings in `docker-compose.yml`
 
-- `APP_DEBUG: "1"` shows the password-reset link on the Forgot Password page, because email is not set up locally. **Never set this on a public server.**
+- `APP_DEBUG: "1"` shows the password-reset link on the Forgot Password page, so you can test without opening the Mailpit inbox. **Set it to `"0"` whenever other people can open the site** (see [Sharing a Demo Link](#sharing-a-demo-link)).
 - `APP_URL: http://localhost:8888` is the address used inside reset links. On a public server, set it to the real address (for example `https://your-site.example`).
+- After changing anything in `docker-compose.yml`, run `docker compose up -d` so the `web` container picks it up.
 
 ### Email (`.env`)
 
-The website sends a **"Welcome to DiSSENT"** email after registration and a **"Reset your DiSSENT password"** email (link valid 60 minutes).
+The website sends these emails: welcome, password reset (link valid 60 minutes), password changed, account deleted, "We received your message" (Contact form), and a notification to the admin when someone uses the Contact form.
 
 - By default every email goes to **Mailpit**, a local test inbox: open **http://127.0.0.1:8025** to read them. Nothing leaves your computer.
 - To send real email, fill in `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` and `SMTP_SECURE` (`tls` for port 587, `ssl` for 465) in `.env`, then run `docker compose up -d`.
+- **Example, Gmail:** turn on 2-Step Verification, create an app password at https://myaccount.google.com/apppasswords, then set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_SECURE=tls`, `SMTP_USER` and `SMTP_FROM` to your Gmail address and `SMTP_PASS` to the app password (never your normal password). A free SMTP service works the same way with the values it gives you.
+- `ADMIN_EMAIL` is who gets the Contact form notification. If it is empty, it goes to `admin@dissent.local` while using Mailpit, and is not sent with real SMTP.
 - If an email cannot be sent, the visitor still sees the normal message; the reason is written to `docker logs dissent-web`.
-- After changing anything in `docker-compose.yml`, run `docker compose up -d` so the `web` container picks it up.
 
 ---
 
@@ -154,7 +159,7 @@ The website sends a **"Welcome to DiSSENT"** email after registration and a **"R
 
 ### Option B: Step by step
 
-**Step 1: Start the website, MySQL and phpMyAdmin** (from `DiSSENT-clean`)
+**Step 1: Start the website, MySQL, phpMyAdmin and Mailpit** (from `DiSSENT-clean`)
 ```powershell
 docker compose up -d --build
 docker compose ps
@@ -165,13 +170,33 @@ If your database was created before a migration was added, run it once. For the 
 ```powershell
 Get-Content .\database\migrations\2026-11-10_user_settings.sql | docker exec -i dissent-mysql mysql -udissent -pdissent_dev dissent_local
 ```
-It is safe to run again (it only creates the table if it is missing).
+For messages with attachments and review (**needed before Messaging works**), and one account per email:
+```powershell
+Get-Content .\database\migrations\2026-11-25_message_review.sql | docker exec -i dissent-mysql mysql -udissent -pdissent_dev dissent_local
+Get-Content .\database\migrations\2026-11-25_unique_email.sql | docker exec -i dissent-mysql mysql -udissent -pdissent_dev dissent_local
+```
+All three are safe to run again.
+
+**Back up the database first** (do not use `>` in PowerShell, it damages the file). The `database/backups/` folder is not pushed to GitHub.
+```powershell
+New-Item -ItemType Directory -Force .\database\backups | Out-Null
+docker exec dissent-mysql mysqldump -udissent -pdissent_dev --no-tablespaces --single-transaction --result-file=/tmp/dissent_backup.sql dissent_local
+docker cp dissent-mysql:/tmp/dissent_backup.sql .\database\backups\
+docker exec dissent-mysql rm /tmp/dissent_backup.sql
+```
+
+**Make a user an admin:** the person registers first, then run this with their email. It works straight away.
+```powershell
+docker exec dissent-mysql mysql -udissent -pdissent_dev dissent_local -e "UPDATE users SET role='admin' WHERE email='person@example.com' AND role='user'; SELECT ROW_COUNT() AS changed;"
+```
+`changed` must be `1`. To undo it, swap `admin` and `user`. Admins can read messages that are held for review, so choose them carefully. An admin cannot decide about their own messages, so **two admins are needed**.
 
 **Step 2: Start Kafka, Zookeeper and MongoDB**
 ```powershell
 cd ".\Cross-Border-Systems-using-Kafka-Broker-Architecture-and-Hyper-ledger-Fabric-main\securecomm"
 docker compose up -d
 ```
+If it says a container name is already in use, see [Troubleshooting](#troubleshooting).
 
 **Step 3: Start SecureComm 1 (port 8081)**
 In VS Code, right-click the `securecomm` folder → **Open in Integrated Terminal**, then:
@@ -195,7 +220,7 @@ After editing a PHP or CSS file: save (**Ctrl + S**) and refresh the browser (**
 
 **Stopping**
 ```powershell
-docker compose down        # website, MySQL, phpMyAdmin (data is kept)
+docker compose down        # website, MySQL, phpMyAdmin, Mailpit (database is kept; test emails are not)
 ```
 Close the two Spring Boot windows (or press **Ctrl + C** in them). Do **not** add `-v` to `docker compose down` unless you want to wipe the database.
 
@@ -203,7 +228,7 @@ Close the two Spring Boot windows (or press **Ctrl + C** in them). Do **not** ad
 
 ## Addresses and Ports
 
-The website, MySQL and phpMyAdmin are bound to `127.0.0.1`, so they can only be reached from this computer.
+The website, MySQL, phpMyAdmin, Mailpit and DiSSENT's MongoDB are bound to `127.0.0.1`, so they can only be reached from this computer.
 
 | Address | What it is |
 |---|---|
@@ -219,7 +244,35 @@ The website, MySQL and phpMyAdmin are bound to `127.0.0.1`, so they can only be 
 | 127.0.0.1:27018 | MongoDB (Docker: `mongo`, DiSSENT's own; databases `securecomm` and `securecomm2`) |
 | localhost:7050 / 7051 / 9051 | Fabric orderer / peer0.org1 / peer0.org2 |
 
-Inside Docker the website lives at `/var/www/html` (= `docs/`). Uploaded report files live at `/var/www/private` (= `private/`), outside the web root, so they cannot be downloaded by URL.
+Inside Docker the website lives at `/var/www/html` (= `docs/`). Report documents and message files live at `/var/www/private` (= `private/`), outside the web root. They are only sent by PHP pages that check who is asking.
+
+---
+
+## Sharing a Demo Link
+
+A Cloudflare quick tunnel gives a temporary public `https://....trycloudflare.com` link to the website on your laptop.
+
+1. Install it once: `winget install --id Cloudflare.cloudflared`
+2. In `docker-compose.yml`, set `APP_DEBUG: "0"`, then run `docker compose up -d web`. **Do this first.** With `"1"`, anyone with the link could see password-reset links on screen and take over an account.
+3. Check it: `docker exec dissent-web printenv APP_DEBUG` must print `0`.
+4. Start the tunnel and share the link it prints:
+   ```powershell
+   cloudflared tunnel --url http://localhost:8888
+   ```
+5. Optional, so links inside emails use the public address: set `APP_URL` in `docker-compose.yml` to the link (no `/` at the end) and run `docker compose up -d web` again.
+6. When you finish, press **Ctrl + C**, set `APP_DEBUG: "1"` and `APP_URL: http://localhost:8888` again, and run `docker compose up -d web`.
+
+- The link only works while that terminal is open and the laptop is on, awake and online. Each new tunnel gets a new link.
+- Visitors reach the website only, not phpMyAdmin, MySQL or Mailpit. Emails still go to Mailpit unless real SMTP is set, so visitors do not receive them.
+- Everyone with an account can see other members' names in Messaging. Ask visitors to use test details only.
+
+---
+
+## Custom Domain dissent.ie (planned)
+
+The domain **dissent.ie** has been bought. The Cloudflare setup is waiting for the nameserver change, so the domain does not open the website yet. Until then, use the demo link above.
+
+Still to do: finish the nameserver change, connect the domain to a permanent tunnel or host, set `APP_DEBUG: "0"` and `APP_URL: https://dissent.ie`, and add real SMTP settings.
 
 ---
 
@@ -231,13 +284,17 @@ Inside Docker the website lives at `/var/www/html` (= `docs/`). Uploaded report 
 | `Set DISSENT_API_KEY in .env` from `docker compose` | `.env` is missing or empty. Copy `.env.example` to `.env` and set a long random value, or run `start-demo.ps1` |
 | Messages show status "unknown" / reports stay "Unconfirmed" | The key differs between PHP and Java, or a Java service is not running. Restart all three after changing `.env` |
 | `404 Not Found` on `/docs/...` | The website root is now `docs/` itself. Remove `/docs` from the URL: `http://localhost:8888/Pages/home.php` |
-| Website not reachable from phone / another PC | Expected. Ports are bound to `127.0.0.1` for security |
+| Website not reachable from phone / another PC | Expected. Ports are bound to `127.0.0.1` for security. To show it to others, see [Sharing a Demo Link](#sharing-a-demo-link) |
 | `Cannot start maven from wrapper` | `.mvn\wrapper\maven-wrapper.properties` is missing in that service folder |
+| `container name "/kafka"` (or `"/zookeeper"`) `is already in use` | The container already exists but is stopped. Run `docker start zookeeper`, then `docker start kafka`. `start-demo.ps1` now does this by itself |
 | `port is already allocated` for 27018 | Something else is using 27018. Find it with `docker ps`. DiSSENT uses only its own `mongo` container on 27018, never the `mongodb` container on 27017 |
 | Report approval fails / Fabric errors in the Java window | The Fabric test-network is not running. Start it, then restart both Java services |
 | Settings page says language/notification settings are "not available yet" | The `user_settings` table is missing. Run the database update in Option B (`database/migrations/2026-11-10_user_settings.sql`) |
+| Messages cannot be loaded or sent, or Admin says to run a migration | Run `database/migrations/2026-11-25_message_review.sql` (Option B) |
+| Images cannot be attached to messages | The web container is old (it needs `gd` and `exif`). Run `docker compose up -d --build` |
+| A message stays "Waiting for review" | An admin who is not part of the conversation must approve it on the Admin page |
 | PHP errors not shown on the page | Expected (`display_errors = Off`). See them with `docker logs dissent-web` |
-| Upload rejected | Files are limited to 6 MB (`upload_max_filesize`) |
+| Upload rejected | Report documents must be one PDF of up to 5 MB. PHP itself refuses any file over 6 MB (`upload_max_filesize`) |
 | Welcome or password reset email never arrives (local) | Open the Mailpit inbox at http://127.0.0.1:8025. If it is empty, check `docker compose ps` shows `dissent-mailpit` running and look for "email could not be sent" in `docker logs dissent-web`. The Forgot Password page also shows the link on screen while `APP_DEBUG: "1"` is set |
 | "PHPMailer is not installed" in the logs | The web container is old. Rebuild it with `docker compose up -d --build` |
 | "Your password needs …" when registering or changing a password | Passwords need at least 8 characters, an uppercase letter, a lowercase letter, a number and a special character. The checklist under the box ticks off each rule |
@@ -251,27 +308,27 @@ Inside Docker the website lives at `/var/www/html` (= `docs/`). Uploaded report 
 
 ✅ Done · 🔄 In progress · ⏳ To do
 
-Every page uses the shared header, so all pages are **responsive** (phones, iPad, desktop) and have the **hamburger menu** on screens up to 1024px wide. The notes below list what is special about each page.
+Every page uses the shared header, so all pages are **responsive** and have the **hamburger menu** on screens up to 1024px wide. Checked on 25/11/2026 in Chrome at 360, 390, 768, 820, 1024, 1280, 1440 and 1600px as visitor, member and admin. The Java services were off during that check. The notes below list what is special about each page.
 
 | Page | Status | Notes |
 |---|---|---|
 | Header and menu (`includes/header.php`) | ✅ | Hamburger sidebar up to 1024px, two-row menu 1025–1599px, one row from 1600px. FAQ in the menu and footer; Settings next to your name when logged in. "Get Started" only shows when logged out |
 | Home (`home.php`) | ✅ | Responsive. "Get Started" when logged out, "Go to Dashboard" when logged in |
-| About (`about.php`) | 🔄 | Responsive. Not sure if the text is final; please review the content |
-| Contact (`contact_us.php`) | ✅ | Responsive. The form saves messages to the `contact_messages` table; admins read them on the Admin page ("Contact messages") |
-| Register (`register.php`) | ✅ | Password rules (checked in PHP + live checklist), "Passwords match" message, eye icon, updated professional categories. Sends a "Welcome to DiSSENT" email |
+| About (`about.php`) | ✅ | Responsive. The organisations listed (MiCT, ECHO) still need confirming before launch |
+| Contact (`contact_us.php`) | ✅ | Responsive. The form saves messages to the `contact_messages` table; admins read them on the Admin page ("Contact messages"). The sender gets an automatic reply (at most one per 10 minutes) and `ADMIN_EMAIL` gets a notification |
+| Register (`register.php`) | ✅ | Password rules (checked in PHP + live checklist), "Passwords match" message, eye icon, updated professional categories. Sends a "Welcome to DiSSENT" email. A taken email shows "This email is already registered" with links to Log in and Forgot password |
 | Login (`login.php`) | ✅ | Same design as Register, eye icon, "You have been logged out" message |
 | Forgot Password (`forgot_password.php`) | ✅ | Emails a reset link valid for 60 minutes (locally to Mailpit) and shows the same message for every email. The link is also shown on screen when `APP_DEBUG=1`. Real email needs SMTP settings in `.env` |
-| Reset Password (`reset_password.php`) | ✅ | Same password rules, checklist and eye icon as Register. Links expire after 60 minutes |
-| Verification (`verification.php`) | 🔄 | Responsive; the history table scrolls inside its own box. Chain-integrity check needs `securecomm` (8081) running |
+| Reset Password (`reset_password.php`) | ✅ | Same password rules, checklist and eye icon as Register. Links expire after 60 minutes. Sends a "password was changed" email |
+| Verification (`verification.php`) | ✅ | Responsive. Search, numbers and history work from the database; only the table scrolls sideways. The live service record and Chain Integrity need `securecomm` (8081) and Fabric, otherwise it shows "Unavailable" |
 | Dashboard (`dashboard.php`) | ✅ | Real numbers from the database (reports, published reports, active members, media organisations) and "Your Activity" (your reports and their status, messages in the last 7 days, your role). Quick Actions include My Profile and Settings |
-| Profile (`profile.php`) | ✅ | New layout. Edit name, category and picture; change password with the same rules and eye icons |
-| Messaging (`messaging.php`) | 🔄 | Works on phones. A deleted member's conversation stays readable as "Deleted user" but cannot be replied to. Sending works without Java; the "Secure Transfer" status needs both Java services, Kafka and MongoDB |
-| Media Centre (`media_center.php`) | 🔄 | Responsive. Publications and search come from the database; not sure whether the partners/updates text is final |
-| Reports (`reports.php`) | 🔄 | Responsive. Submit a report with an optional PDF (max 5 MB, stored outside the web root); "My reports" shows each report's review status |
-| FAQ (`faq.php`) | ✅ | New. Public. 26 questions in 6 groups, open/close accordion, search box that filters as you type. Answers come from `faq_items()` in `backend/content.php` |
-| Settings (`settings.php`) | ✅ | Logged-in only. Change password (same rules), language and notification preferences (saved in `user_settings`), delete my account (keeps other people's conversations). Language is saved but the site is not translated yet; notification emails are not sent yet |
-| Admin (`admin.php`) | 🔄 | Standard page banner and section links. Approve/reject reports (approval is recorded on the blockchain through `securecomm`), recent admin activity, and Contact messages (newest first, latest 50). Not sure if paging is needed later for many reports |
+| Profile (`profile.php`) | ✅ | New layout. Edit name, category and picture; change password with the same rules and eye icons. Sends a "password was changed" email. The email address is read-only |
+| Messaging (`messaging.php`) | 🔄 | Responsive. One JPG, PNG, WebP or PDF per message (max 5 MB; location data removed from images, not from PDFs). Messages with files or personal details wait for an admin. Missing: a fresh check that messages reach "Secure Transfer: Verified" with both Java services, Kafka and MongoDB running (tested with a stand-in for securecomm). Message text is stored unencrypted in MySQL, and files unencrypted on disk |
+| Media Centre (`media_center.php`) | ✅ | Responsive. Publications, search and updates come from the database. The organisations listed still need confirming before launch |
+| Reports (`reports.php`) | ✅ | Responsive. Submit a report with an optional PDF (max 5 MB, stored outside the web root); "My reports" shows each review status. Editing or withdrawing a report is in Future Work. The PDF upload was not re-tested on 25/11/2026 |
+| FAQ (`faq.php`) | ✅ | Public. 29 questions in 6 groups, accordion, search box that filters as you type. Answers come from `faq_items()` in `backend/content.php` |
+| Settings (`settings.php`) | ✅ | Logged-in only. Change password, language and notification preferences (saved in `user_settings`), delete my account (keeps the text of other people's conversations, deletes your message files). Sends "password was changed" and "account deleted" emails. The preferences are saved but not used yet (see Future Work) |
+| Admin (`admin.php`) | 🔄 | Responsive. Report review, Messages waiting for review (approve or reject, with an audit log), activity and Contact messages. Members see a styled "You don't have permission" page. Missing: a fresh check of approving a report with Java and Fabric running, and paging for long report lists |
 
 > Update this table as pages are completed.
 
@@ -283,6 +340,16 @@ Newest first.
 
 | Date | Update |
 |---|---|
+| 25/11/2026 | Messages are checked before delivery. If they have a file, phone number, email address, ID-like number or IBAN, they wait for an admin, who approves or rejects them. The receiver sees nothing and nothing goes to Kafka until then. Every decision is logged. Rules are in `backend/compliance.php`. |
+| 25/11/2026 | Messages can have one image or PDF (max 5 MB). Files are stored outside the website, checked by content, and only the right people can open them. Location data is removed from images. Deleting an account deletes the files it sent. |
+| 25/11/2026 | New emails: password changed, account deleted, Contact form reply and admin notification (`ADMIN_EMAIL`). Password reset now only says "updated" if the change was really saved. |
+| 25/11/2026 | Members who open the Admin page see a styled "You don't have permission to view this page". Register shows "This email is already registered" next to the email box. |
+| 25/11/2026 | Checked that `users.email` has no duplicates and is already unique, and added a migration so other copies of the database match. Chat times are now right in every time zone (they were read as local time). |
+| 25/11/2026 | Responsive check of all 16 pages at 8 widths as visitor, member and admin. Fixed: the footer floating above the bottom on short pages, its links wrapping on small phones, cut-off search hints, form hints and long account names, and small links on Verification, Reports and Admin. |
+| 25/11/2026 | `start-demo.ps1` now starts existing stopped `kafka` and `zookeeper` containers instead of failing with "container name already in use". |
+| 25/11/2026 | New site icon (navy with a white "D"), linked from the shared header and copied to the GitHub Pages preview. |
+| 25/11/2026 | Used a Cloudflare quick-tunnel link to share the website for the workshop, and added the steps to this README. |
+| 25/11/2026 | Noted that the domain dissent.ie has been bought; the Cloudflare setup is waiting for the nameserver change. |
 | 10/11/2026 | Added email with PHPMailer: a "Welcome to DiSSENT" email after registration and a "Reset your DiSSENT password" email (link valid 60 minutes), in DiSSENT colours with a plain-text version. Added Mailpit as a local test inbox (http://127.0.0.1:8025); real SMTP can be set in `.env`. Sending problems are logged, never shown to visitors. |
 | 10/11/2026 | GitHub Pages preview: removed the fixed blue bar at the bottom. Submitting a form now shows a small friendly message below it ("This is a preview of DiSSENT…") instead of a browser alert, and nothing is sent, so there are no "405" errors. |
 | 10/11/2026 | Dashboard: added My Profile and Settings to Quick Actions (Settings was already in the header menu and phone sidebar). |
@@ -326,6 +393,10 @@ Newest first.
 - [x] Same design on every page (shared banner, buttons, message boxes and form fields)
 - [x] Deleted the old `gh-pages.yml` workflow; `deploy-dissent.yml` is the only one that deploys
 - [x] Send welcome and password reset emails (tested locally with Mailpit)
+- [x] Public demo link using a Cloudflare quick tunnel
+- [x] Message attachments and admin review of held messages
+- [x] Password changed, account deleted and Contact form emails
+- [x] Proper "no permission" page when a member opens Admin
 
 **Still to do**
 - [ ] Translate the site and use the saved language preference
@@ -333,11 +404,16 @@ Newest first.
 - [ ] Let users edit or withdraw their own reports
 - [ ] Put real SMTP settings in `.env` on the public server (emails currently go to the local Mailpit inbox)
 - [ ] Let admins mark contact messages as handled or delete them
-- [ ] Database: add foreign keys and a clean `schema.sql` (only `schema_updates.sql` and a database export exist now)
-- [ ] Public demo link using cloudflared (Cloudflare Tunnel)
-- [ ] LLM / AI integration
-- [ ] Workshop evaluation with users
-- [ ] Complete end-to-end flow: submit report → Kafka → blockchain verification
+- [ ] Database: add the missing foreign keys and add a clean `schema.sql` (only `schema_updates.sql`, migrations and a database export exist now)
+- [ ] Connect dissent.ie (waiting for the nameserver change) to a permanent tunnel or host
+- [ ] Replace the rule-based `compliance_check()` with the RAG + LLM (ReAct) check that reads the laws of both countries
+- [ ] LLM / AI integration (help assistant using the FAQ)
+- [ ] Encrypt stored messages and files, and remove hidden details from PDFs
+- [ ] Log out other devices when a password changes
+- [ ] Second admin account (an admin cannot review their own messages)
+- [ ] Write up the evaluation from the workshop on 25/11/2026
+- [ ] Re-test the full flow with Java, Kafka and Fabric running: approve report → blockchain, and message → "Secure Transfer: Verified"
+- [ ] Confirm the organisations shown on About, Home and Media Centre
 - [ ] Add automated tests
 - [ ] Prepare demo day script and backup recording
 - [ ] Write final user guide

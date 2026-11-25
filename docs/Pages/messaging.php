@@ -2,6 +2,7 @@
 session_start();
 include("../backend/db.php");
 include("../backend/content.php");
+require_once __DIR__ . "/../backend/messages.php";
 
 require_login();
 
@@ -17,7 +18,7 @@ $stmt = mysqli_prepare($conn, "
           u.role <> 'deleted'
           OR EXISTS (
               SELECT 1 FROM messages m
-              WHERE (m.sender_id = u.id AND m.receiver_id = ?)
+              WHERE (m.sender_id = u.id AND m.receiver_id = ? AND m.status = 'delivered')
                  OR (m.sender_id = ? AND m.receiver_id = u.id)
           )
       )
@@ -42,20 +43,25 @@ if($receiver_id > 0 && $receiver_id !== $user_id){
 // A deleted account's conversation can be read but not replied to.
 $receiver_deleted = $receiver !== null && $receiver['role'] === 'deleted';
 
-$messages = null;
-$last_message_id = 0;
+$messages = array();
+$cursor = '';
+$load_failed = false;
 
 if($receiver){
-    $stmt = mysqli_prepare($conn, "
-        SELECT * FROM messages
-        WHERE (sender_id = ? AND receiver_id = ?)
-        OR (sender_id = ? AND receiver_id = ?)
-        ORDER BY sent_at ASC, id ASC
-    ");
-    mysqli_stmt_bind_param($stmt, 'iiii', $user_id, $receiver_id, $receiver_id, $user_id);
-    mysqli_stmt_execute($stmt);
-    $messages = mysqli_stmt_get_result($stmt);
+    try {
+        // Read before the messages, so the first poll misses nothing.
+        $cursor = messages_cursor();
+        $messages = messages_visible($user_id, $receiver_id);
+    } catch (Throwable $error) {
+        error_log('DiSSENT: conversation could not be loaded: ' . get_class($error));
+        $load_failed = true;
+    }
 }
+
+// Error from send_message.php when JavaScript is off.
+$message_error = $_SESSION['message_error'] ?? '';
+$message_error = is_string($message_error) ? $message_error : '';
+unset($_SESSION['message_error']);
 ?>
 
 <!DOCTYPE html>
@@ -66,7 +72,7 @@ if($receiver){
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Messaging - DiSSENT</title>
 <link rel="stylesheet" href="../assets/css/base.css">
-<link rel="stylesheet" href="../assets/css/messaging.css">
+<link rel="stylesheet" href="../assets/css/messaging.css?v=2">
 </head>
 
 <body>
@@ -85,7 +91,7 @@ if($receiver){
         <h2>Contacts</h2>
 
         <label for="contactSearch" class="visually-hidden">Search contacts</label>
-        <input type="search" id="contactSearch" class="contact-search" placeholder="Search by name or role..." autocomplete="off">
+        <input type="search" id="contactSearch" class="contact-search" placeholder="Name or role..." autocomplete="off">
 
         <div id="contactListItems">
             <?php while($contact = mysqli_fetch_assoc($contacts)){ ?>
@@ -130,55 +136,30 @@ if($receiver){
             </div>
         </div>
 
-        <div class="messages-box" id="messagesBox">
+        <div class="messages-box" id="messagesBox" data-cursor="<?php echo e($cursor); ?>">
 
-            <?php if($receiver){ ?>
+            <?php if ($receiver): ?>
+                <?php foreach ($messages as $msg): ?>
+                    <?php echo message_html($msg, $user_id, $receiver['fullname']); ?>
+                <?php endforeach; ?>
 
-                <?php if(mysqli_num_rows($messages) > 0){ ?>
-
-                    <?php while($msg = mysqli_fetch_assoc($messages)){
-                        $last_message_id = $msg['id'];
-                    ?>
-
-                        <?php if($msg['sender_id'] == $user_id){ ?>
-
-                            <div class="sent-message" data-id="<?php echo (int)$msg['id']; ?>"<?php echo !empty($msg['envelope_id']) ? ' data-envelope-id="' . e($msg['envelope_id']) . '"' : ''; ?>>
-                                <strong>You</strong>
-                                <p><?php echo e($msg['message']); ?></p>
-                                <small class="msg-time" data-time="<?php echo e($msg['sent_at']); ?>"><?php echo e(date('d M Y, g:i a', strtotime($msg['sent_at']))); ?></small>
-                                <?php if(!empty($msg['envelope_id'])){ ?>
-                                    <small class="secure-badge">Secure Transfer: Pending</small>
-                                <?php } ?>
-                            </div>
-
-                        <?php }else{ ?>
-
-                            <div class="received-message" data-id="<?php echo (int)$msg['id']; ?>"<?php echo !empty($msg['envelope_id']) ? ' data-envelope-id="' . e($msg['envelope_id']) . '"' : ''; ?>>
-                                <strong><?php echo e($receiver['fullname']); ?></strong>
-                                <p><?php echo e($msg['message']); ?></p>
-                                <small class="msg-time" data-time="<?php echo e($msg['sent_at']); ?>"><?php echo e(date('d M Y, g:i a', strtotime($msg['sent_at']))); ?></small>
-                                <?php if(!empty($msg['envelope_id'])){ ?>
-                                    <small class="secure-badge">Secure Transfer: Pending</small>
-                                <?php } ?>
-                            </div>
-
-                        <?php } ?>
-
-                    <?php } ?>
-
-                <?php }else{ ?>
-
+                <?php if ($load_failed): ?>
+                    <div class="no-message" role="alert">Messages could not be loaded. Please try again later.</div>
+                <?php elseif (empty($messages)): ?>
                     <div class="no-message">No messages yet. Start the conversation below.</div>
-
-                <?php } ?>
-
-            <?php } ?>
+                <?php endif; ?>
+            <?php endif; ?>
 
         </div>
+
+        <?php if ($message_error !== ''): ?>
+            <div class="notice notice--error" role="alert"><?php echo e($message_error); ?></div>
+        <?php endif; ?>
 
         <form
     action="send_message.php"
     method="POST"
+    enctype="multipart/form-data"
     class="message-form"
     id="messageForm"
 >
@@ -206,9 +187,25 @@ if($receiver){
                     echo 'Select a contact before writing a message.';
                 }
             ?>"
-            required
             <?php if (!$receiver || $receiver_deleted): ?>disabled<?php endif; ?>
         ></textarea>
+
+        <?php if ($receiver && !$receiver_deleted): ?>
+            <div class="message-attach">
+                <label for="messageFile" class="message-attach__label">Attach a file (optional)</label>
+                <input
+                    type="file"
+                    id="messageFile"
+                    name="attachment"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    aria-describedby="messageFileHelp"
+                >
+                <small id="messageFileHelp">
+                    One JPG, PNG, WebP or PDF, up to 5 MB. Location data is removed from images, but hidden details in PDFs are not.
+                    Messages with files or personal details may be read by an administrator before delivery.
+                </small>
+            </div>
+        <?php endif; ?>
 
         <button
             type="submit"
@@ -264,23 +261,13 @@ if($receiver){
         return chatArea.querySelector('#messagesBox');
     }
 
-    function lastMessageId() {
-        let highest = 0;
-
-        chatArea.querySelectorAll('[data-id]').forEach(function (item) {
-            highest = Math.max(highest, Number(item.dataset.id) || 0);
-        });
-
-        return highest;
-    }
-
     function scrollMessages() {
         const box = messageBox();
         if (box) box.scrollTop = box.scrollHeight;
     }
 
     function relativeTime(value) {
-        const date = new Date(value.replace(' ', 'T'));
+        const date = new Date(value.replace(' ', 'T') + 'Z');
         if (Number.isNaN(date.getTime())) return value;
 
         const seconds = Math.max(0, (Date.now() - date.getTime()) / 1000);
@@ -417,17 +404,22 @@ if($receiver){
         if (loading || sending || receiverId <= 0) return;
 
         const textarea = form.querySelector('textarea');
-        if (!textarea.value.trim()) {
-            textarea.setCustomValidity('Please type a message first.');
+        const fileInput = form.querySelector('input[type="file"]');
+        const file = fileInput && fileInput.files[0];
+
+        if (!textarea.value.trim() && !file) {
+            textarea.setCustomValidity('Please type a message or attach a file.');
             textarea.reportValidity();
+            return;
+        }
+        if (file && file.size > 5 * 1024 * 1024) {
+            showFormNotice('The file is too large. The limit is 5 MB.');
             return;
         }
 
         const body = new FormData(form);
-        const submittedText = textarea.value.trim();
         const sentTo = receiverId;
         const thisVersion = ++version;
-        const previousId = lastMessageId();
         const button = form.querySelector('button[type="submit"]');
         const hadFocus = form.contains(document.activeElement);
 
@@ -435,64 +427,42 @@ if($receiver){
         textarea.readOnly = true;
         button.disabled = true;
         form.setAttribute('aria-busy', 'true');
+        showFormNotice('');
         notice.textContent = 'Sending message…';
 
         try {
-            // Fetch follows the existing PHP redirect in the background.
-            // It does not navigate or reload the visible page.
             const response = await fetch(form.action, {
                 method: 'POST',
                 body: body,
                 credentials: 'same-origin',
-                cache: 'no-store'
+                cache: 'no-store',
+                headers: { 'Accept': 'application/json' }
             });
-            if (!response.ok) throw new Error('Send request failed.');
-
-            const html = await response.text();
-            const page = new DOMParser().parseFromString(html, 'text/html');
-            const returnedChat = page.getElementById('chatArea');
-            const returnedReceiver = returnedChat
-                ? returnedChat.querySelector('[name="receiver_id"]') : null;
-            if (!returnedReceiver || Number(returnedReceiver.value) !== sentTo) {
-                throw new Error('Conversation confirmation unavailable.');
+            const type = response.headers.get('Content-Type') || '';
+            if (!type.includes('application/json')) {
+                throw new Error('Unexpected reply from the server.');
             }
 
-            const returnedMessages = Array.from(
-                returnedChat.querySelectorAll('.messages-box [data-id]')
-            );
-            const confirmed = returnedMessages.some(function (item) {
-                const text = item.querySelector('p');
-                return item.classList.contains('sent-message') &&
-                    Number(item.dataset.id) > previousId && text &&
-                    text.textContent.trim() === submittedText;
-            });
-            if (!confirmed) throw new Error('Saved message not confirmed.');
+            const result = await response.json();
 
-            if (thisVersion !== version || receiverId !== sentTo) {
-                notice.textContent = 'Message sent.';
+            if (!result.ok) {
+                notice.textContent = '';
+                showFormNotice(result.error || 'Your message could not be sent.');
                 return;
             }
 
-            const box = messageBox();
-            const existingIds = new Set(Array.from(
-                box.querySelectorAll('[data-id]'), item => item.dataset.id
-            ));
-            returnedMessages.forEach(function (item) {
-                if (existingIds.has(item.dataset.id)) return;
-                const placeholder = box.querySelector('.no-message');
-                if (placeholder) placeholder.remove();
-                box.appendChild(document.importNode(item, true));
-                existingIds.add(item.dataset.id);
-            });
+            notice.textContent = result.held ? 'Message saved. It is waiting for review.' : '';
+            if (thisVersion !== version || receiverId !== sentTo) return;
 
-            textarea.value = '';
+            applyMessages([{ id: result.id, html: result.html }]);
+            form.reset();
             textarea.setCustomValidity('');
             updateTimes();
             scrollMessages();
-            notice.textContent = '';
             if (hadFocus) textarea.focus({ preventScroll: true });
         } catch (error) {
-            notice.textContent = 'Could not confirm sending. Check the conversation before trying again; the message may already have been saved.';
+            notice.textContent = '';
+            showFormNotice('Could not confirm sending. Check the conversation before trying again; the message may already have been saved.');
             console.error('Send confirmation failed:', error);
         } finally {
             sending = false;
@@ -507,9 +477,8 @@ if($receiver){
     });
 
     chatArea.addEventListener('input', function (event) {
-        if (event.target.matches('textarea[name="message"]')) {
-            event.target.setCustomValidity('');
-        }
+        const textarea = chatArea.querySelector('textarea[name="message"]');
+        if (textarea) textarea.setCustomValidity('');
     });
 
     async function pollSecureStatus() {
@@ -555,11 +524,46 @@ if($receiver){
         });
     }
 
-    // The PHP endpoint already HTML-escapes the message text.
-    function decodeMessage(value) {
-        const decoder = document.createElement('textarea');
-        decoder.innerHTML = String(value);
-        return decoder.value;
+    // Message next to the form (errors only).
+    function showFormNotice(text) {
+        const form = chatArea.querySelector('#messageForm');
+        let box = chatArea.querySelector('.message-form-notice');
+
+        if (!text) {
+            if (box) box.remove();
+            return;
+        }
+        if (!box) {
+            box = document.createElement('div');
+            box.className = 'notice notice--error message-form-notice';
+            box.setAttribute('role', 'alert');
+            form.insertAdjacentElement('beforebegin', box);
+        }
+        box.textContent = text;
+    }
+
+    // Adds new bubbles and redraws changed ones. The HTML is escaped by PHP (message_html()).
+    function applyMessages(items) {
+        const box = messageBox();
+        if (!box) return;
+
+        items.forEach(function (item) {
+            const template = document.createElement('template');
+            template.innerHTML = item.html || '';
+            const bubble = template.content.firstElementChild;
+            if (!bubble) return;
+
+            const existing = box.querySelector('[data-id="' + Number(item.id) + '"]');
+
+            if (existing) {
+                if (existing.dataset.rev !== bubble.dataset.rev) existing.replaceWith(bubble);
+                return;
+            }
+
+            const placeholder = box.querySelector('.no-message');
+            if (placeholder) placeholder.remove();
+            box.appendChild(bubble);
+        });
     }
 
     async function pollMessages() {
@@ -572,62 +576,22 @@ if($receiver){
         try {
             const response = await fetch(
                 'get_new_messages.php?receiver_id=' + receiverId +
-                '&last_id=' + lastMessageId(),
+                '&since=' + encodeURIComponent(box.dataset.cursor || ''),
                 { cache: 'no-store' }
             );
 
             if (!response.ok) return;
-            const messages = await response.json();
+            const result = await response.json();
 
             // Ignore replies belonging to a previously selected contact.
-            if (thisVersion !== version || loading || !Array.isArray(messages)) return;
+            if (thisVersion !== version || loading || !Array.isArray(result.items)) return;
 
             const nearBottom =
                 box.scrollHeight - box.scrollTop - box.clientHeight < 100;
 
-            const existingIds = new Set(
-                Array.from(box.querySelectorAll('[data-id]'),
-                    item => Number(item.dataset.id))
-            );
-
-            messages.forEach(function (message) {
-                const id = Number(message.id);
-                if (!id || existingIds.has(id)) return;
-
-                const item = document.createElement('div');
-                item.className = message.is_sender ? 'sent-message' : 'received-message';
-                item.dataset.id = id;
-
-                const label = document.createElement('strong');
-                label.textContent = message.is_sender
-                    ? 'You'
-                    : chatArea.querySelector('.chat-header h2').textContent.trim();
-
-                const text = document.createElement('p');
-                text.textContent = decodeMessage(message.message);
-
-                const time = document.createElement('small');
-                time.className = 'msg-time';
-                time.dataset.time = message.sent_at;
-                time.textContent = relativeTime(message.sent_at);
-
-                item.append(label, text, time);
-
-                if (message.envelope_id) {
-                    item.dataset.envelopeId = message.envelope_id;
-
-                    const badge = document.createElement('small');
-                    badge.className = 'secure-badge';
-                    badge.textContent = 'Secure Transfer: Pending';
-                    item.appendChild(badge);
-                }
-
-                const placeholder = box.querySelector('.no-message');
-                if (placeholder) placeholder.remove();
-
-                box.appendChild(item);
-                existingIds.add(id);
-            });
+            applyMessages(result.items);
+            box.dataset.cursor = result.cursor;
+            updateTimes();
 
             if (nearBottom) scrollMessages();
             pollSecureStatus();

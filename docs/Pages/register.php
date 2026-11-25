@@ -10,6 +10,7 @@ require_once __DIR__ . '/../backend/mailer.php';
 
 $message = '';
 $message_type = 'error';
+$email_taken = false;
 $fullname = '';
 $email = '';
 $organisation = '';
@@ -102,8 +103,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 mysqli_stmt_store_result($check_stmt);
 
                 if (mysqli_stmt_num_rows($check_stmt) > 0) {
-                    // Retains the original local-prototype duplicate-email feedback.
-                    $message = 'An account with this email already exists. Please log in.';
+                    $message = 'This email is already registered.';
+                    $email_taken = true;
                 } else {
                     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
@@ -129,7 +130,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 if ((int) $error->getCode() === 1062) {
                     // Handles a duplicate rejected by an existing UNIQUE constraint.
                     // The pre-check alone does not prevent concurrent duplicate inserts.
-                    $message = 'An account with these details already exists. Please try logging in.';
+                    $message = 'This email is already registered.';
+                    $email_taken = true;
                 } else {
                     // Avoid logging submitted passwords, email addresses or full SQL errors.
                     error_log('DiSSENT registration: database error code ' . (int) $error->getCode());
@@ -170,7 +172,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - DiSSENT</title>
     <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/auth.css?v=5">
+    <link rel="stylesheet" href="../assets/css/auth.css?v=6">
     <script src="../assets/JavaScript/auth-forms.js?v=2" defer></script>
 </head>
 <body>
@@ -232,8 +234,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     spellcheck="false"
                     maxlength="254"
                     value="<?php echo $registration_escape($email); ?>"
+                    <?php if ($email_taken): ?>aria-invalid="true" aria-describedby="register-email-taken"<?php endif; ?>
                     required
                 >
+                <?php if ($email_taken): ?>
+                    <p class="auth-field-error" id="register-email-taken">
+                        This email is already registered.
+                        <a href="login.php">Log in</a>
+                        <a href="forgot_password.php">Forgot password?</a>
+                    </p>
+                <?php endif; ?>
             </div>
 
             <div class="auth-field">
@@ -279,7 +289,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                         id="register-confirm-password"
                         type="password"
                         name="confirm_password"
-                        placeholder="Enter your password again"
+                        placeholder="Repeat your password"
                         autocomplete="new-password"
                         autocapitalize="none"
                         spellcheck="false"

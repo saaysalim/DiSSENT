@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/content.php';
+require_once __DIR__ . '/../backend/mailer.php';
 
 require_login();
 
@@ -118,6 +119,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
 
         if ($problem === '') {
+            send_password_changed_email($account['email']);
             session_regenerate_id(true);
             $redirect_with('password_saved');
         }
@@ -140,6 +142,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             $problem = account_delete($user_id);
 
             if ($problem === '') {
+                // The address was read before the account was anonymised.
+                send_account_deleted_email($account['email']);
+
                 // End the session completely, like logout.php.
                 $_SESSION = array();
 
@@ -188,7 +193,7 @@ $notice_html = static function ($key) use ($notices) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - DiSSENT</title>
     <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/auth.css?v=5">
+    <link rel="stylesheet" href="../assets/css/auth.css?v=6">
     <link rel="stylesheet" href="../assets/css/settings.css?v=1">
     <script src="../assets/JavaScript/auth-forms.js?v=2" defer></script>
 </head>
@@ -346,8 +351,8 @@ $notice_html = static function ($key) use ($notices) {
                 <h2 id="deleteHeading">Delete my account</h2>
                 <p class="auth-intro">This permanently removes your account. It cannot be undone.</p>
                 <ul class="settings-list">
-                    <li><strong>Removed:</strong> your login, settings, and reports that were not approved (with their documents).</li>
-                    <li><strong>Kept:</strong> reports that were already approved stay published, and the people you messaged keep their conversations. In both places your name is replaced with “Deleted user”.</li>
+                    <li><strong>Removed:</strong> your login, settings, reports that were not approved (with their documents), and the files you attached to messages. Messages waiting for review are withdrawn.</li>
+                    <li><strong>Kept:</strong> reports that were already approved stay published, and the people you messaged keep the text of their conversations. In both places your name is replaced with “Deleted user”.</li>
                 </ul>
                 <?php echo $notice_html('delete'); ?>
 

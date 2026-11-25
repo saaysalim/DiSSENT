@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/content.php';
+require_once __DIR__ . '/../backend/messages.php';
 
 require_admin();
 
@@ -16,6 +17,10 @@ $submitted_id = 0;
 $notice = $_SESSION['admin_report_notice'] ?? '';
 $notice = is_string($notice) ? $notice : '';
 unset($_SESSION['admin_report_notice']);
+
+// Result of review_message.php: array(type, text).
+$message_notice = $_SESSION['message_review_notice'] ?? null;
+unset($_SESSION['message_review_notice']);
 
 /*
  * Execute a prepared statement.
@@ -407,6 +412,39 @@ try {
     error_log('DiSSENT: admin activity could not be loaded.');
 }
 
+// Messages held by the compliance check, oldest first, and the latest decisions.
+$held_messages = array();
+$held_total = 0;
+$message_decisions = array();
+$held_failed = false;
+
+try {
+    $held_total = db_count('messages', "status = 'pending_review'");
+    $held_messages = messages_rows(
+        "SELECT m.id, m.sender_id, m.receiver_id, m.message, m.sent_at, m.review_reasons,
+                s.fullname AS sender_name, r.fullname AS receiver_name,
+                f.id AS file_id, f.original_name, f.mime, f.file_size, f.removed_at
+         FROM messages m
+         JOIN users s ON s.id = m.sender_id
+         JOIN users r ON r.id = m.receiver_id
+         LEFT JOIN message_files f ON f.message_id = m.id
+         WHERE m.status = 'pending_review'
+         ORDER BY m.sent_at ASC, m.id ASC
+         LIMIT 50"
+    );
+    $message_decisions = messages_rows(
+        "SELECT v.message_id, v.decision, v.reasons, v.note, v.created_at, u.fullname AS admin_name
+         FROM message_reviews v
+         LEFT JOIN users u ON u.id = v.reviewer_id
+         WHERE v.decision <> 'held'
+         ORDER BY v.id DESC
+         LIMIT 10"
+    );
+} catch (Throwable $exception) {
+    $held_failed = true;
+    error_log('DiSSENT: held messages could not be loaded.');
+}
+
 $contact_messages = array();
 $contact_total = 0;
 $contact_failed = false;
@@ -441,7 +479,7 @@ $status_labels = array(
     <title>Report Review - DiSSENT</title>
 
     <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/admin.css">
+    <link rel="stylesheet" href="../assets/css/admin.css?v=2">
 </head>
 
 <body>
@@ -462,6 +500,7 @@ $status_labels = array(
     <nav class="review-sections" aria-label="Admin sections">
         <ul>
             <li><a href="#submittedReports">Submitted reports</a></li>
+            <li><a href="#messageReviews">Messages waiting for review<?php echo $held_total > 0 ? ' (' . (int) $held_total . ')' : ''; ?></a></li>
             <li><a href="#adminActivity">Recent activity</a></li>
             <li><a href="#contactMessages">Contact messages</a></li>
         </ul>
@@ -740,6 +779,98 @@ $status_labels = array(
         <?php endforeach; ?>
 
     <?php endif; ?>
+
+    <section class="review-messages" id="messageReviews" aria-labelledby="messageReviewsHeading">
+        <h2 id="messageReviewsHeading">Messages waiting for review</h2>
+
+        <?php if (is_array($message_notice) && count($message_notice) === 2): ?>
+            <div class="notice notice--<?php echo $message_notice[0] === 'success' ? 'success' : 'error'; ?>" role="<?php echo $message_notice[0] === 'success' ? 'status' : 'alert'; ?>">
+                <?php echo e($message_notice[1]); ?>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($held_failed): ?>
+            <div class="notice notice--error" role="alert">
+                Messages could not be loaded. If this is a new database, run the file in database/migrations/ first (see README).
+            </div>
+        <?php elseif (empty($held_messages)): ?>
+            <p class="review-muted">No messages are waiting for review.</p>
+        <?php else: ?>
+            <p class="review-muted">
+                <?php echo (int) $held_total; ?> waiting, oldest first. The receiver cannot see these messages.
+                <?php if ($held_total > count($held_messages)): ?>
+                    Showing the first <?php echo count($held_messages); ?>.
+                <?php endif; ?>
+            </p>
+
+            <?php foreach ($held_messages as $held): ?>
+                <?php $own_conversation = in_array($admin_id, array((int) $held['sender_id'], (int) $held['receiver_id']), true); ?>
+                <article class="review-card">
+                    <h3>Message #<?php echo (int) $held['id']; ?></h3>
+
+                    <p>
+                        <strong>From:</strong> <?php echo e($held['sender_name']); ?><br>
+                        <strong>To:</strong> <?php echo e($held['receiver_name']); ?><br>
+                        <strong>Sent:</strong> <?php echo e(date('d M Y, H:i', strtotime((string) $held['sent_at']))); ?> UTC
+                    </p>
+
+                    <p><strong>Why it was held:</strong></p>
+                    <ul class="review-reasons">
+                        <?php foreach (messages_reasons($held['review_reasons']) as $reason): ?>
+                            <li><?php echo e($reason); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+
+                    <?php if ($own_conversation): ?>
+                        <div class="notice">You are part of this conversation, so another administrator must decide.</div>
+                    <?php else: ?>
+                        <?php if ((string) $held['message'] !== ''): ?>
+                            <p class="review-message-text"><?php echo e($held['message']); ?></p>
+                        <?php endif; ?>
+
+                        <?php if ($held['file_id'] !== null): ?>
+                            <div class="review-message-file">
+                                <?php echo message_file_html($held['file_id'], $held['original_name'], $held['mime'], (int) $held['file_size'], $held['removed_at']); ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <form method="POST" action="review_message.php" class="review-form">
+                            <?php echo csrf_field(); ?>
+                            <input type="hidden" name="message_id" value="<?php echo (int) $held['id']; ?>">
+
+                            <label for="messageNote<?php echo (int) $held['id']; ?>">Reason (optional, the sender sees it if you reject)</label>
+                            <textarea id="messageNote<?php echo (int) $held['id']; ?>" name="note" rows="2" maxlength="500"></textarea>
+
+                            <div class="review-buttons">
+                                <button type="submit" name="decision" value="approve" class="review-button review-approve">Approve and deliver</button>
+                                <button type="submit" name="decision" value="reject" class="review-button review-reject">Reject message</button>
+                            </div>
+                        </form>
+                    <?php endif; ?>
+                </article>
+            <?php endforeach; ?>
+        <?php endif; ?>
+
+        <?php if (!empty($message_decisions)): ?>
+            <h3>Latest message decisions</h3>
+            <ul class="review-activity">
+                <?php foreach ($message_decisions as $decision_row): ?>
+                    <li>
+                        Message #<?php echo (int) $decision_row['message_id']; ?>:
+                        <strong><?php echo e(ucfirst($decision_row['decision'])); ?></strong>
+                        by <?php echo e($decision_row['admin_name'] ?? 'the system'); ?>
+                        on <?php echo e($decision_row['created_at']); ?> UTC.
+                        <?php if (messages_reasons($decision_row['reasons']) !== array()): ?>
+                            Held because: <?php echo e(implode('; ', messages_reasons($decision_row['reasons']))); ?>.
+                        <?php endif; ?>
+                        <?php if ((string) $decision_row['note'] !== ''): ?>
+                            Note: <?php echo e($decision_row['note']); ?>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </section>
 
     <h2 id="adminActivity">Recent Admin Activity</h2>
 

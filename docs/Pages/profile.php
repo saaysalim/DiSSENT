@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/content.php';
+require_once __DIR__ . '/../backend/mailer.php';
 
 require_login();
 
@@ -39,9 +40,9 @@ try {
         $conn,
         "SELECT id, fullname, email, organisation,
                 profile_picture, role, created_at, password
-         FROM users
-         WHERE id = ?
-         LIMIT 1"
+        FROM users
+        WHERE id = ?
+        LIMIT 1"
     );
 
     if (!$stmt) {
@@ -168,10 +169,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $stmt = mysqli_prepare(
                             $conn,
                             "UPDATE users
-                             SET fullname = ?,
-                                 organisation = ?,
-                                 profile_picture = ?
-                             WHERE id = ?"
+                            SET fullname = ?,
+                                organisation = ?,
+                                profile_picture = ?
+                            WHERE id = ?"
                         );
 
                         if (!$stmt) {
@@ -190,8 +191,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $stmt = mysqli_prepare(
                             $conn,
                             "UPDATE users
-                             SET fullname = ?, organisation = ?
-                             WHERE id = ?"
+                            SET fullname = ?, organisation = ?
+                            WHERE id = ?"
                         );
 
                         if (!$stmt) {
@@ -268,8 +269,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = mysqli_prepare(
                     $conn,
                     "UPDATE users
-                     SET password = ?
-                     WHERE id = ? AND password = ?"
+                    SET password = ?
+                    WHERE id = ? AND password = ?"
                 );
 
                 if (!$stmt) {
@@ -302,6 +303,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($password_message === '') {
+                send_password_changed_email($user['email']);
+
                 session_regenerate_id(true);
                 $_SESSION['profile_flash'] = 'password_saved';
 
@@ -339,7 +342,7 @@ $member_since = $created_timestamp !== false
     <title>My Profile - DiSSENT</title>
 
     <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/auth.css?v=5">
+    <link rel="stylesheet" href="../assets/css/auth.css?v=6">
     <link rel="stylesheet" href="../assets/css/profile.css?v=2">
     <script src="../assets/JavaScript/auth-forms.js?v=2" defer></script>
 </head>

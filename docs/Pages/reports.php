@@ -134,11 +134,11 @@ if (isset($_GET['document'])) {
     try {
         $stmt = $report_query(
             "SELECT d.original_name, d.stored_name, d.file_size
-             FROM report_documents d
-             JOIN reports r ON r.id = d.report_id
-             WHERE d.id = ?
-               AND (r.user_id = ? OR ? = 1)
-             LIMIT 1",
+            FROM report_documents d
+            JOIN reports r ON r.id = d.report_id
+            WHERE d.id = ?
+            AND (r.user_id = ? OR ? = 1)
+            LIMIT 1",
             'iii',
             array($document_id, $user_id, $is_admin ? 1 : 0)
         );
@@ -429,8 +429,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $report_query(
                     "INSERT INTO reports
                         (user_id, title, category, description,
-                         location, evidence, status)
-                     VALUES (?, ?, ?, ?, ?, ?, 'Pending')",
+                        location, evidence, status)
+                    VALUES (?, ?, ?, ?, ?, ?, 'Pending')",
                     'isssss',
                     array(
                         $user_id,
@@ -449,7 +449,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt = $report_query(
                         "INSERT INTO report_documents
                             (report_id, original_name, stored_name, file_size)
-                         VALUES (?, ?, ?, ?)",
+                        VALUES (?, ?, ?, ?)",
                         'issi',
                         array(
                             $report_id,
@@ -511,13 +511,13 @@ try {
                 d.id AS document_id,
                 d.original_name AS document_name,
                 d.file_size AS document_size
-         FROM reports r
-         LEFT JOIN report_documents d ON d.report_id = r.id";
+        FROM reports r
+        LEFT JOIN report_documents d ON d.report_id = r.id";
 
     if ($review_id !== null) {
         $sql .=
             " WHERE r.id = ?
-              AND (r.user_id = ? OR ? = 1)";
+            AND (r.user_id = ? OR ? = 1)";
 
         $types = 'iii';
         $values = array($review_id, $user_id, $is_admin ? 1 : 0);
