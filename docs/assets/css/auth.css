@@ -450,3 +450,27 @@ a.auth-submit {
         gap: 1rem;
     }
 }
+
+/* ---------- Consent tick box (Register) ---------- */
+
+.auth-checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 44px;
+    font-weight: 400;
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+.auth-checkbox input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    margin: 2px 0 0;
+    accent-color: var(--primary-color);
+}
+
+.auth-checkbox a {
+    font-weight: 700;
+}

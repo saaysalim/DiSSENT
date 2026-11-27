@@ -67,7 +67,9 @@ jobs:
 
       - name: Render ${{ matrix.page }}.php
         run: |
-          php -d display_errors=0 -S 127.0.0.1:8888 -t . > php-server.log 2>&1 &
+          # DISSENT_PREVIEW=1 (only here, never on the real site): pages show a few
+          # items marked "Sample data – preview only" instead of an empty list.
+          DISSENT_PREVIEW=1 php -d display_errors=0 -S 127.0.0.1:8888 -t . > php-server.log 2>&1 &
           sleep 2
           mkdir -p out
           result=$(curl -s -L -o "out/${{ matrix.page }}.html" -w "%{http_code} %{url_effective}" \
@@ -145,8 +147,8 @@ jobs:
           find _site -name "*.html" -exec sed -i -E 's/([A-Za-z0-9_-]+)\.php/\1.html/g' {} +
 
           # Online preview mode: GitHub Pages cannot receive form data (it would return
-          # "405 Not Allowed"). preview-mode.js stops forms before they are sent and shows
-          # a small message box below the form instead. No permanent banner.
+          # "405 Not Allowed"). preview-mode.js stops forms before they are sent. On pages
+          # with a form, a small message box is shown at the top of the page, before any form.
           cat > _site/docs/assets/preview-mode.js <<'EOF'
           (function () {
             // Online preview only (GitHub Pages cannot receive form data).
@@ -157,7 +159,7 @@ jobs:
 
             var style = document.createElement('style');
             style.textContent =
-              '.preview-note{display:flex;align-items:flex-start;gap:12px;margin:16px 0 0;' +
+              '.preview-note{display:flex;align-items:flex-start;gap:12px;margin:16px auto;max-width:1100px;' +
               'padding:14px 16px;border:1px solid #bdcadf;border-left:4px solid #354f91;' +
               'border-radius:10px;background:#f1f5fb;color:#10244d;font:15px/1.5 Arial,sans-serif;' +
               'text-align:left;box-shadow:0 6px 18px rgba(16,36,77,.12)}' +
@@ -170,16 +172,17 @@ jobs:
               'margin:0;transform:translateX(-50%)}';
             document.head.appendChild(style);
 
-            function showNote(form) {
-              // Forms in the header (search) get a floating box; other forms get one right below them.
-              var floating = !!form.closest('#siteHeader');
-              var note = floating ? document.getElementById('previewNoteFloating') : form.nextElementSibling;
+            function showNote(form, quiet) {
+              // The header search gets a floating box; every other form shares one box
+              // at the top of the page content, before any form.
+              var floating = !!(form && form.closest('#siteHeader'));
+              var note = document.getElementById(floating ? 'previewNoteFloating' : 'previewNoteTop');
 
-              if (!note || !note.classList || !note.classList.contains('preview-note')) {
+              if (!note) {
                 note = document.createElement('div');
                 note.className = 'preview-note' + (floating ? ' preview-note--floating' : '');
                 note.setAttribute('role', 'status');
-                if (floating) { note.id = 'previewNoteFloating'; }
+                note.id = floating ? 'previewNoteFloating' : 'previewNoteTop';
 
                 var text = document.createElement('p');
                 text.appendChild(document.createTextNode(MESSAGE + ' '));
@@ -197,12 +200,20 @@ jobs:
                 note.appendChild(text);
                 note.appendChild(close);
 
+                var main = document.querySelector('main');
                 if (floating) { document.body.appendChild(note); }
-                else { form.insertAdjacentElement('afterend', note); }
+                else if (main) { main.insertAdjacentElement('afterbegin', note); }
+                else { document.body.insertAdjacentElement('afterbegin', note); }
               }
 
-              note.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+              if (!quiet) { note.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
             }
+
+            // Pages with a form show the box straight away, at the top.
+            document.addEventListener('DOMContentLoaded', function () {
+              var form = document.querySelector('main form');
+              if (form) { showNote(form, true); }
+            });
 
             // Capture phase: runs before the page's own scripts, so nothing is sent.
             document.addEventListener('submit', function (event) {

@@ -192,16 +192,17 @@ $notice_html = static function ($key) use ($notices) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - DiSSENT</title>
-    <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/auth.css?v=6">
+    <meta name="description" content="Change your DiSSENT password, language and notification preferences, or delete your account.">
+    <link rel="stylesheet" href="../assets/css/base.css?v=5">
+    <link rel="stylesheet" href="../assets/css/auth.css?v=7">
     <link rel="stylesheet" href="../assets/css/settings.css?v=1">
-    <script src="../assets/JavaScript/auth-forms.js?v=2" defer></script>
+    <script src="../assets/JavaScript/auth-forms.js?v=3" defer></script>
 </head>
 <body>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<main class="auth-section settings-page" aria-labelledby="settingsHeading">
+<main class="auth-section settings-page" id="main-content" tabindex="-1" aria-labelledby="settingsHeading">
     <div class="settings-container">
 
         <div class="settings-intro">
@@ -235,7 +236,7 @@ $notice_html = static function ($key) use ($notices) {
                 <dl class="settings-facts">
                     <div><dt>Name</dt><dd><?php echo e($account['fullname']); ?></dd></div>
                     <div><dt>Email</dt><dd><?php echo e($account['email']); ?></dd></div>
-                    <div><dt>Account role</dt><dd><?php echo e($account['role']); ?></dd></div>
+                    <div><dt>Account</dt><dd><?php echo $account['role'] === 'admin' ? 'Administrator' : 'Member'; ?></dd></div>
                 </dl>
                 <p class="auth-help">Change your name, professional category and picture on your profile.</p>
                 <a href="profile.php" class="auth-submit auth-submit--secondary settings-link-button">Edit profile</a>
@@ -244,7 +245,7 @@ $notice_html = static function ($key) use ($notices) {
             <!-- Change password -->
             <section class="auth-card settings-card" id="password" aria-labelledby="passwordHeading">
                 <h2 id="passwordHeading">Change password</h2>
-                <p class="auth-intro">Enter your current password, then choose a new one.</p>
+                <p class="auth-intro">Enter your current password, then choose a new one. Your other devices are then logged out; this one stays logged in.</p>
                 <?php echo $notice_html('password'); ?>
 
                 <form method="POST" action="settings.php#password" class="auth-form" data-auth-form>

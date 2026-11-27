@@ -17,26 +17,69 @@ if ($is_logged_in && function_exists('content_user_is_admin')) {
     }
 }
 
-$nav_links = array(
-    'home.php' => 'Home',
-    'about.php' => 'About',
-    'media_center.php' => 'Media Centre',
-    'messaging.php' => 'Messaging',
-    'reports.php' => 'Reports',
-    'verification.php' => 'Verification',
-    'dashboard.php' => 'Dashboard',
-    'faq.php' => 'FAQ',
-    'contact_us.php' => 'Contact'
-);
+// Visitors only see public pages; the rest need an account.
+if ($is_logged_in) {
+    $nav_links = array(
+        'home.php' => 'Home',
+        'about.php' => 'About',
+        'media_center.php' => 'Media Centre',
+        'messaging.php' => 'Messaging',
+        'reports.php' => 'Reports',
+        'verification.php' => 'Verification',
+        'dashboard.php' => 'Dashboard',
+        'faq.php' => 'FAQ',
+        'contact_us.php' => 'Contact'
+    );
+} else {
+    $nav_links = array(
+        'home.php' => 'Home',
+        'about.php' => 'About',
+        'media_center.php' => 'Media Centre',
+        'verification.php' => 'Verification',
+        'faq.php' => 'FAQ',
+        'contact_us.php' => 'Contact'
+    );
+}
 
 if ($is_admin) {
     $nav_links['admin.php'] = 'Admin';
+}
+
+// Number of unread messages and message requests, shown on "Messaging".
+$header_unread = 0;
+
+if ($is_logged_in && function_exists('unread_message_counts')) {
+    $header_unread = array_sum(unread_message_counts((int) $_SESSION['user_id']))
+        + (function_exists('message_request_count') ? message_request_count((int) $_SESSION['user_id']) : 0);
 }
 
 $search_input = $_GET['q'] ?? '';
 $header_search = is_string($search_input) ? $search_input : '';
 
 $header_fullname = $_SESSION['fullname'] ?? 'My profile';
+$header_picture = '';
+
+// Name and picture from the database, so a new name or picture shows at once.
+if ($is_logged_in && isset($GLOBALS['conn']) && $GLOBALS['conn'] instanceof mysqli) {
+    try {
+        $header_stmt = mysqli_prepare($GLOBALS['conn'], 'SELECT fullname, profile_picture FROM users WHERE id = ? LIMIT 1');
+
+        if ($header_stmt) {
+            $header_user_id = (int) $_SESSION['user_id'];
+            mysqli_stmt_bind_param($header_stmt, 'i', $header_user_id);
+            mysqli_stmt_execute($header_stmt);
+            $header_row = mysqli_fetch_assoc(mysqli_stmt_get_result($header_stmt));
+            mysqli_stmt_close($header_stmt);
+
+            if ($header_row) {
+                $header_fullname = (string) $header_row['fullname'];
+                $header_picture = (string) ($header_row['profile_picture'] ?? '');
+            }
+        }
+    } catch (Throwable $exception) {
+        error_log('DiSSENT: header profile details unavailable.');
+    }
+}
 
 if (!is_string($header_fullname) || trim($header_fullname) === '') {
     $header_fullname = 'My profile';
@@ -51,8 +94,10 @@ $header_escape = static function ($value) {
 };
 ?>
 
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
 <link rel="icon" href="../favicon.ico?v=2" sizes="16x16 32x32 48x48" type="image/x-icon">
-<script>document.documentElement.classList.add('has-js');</script>
+<script nonce="<?php echo defined('CSP_NONCE') ? htmlspecialchars(CSP_NONCE, ENT_QUOTES) : ''; ?>">document.documentElement.classList.add('has-js');</script>
 
 <header id="siteHeader">
 
@@ -108,6 +153,9 @@ $header_escape = static function ($value) {
                             <?php endif; ?>
                         >
                             <?php echo $header_escape($label); ?>
+                            <?php if ($link === 'messaging.php' && $header_unread > 0): ?>
+                                <span class="nav-badge" id="navUnreadBadge"><?php echo (int) min($header_unread, 99); ?><span class="visually-hidden"> unread</span></span>
+                            <?php endif; ?>
                         </a>
                     </li>
                 <?php endforeach; ?>
@@ -177,22 +225,32 @@ $header_escape = static function ($value) {
                     class="header-language-dropdown"
                     id="headerLanguageDropdown"
                 >
-
+                    <!-- Translation is planned (see README, Future Work). Only English works now. -->
+                    <p>Translations coming soon</p>
                     <ul>
-                        <li><span lang="en">English</span></li>
-                        <li><span lang="fa" dir="rtl"> Farsi</span></li>
-                        <li><span lang="fr"> French</span></li>
-                        <li><span lang="es"> Spanish</span></li>
-                        <li><span lang="ar" dir="rtl"> Arabic</span></li>
-                        <li><span lang="de"> German</span></li>
-                        <li><span lang="nl">Dutch</span></li>
+                        <li class="language-current"><span lang="en">English</span> <small>(current)</small></li>
+                        <li class="language-soon" aria-disabled="true"><span lang="fa" dir="rtl">فارسی</span> <small>Farsi</small></li>
+                        <li class="language-soon" aria-disabled="true"><span lang="ar" dir="rtl">العربية</span> <small>Arabic</small></li>
+                        <li class="language-soon" aria-disabled="true"><span lang="fr">Français</span> <small>French</small></li>
+                        <li class="language-soon" aria-disabled="true"><span lang="es">Español</span> <small>Spanish</small></li>
+                        <li class="language-soon" aria-disabled="true"><span lang="de">Deutsch</span> <small>German</small></li>
+                        <li class="language-soon" aria-disabled="true"><span lang="nl">Nederlands</span> <small>Dutch</small></li>
                     </ul>
                 </div>
             </details>
 
             <?php if ($is_logged_in): ?>
-                <a href="profile.php" class="login-btn header-account">
-                    <?php echo $header_escape($header_fullname); ?>
+                <!-- Small round picture (or first letter) with the name underneath; goes to My Profile. -->
+                <a
+                    href="profile.php"
+                    class="login-btn header-account header-profile"
+                    title="<?php echo $header_escape($header_fullname); ?>"
+                    <?php if ($current_page === 'profile.php'): ?>aria-current="page"<?php endif; ?>
+                >
+                    <?php if (function_exists('avatar_small_html')): ?>
+                        <?php echo avatar_small_html($header_fullname, $header_picture, 'header-avatar'); ?>
+                    <?php endif; ?>
+                    <span class="header-profile__name"><?php echo $header_escape($header_fullname); ?></span>
                 </a>
 
                 <a
@@ -211,8 +269,8 @@ $header_escape = static function ($value) {
                     Login
                 </a>
 
-                <a href="register.php" class="login-btn">
-                    Get Started
+                <a href="register.php" class="login-btn header-register">
+                    Create account
                 </a>
             <?php endif; ?>
 

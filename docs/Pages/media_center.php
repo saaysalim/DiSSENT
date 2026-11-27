@@ -34,7 +34,8 @@ if ($search_error === '') {
 }
 
 try {
-    $updates = get_updates(6);
+    // Shorter list (workshop feedback): the publications above are the main content.
+    $updates = get_updates(3);
 } catch (Throwable $exception) {
     error_log('DiSSENT: publication updates could not be loaded.');
 
@@ -42,8 +43,18 @@ try {
         'Recent publication updates are temporarily unavailable.';
 }
 
-$features = $content['features'] ?? array();
 $workflow = $content['workflow'] ?? array();
+
+// GitHub Pages preview only (no database): marked sample items instead of an error.
+$is_preview_sample = false;
+
+if (preview_mode() && $search === '') {
+    $publications = preview_sample_publications();
+    $publications_error = '';
+    $updates = array();
+    $updates_error = '';
+    $is_preview_sample = true;
+}
 $partners = $content['partners'] ?? array();
 ?>
 
@@ -54,17 +65,18 @@ $partners = $content['partners'] ?? array();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Media Centre - DiSSENT</title>
+    <meta name="description" content="Read reports approved for publication on DiSSENT and search by title, author or topic.">
 
-   <link rel="stylesheet" href="../assets/css/base.css">
-<link rel="stylesheet" href="../assets/css/home.css">
-<link rel="stylesheet" href="../assets/css/media_center.css">
+    <link rel="stylesheet" href="../assets/css/base.css?v=5">
+    <link rel="stylesheet" href="../assets/css/home.css?v=2">
+    <link rel="stylesheet" href="../assets/css/media_center.css?v=3">
 </head>
 
 <body>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<main class="media-page">
+<main class="media-page" id="main-content" tabindex="-1">
 
     <section class="page-hero" aria-labelledby="mediaHeading">
         <h1 id="mediaHeading">Media Centre</h1>
@@ -104,7 +116,7 @@ $partners = $content['partners'] ?? array();
                 type="search"
                 name="q"
                 maxlength="255"
-                placeholder="Search titles, authors or topics..."
+                placeholder="Title, author or topic"
                 value="<?php echo e($search); ?>"
             >
 
@@ -201,7 +213,10 @@ $partners = $content['partners'] ?? array();
                     ?>
 
                     <article class="featured-card">
-                        <span class="status-badge status-approved">
+                        <?php if ($is_preview_sample): ?>
+                            <span class="status-badge preview-sample">Sample data – preview only</span>
+                        <?php endif; ?>
+                        <span class="status-badge status-approved" title="<?php echo e(report_status_explanation('Approved')); ?>">
                             Approved for publication
                         </span>
 
@@ -235,11 +250,11 @@ $partners = $content['partners'] ?? array();
                         <?php endif; ?>
 
                         <p class="pub-excerpt">
-                            <?php echo e(summarize($description)); ?>
+                            <?php echo e(summarize($description, 200)); ?>
                         </p>
 
                         <details class="publication-details">
-                            <summary>Read report</summary>
+                            <summary>Read more</summary>
 
                             <div class="publication-body">
                                 <?php
@@ -313,22 +328,6 @@ $partners = $content['partners'] ?? array();
         <?php endif; ?>
     </section>
 
-    <section class="features" aria-labelledby="featuresHeading">
-        <h2 id="featuresHeading">Platform features</h2>
-
-        <div class="features-container">
-            <?php foreach ($features as $feature): ?>
-                <a
-                    href="<?php echo e($feature['link']); ?>"
-                    class="feature-card"
-                >
-                    <h3><?php echo e($feature['title']); ?></h3>
-                    <p><?php echo e($feature['text']); ?></p>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    </section>
-
     <section
         class="workflow-section"
         aria-labelledby="workflowHeading"
@@ -365,7 +364,8 @@ $partners = $content['partners'] ?? array();
         >
             <h2 id="partnersHeading">Media organisations</h2>
 
-            <div class="partner-grid">
+            <!-- Same card style as the Home page (assets/css/home.css). -->
+            <div class="partners">
                 <?php foreach ($partners as $partner): ?>
                     <?php
                     $partner_url = (string) ($partner['url'] ?? '');
@@ -373,6 +373,7 @@ $partners = $content['partners'] ?? array();
                         (string) parse_url($partner_url, PHP_URL_SCHEME)
                     );
 
+                    // No confirmed website (ECHO for now): the name only, not a link.
                     if (
                         !filter_var($partner_url, FILTER_VALIDATE_URL) ||
                         !in_array(
@@ -381,6 +382,12 @@ $partners = $content['partners'] ?? array();
                             true
                         )
                     ) {
+                        ?>
+                        <div class="partner-card partner-card--plain">
+                            <h3><?php echo e($partner['name']); ?></h3>
+                            <p><?php echo e($partner['text'] ?? ''); ?>.</p>
+                        </div>
+                        <?php
                         continue;
                     }
                     ?>
@@ -392,7 +399,8 @@ $partners = $content['partners'] ?? array();
                         class="partner-card"
                     >
                         <h3><?php echo e($partner['name']); ?></h3>
-                        <span>Visit website (opens in a new tab)</span>
+                        <p><?php echo e($partner['text'] ?? ''); ?>. Visit website (opens in a new tab).</p>
+                        <span class="card-arrow" aria-hidden="true">Open &rarr;</span>
                     </a>
                 <?php endforeach; ?>
             </div>

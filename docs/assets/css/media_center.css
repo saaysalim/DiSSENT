@@ -88,7 +88,8 @@
 }
 
 .media-page .media-search-box input[type="search"] {
-    flex: 1 1 250px;
+    /* Wide enough for the hint text; the button moves below it on phones. */
+    flex: 1 1 320px;
     min-width: 0;
     min-height: 46px;
     padding: 12px 14px;
@@ -528,4 +529,73 @@
     .media-page .partner-card {
         transition: none;
     }
+}
+/* Organisation cards: Home card style (home.css), small top margin, no empty grid cells. */
+.media-page .media-partners .partners {
+    margin-top: 24px;
+}
+
+/* Phones: the search box uses the full width with equal margins. */
+@media (max-width: 480px) {
+    .media-page .media-search-box {
+        padding: 16px;
+    }
+
+    .media-page .media-search-box input[type="search"],
+    .media-page .media-search-box button {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}
+
+/* GitHub Pages preview only: sample items are clearly marked. */
+.media-page .status-badge.preview-sample {
+    margin-right: 6px;
+    border: 1px dashed #b7791f;
+    background: #fff8e6;
+    color: #4a3500;
+}
+
+/* Partner cards (26/11/2026): white cards with readable text. A linked card shows
+   "Open →" and changes on hover; a card without a link (ECHO until its website is
+   confirmed) never changes, so it does not look clickable. */
+.media-page .partner-card.partner-card--plain,
+.media-page .partner-card.partner-card--plain:hover,
+.media-page .partner-card.partner-card--plain:active {
+    border-color: var(--card-border);
+    background: #fff;
+    color: #10244d;
+    box-shadow: var(--card-shadow);
+    cursor: default;
+}
+
+.media-page .partner-card.partner-card--plain h3,
+.media-page .partner-card.partner-card--plain:hover h3,
+.media-page .partner-card.partner-card--plain:active h3 {
+    color: #10244d;
+}
+
+.media-page .partner-card.partner-card--plain p,
+.media-page .partner-card.partner-card--plain:hover p,
+.media-page .partner-card.partner-card--plain:active p {
+    color: #526078;
+}
+
+/* Linked cards: the description stays readable on the navy hover colour too. */
+.media-page a.partner-card:hover p,
+.media-page a.partner-card:focus-visible p,
+.media-page a.partner-card:active p {
+    color: #edf2ff;
+}
+
+/* "Open →" on a linked partner card: the same blue as on Home. */
+.media-page a.partner-card .card-arrow {
+    margin-top: 12px;
+    color: #285bb5;
+    font-weight: 700;
+}
+
+.media-page a.partner-card:hover .card-arrow,
+.media-page a.partner-card:focus-visible .card-arrow {
+    color: #fff;
 }

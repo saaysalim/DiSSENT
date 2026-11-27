@@ -59,6 +59,7 @@
 }
 
 .reports-page .report-field input,
+.reports-page .report-field select,
 .reports-page .report-field textarea {
     width: 100%;
     min-width: 0;
@@ -78,6 +79,8 @@
     resize: vertical;
 }
 
+/* Help text under the category list (from category_select_html()). */
+.reports-page .report-field .auth-help,
 .reports-page .report-help {
     display: block;
     margin-top: 8px;
@@ -270,4 +273,10 @@
     .reports-page .report-submit {
         transition: none;
     }
+}
+/* Plain-words meaning of the status tag, under each report's title. */
+.reports-page .report-status-help {
+    margin: -4px 0 10px;
+    color: #526078;
+    font-size: 0.9rem;
 }

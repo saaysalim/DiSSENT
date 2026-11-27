@@ -2,11 +2,19 @@
 
 require_once __DIR__ . '/blockchain_client.php';
 require_once __DIR__ . '/messaging_client.php';
+require_once __DIR__ . '/image_clean.php';
 
-// Local development only: APP_DEBUG=1 (set in docker-compose.yml) shows
-// password-reset links on screen. Production never sets it, so it stays off.
+// Local development only: APP_DEBUG=1 (from .env, default 0) shows password-reset
+// links on screen, and only to a browser on this computer (request_is_local() in
+// bootstrap.php). start-demo.ps1 -Share always sets APP_DEBUG=0.
 if (!defined('DEBUG_MODE')) {
     define('DEBUG_MODE', getenv('APP_DEBUG') === '1');
+}
+
+
+function show_debug_links()
+{
+    return DEBUG_MODE && function_exists('request_is_local') && request_is_local();
 }
 
 
@@ -36,19 +44,33 @@ function db_ready()
 }
 
 
-// Use only developer-controlled table names and conditions.
-// Never pass raw form or URL input into $where.
+// Only the tables and conditions listed here can be counted, so no form or
+// URL input can ever reach this SQL. Add a new line here to count something new.
+function db_count_allowed()
+{
+    return array(
+        'reports' => array("1=1", "status = 'Approved'", "status = 'Pending'", "status = 'Rejected'"),
+        'users' => array("1=1", "role <> 'deleted'", "role <> 'deleted' AND organisation = 'Media Organisation'"),
+        'messages' => array("1=1", "status = 'pending_review'"),
+        'contact_messages' => array("1=1"),
+    );
+}
+
+
 function db_count($table, $where = "1=1")
 {
     if (!db_ready()) {
         throw new RuntimeException('Database connection unavailable.');
     }
 
+    $allowed = db_count_allowed();
+
     if (
-        !is_string($table) ||
-        !preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $table)
+        !is_string($table) || !is_string($where) ||
+        !isset($allowed[$table]) ||
+        !in_array($where, $allowed[$table], true)
     ) {
-        throw new InvalidArgumentException('Invalid table name.');
+        throw new InvalidArgumentException('This count is not allowed.');
     }
 
     global $conn;
@@ -156,7 +178,8 @@ function platform_content()
             array(
                 'name' => 'ECHO',
                 'text' => 'Ireland media partner',
-                'url' => 'https://www.echo.ie/'
+                // No link until the right website is confirmed.
+                'url' => ''
             )
         ),
 
@@ -198,8 +221,532 @@ function require_login()
             array('options' => array('min_range' => 1))
         ) === false
     ) {
-        header('Location: login.php');
+        // Remember the page (in the session, never in the address) so Login can
+        // bring the visitor back. Only pages from login_return_pattern() are kept.
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && session_status() === PHP_SESSION_ACTIVE) {
+            $target = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+            $user = filter_var($_GET['user'] ?? null, FILTER_VALIDATE_INT, array('options' => array('min_range' => 1)));
+
+            if ($target === 'messaging.php' && $user !== false && $user !== null) {
+                $target .= '?user=' . $user;
+            }
+
+            if (preg_match(login_return_pattern(), $target) === 1) {
+                $_SESSION['after_login'] = $target;
+            }
+        }
+
+        header('Location: login.php?need_login=1');
         exit();
+    }
+}
+
+
+// Pages Login may send someone back to. Anything else goes to the Dashboard.
+function login_return_pattern()
+{
+    return '/\A(dashboard|messaging|reports|profile|settings|admin)\.php(\?user=[1-9][0-9]{0,9})?\z/';
+}
+
+
+// Where to go after logging in (used once, then forgotten).
+function login_return_target()
+{
+    $target = $_SESSION['after_login'] ?? '';
+    unset($_SESSION['after_login']);
+
+    return is_string($target) && preg_match(login_return_pattern(), $target) === 1 ? $target : 'dashboard.php';
+}
+
+
+/* -------------------------------------------------
+   Professional categories (Register and Profile)
+   Stored in users.organisation. "Other" lets people type their own.
+------------------------------------------------- */
+
+function professional_categories()
+{
+    return array(
+        'Journalist',
+        'Freelance Journalist',
+        'Media Organisation',
+        'Fact Checker',
+        'Researcher / Investigator',
+        'NGO / Human Rights Organisation',
+        'Other',
+    );
+}
+
+
+// Reads the select ($field) and the "Other" text box ($field . '_other').
+// Returns array(value, error). The value is what is stored.
+function category_from_post($field, $options, $max_length = 100)
+{
+    $choice = is_string($_POST[$field] ?? null) ? trim($_POST[$field]) : '';
+    $other = is_string($_POST[$field . '_other'] ?? null) ? trim(preg_replace('/\s+/u', ' ', $_POST[$field . '_other'])) : '';
+
+    if ($choice === '' || !in_array($choice, $options, true)) {
+        return array('', 'Please choose a category from the list.');
+    }
+
+    if ($choice !== 'Other') {
+        return array($choice, '');
+    }
+
+    if ($other === '') {
+        return array('Other', '');
+    }
+
+    if (preg_match('//u', $other) !== 1 || preg_match('/[\x00-\x1F\x7F]/u', $other) === 1) {
+        return array('', 'Please use letters, numbers and normal punctuation for the category.');
+    }
+
+    if (mb_strlen($other, 'UTF-8') > $max_length) {
+        return array('', 'Please keep the category within ' . $max_length . ' characters.');
+    }
+
+    // Typing a listed name in the box counts as that option.
+    foreach ($options as $option) {
+        if (strcasecmp($option, $other) === 0) {
+            return array($option, '');
+        }
+    }
+
+    return array($other, '');
+}
+
+
+// A select with the options, plus a text box shown when "Other" is chosen
+// (assets/JavaScript/app.js). A stored value that is not in the list shows as
+// "Other" with the text filled in. Without JavaScript the text box is always shown.
+function category_select_html($field, $id, $label, $options, $current, $help = '', $max_length = 100)
+{
+    $current = (string) $current;
+    $listed = $current !== '' && in_array($current, $options, true);
+    $selected = $listed ? $current : ($current !== '' ? 'Other' : '');
+    $other_value = $listed ? '' : $current;
+    $help_id = $id . '-help';
+
+    $html = '<label for="' . e($id) . '">' . e($label) . '</label>'
+        . '<select class="auth-select" id="' . e($id) . '" name="' . e($field) . '" required data-other-select="' . e($id) . '-other-field"'
+        . ($help !== '' ? ' aria-describedby="' . e($help_id) . '"' : '') . '>'
+        . '<option value=""' . ($selected === '' ? ' selected' : '') . ' disabled>Choose a category</option>';
+
+    // Shorter text for long options, so the chosen one fits on a 320px phone.
+    // The stored value stays the same.
+    $short = array('NGO / Human Rights Organisation' => 'NGO / Human Rights Org.');
+
+    foreach ($options as $option) {
+        $html .= '<option value="' . e($option) . '"' . ($selected === $option ? ' selected' : '') . '>' . e($short[$option] ?? $option) . '</option>';
+    }
+
+    $html .= '</select>';
+
+    if ($help !== '') {
+        $html .= '<small class="auth-help" id="' . e($help_id) . '">' . e($help) . '</small>';
+    }
+
+    $html .= '<div class="category-other' . ($selected === 'Other' ? '' : ' is-hidden') . '" id="' . e($id) . '-other-field">'
+        . '<label for="' . e($id) . '-other">If you chose Other, type your category (optional)</label>'
+        . '<input class="auth-input" type="text" id="' . e($id) . '-other" name="' . e($field) . '_other" maxlength="' . (int) $max_length . '"'
+        . ' value="' . e($other_value) . '" autocomplete="off" placeholder="For example: Photographer">'
+        . '</div>';
+
+    return $html;
+}
+
+
+// Report categories (Reports page). "Other" lets people type their own.
+function report_categories()
+{
+    return array(
+        'Human rights',
+        'Politics and government',
+        'Conflict and security',
+        'Migration and refugees',
+        'Press freedom',
+        'Corruption',
+        'Environment',
+        'Health',
+        'Economy and labour',
+        'Other',
+    );
+}
+
+
+// Short explanation for each report status tag (Reports, Media Centre, Admin).
+function report_status_explanation($status)
+{
+    $explanations = array(
+        'Pending' => 'Waiting for an administrator to review it.',
+        'Approved' => 'Published in the Media Centre and sent to the verification service.',
+        'Rejected' => 'Not published. The reason is shown with the report.',
+    );
+
+    return $explanations[$status] ?? 'Status from an older version of DiSSENT.';
+}
+
+
+/* -------------------------------------------------
+   GitHub Pages preview only
+   The workflow (.github/workflows/deploy-dissent.yml) builds the pages with
+   DISSENT_PREVIEW=1 and no database. Only then are sample items shown, each
+   marked "Sample data – preview only". The real site never sets it, and it
+   also has a database, so the samples can never appear there.
+------------------------------------------------- */
+
+function preview_mode()
+{
+    return getenv('DISSENT_PREVIEW') === '1' && !db_ready();
+}
+
+
+function preview_sample_publications()
+{
+    return array(
+        array(
+            'id' => 0,
+            'title' => 'Sample: Local radio reporters share safety tips',
+            'description' => 'This is sample text for the online preview. In the full version, reports approved by an administrator appear here with the author, category and date.',
+            'fullname' => 'Sample Journalist',
+            'organisation' => 'Freelance Journalist',
+            'category' => 'Press freedom',
+            'location' => '',
+            'block_hash' => '',
+            'created_at' => '2026-11-20 10:00:00',
+        ),
+        array(
+            'id' => 0,
+            'title' => 'Sample: How a community newsroom checks photos',
+            'description' => 'This is sample text for the online preview. Each published report can also be checked on the Verification page.',
+            'fullname' => 'Sample Fact Checker',
+            'organisation' => 'Fact Checker',
+            'category' => 'Human rights',
+            'location' => '',
+            'block_hash' => '',
+            'created_at' => '2026-11-18 09:30:00',
+        ),
+    );
+}
+
+
+// Unread messages for the menu badge and the contact list. 0 if the
+// read_at column is missing (run database/migrations/2026-11-26_message_read.sql).
+function unread_message_counts($user_id)
+{
+    global $conn;
+
+    if (!db_ready()) {
+        return array();
+    }
+
+    try {
+        $user_id = (int) $user_id;
+        // Only from accepted contacts: the first message of a request is counted by
+        // message_request_count() until the request is accepted.
+        $stmt = mysqli_prepare($conn, "SELECT m.sender_id, COUNT(*) AS n FROM messages m JOIN users u ON u.id = m.sender_id
+            JOIN contacts c ON c.user_low = LEAST(m.sender_id, m.receiver_id) AND c.user_high = GREATEST(m.sender_id, m.receiver_id)
+                AND c.status = 'accepted'
+            WHERE m.receiver_id = ? AND m.status = 'delivered' AND m.read_at IS NULL GROUP BY m.sender_id");
+
+        if (!$stmt) {
+            return array();
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $user_id);
+        mysqli_stmt_execute($stmt);
+        $result = mysqli_stmt_get_result($stmt);
+        $counts = array();
+
+        while ($row = mysqli_fetch_assoc($result)) {
+            $counts[(int) $row['sender_id']] = (int) $row['n'];
+        }
+
+        mysqli_stmt_close($stmt);
+
+        return $counts;
+    } catch (Throwable $error) {
+        return array();
+    }
+}
+
+
+
+// Message requests waiting for this person (shown with the unread numbers).
+function message_request_count($user_id)
+{
+    global $conn;
+
+    if (!db_ready()) {
+        return 0;
+    }
+
+    try {
+        $user_id = (int) $user_id;
+        $stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM contacts c JOIN users u ON u.id = c.requester_id AND u.role <> 'deleted'
+            WHERE c.addressee_id = ? AND c.status = 'pending'");
+
+        if (!$stmt) {
+            return 0;
+        }
+
+        mysqli_stmt_bind_param($stmt, 'i', $user_id);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_bind_result($stmt, $count);
+        mysqli_stmt_fetch($stmt);
+        mysqli_stmt_close($stmt);
+
+        return (int) $count;
+    } catch (Throwable $error) {
+        return 0;
+    }
+}
+
+// Ends a session that should no longer work: the account was deleted, or the
+// password was changed (or reset) somewhere else after this session started.
+// Runs automatically on every page that includes this file (see the end of it).
+function enforce_session_still_valid()
+{
+    if (session_status() !== PHP_SESSION_ACTIVE || !isset($_SESSION['user_id']) || !db_ready()) {
+        return;
+    }
+
+    global $conn;
+
+    $user_id = (int) $_SESSION['user_id'];
+    $stmt = mysqli_prepare($conn, 'SELECT role, session_version FROM users WHERE id = ? LIMIT 1');
+
+    if (!$stmt) {
+        // Older database without session_version: do not lock everyone out.
+        error_log('DiSSENT: session check unavailable (run database/migrations/2026-11-25_security.sql).');
+        return;
+    }
+
+    mysqli_stmt_bind_param($stmt, 'i', $user_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $row = $result ? mysqli_fetch_assoc($result) : null;
+    mysqli_stmt_close($stmt);
+
+    if (
+        $row &&
+        $row['role'] !== 'deleted' &&
+        (int) ($_SESSION['session_version'] ?? 0) === (int) $row['session_version']
+    ) {
+        return;
+    }
+
+    $_SESSION = array();
+
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+    }
+
+    session_destroy();
+
+    header('Location: login.php?session_ended=1', true, 303);
+    exit();
+}
+
+
+// Called after a password change: every other session of this account ends on its
+// next page load; the current session (if it is this account) keeps working.
+function bump_session_version($user_id)
+{
+    global $conn;
+
+    $user_id = (int) $user_id;
+    $stmt = mysqli_prepare($conn, 'UPDATE users SET session_version = session_version + 1 WHERE id = ?');
+
+    if (!$stmt) {
+        throw new RuntimeException('Could not end other sessions.');
+    }
+
+    mysqli_stmt_bind_param($stmt, 'i', $user_id);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+
+    if (session_status() === PHP_SESSION_ACTIVE && (int) ($_SESSION['user_id'] ?? 0) === $user_id) {
+        $_SESSION['session_version'] = current_session_version($user_id);
+    }
+}
+
+
+function current_session_version($user_id)
+{
+    global $conn;
+
+    $user_id = (int) $user_id;
+    $stmt = mysqli_prepare($conn, 'SELECT session_version FROM users WHERE id = ? LIMIT 1');
+
+    if (!$stmt) {
+        return 0;
+    }
+
+    mysqli_stmt_bind_param($stmt, 'i', $user_id);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $row = $result ? mysqli_fetch_assoc($result) : null;
+    mysqli_stmt_close($stmt);
+
+    return $row ? (int) $row['session_version'] : 0;
+}
+
+
+/* -------------------------------------------------
+   Login and password-reset limits
+   5 tries per email + visitor IP in 15 minutes (100 per IP for any email, so a
+   class sharing one Wi-Fi is not blocked),
+   then that email + IP is blocked for 15 minutes.
+------------------------------------------------- */
+
+define('AUTH_LIMIT_PER_EMAIL', 5);
+define('AUTH_LIMIT_PER_IP', 100);
+define('AUTH_WINDOW_SECONDS', 15 * 60);
+
+
+// The visitor's IP. Through the Cloudflare tunnel every request reaches Docker from
+// the laptop, so CF-Connecting-IP is used, but only when the request itself comes
+// from the laptop/Docker network (the website port only listens on 127.0.0.1).
+function auth_client_ip()
+{
+    $remote = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+    $cf = trim((string) ($_SERVER['HTTP_CF_CONNECTING_IP'] ?? ''));
+
+    if ($cf !== '' && filter_var($cf, FILTER_VALIDATE_IP) !== false
+        && function_exists('request_from_private_network') && request_from_private_network()) {
+        return $cf;
+    }
+
+    return filter_var($remote, FILTER_VALIDATE_IP) !== false ? $remote : '0.0.0.0';
+}
+
+
+function auth_email_hash($email)
+{
+    return hash('sha256', strtolower(trim((string) $email)));
+}
+
+
+// Unix times of recent tries (newest last). $by_email false = any email from this IP.
+function auth_attempt_times($kind, $email, $by_email = true)
+{
+    global $conn;
+
+    $ip = auth_client_ip();
+    $since = 2 * AUTH_WINDOW_SECONDS;
+
+    if ($by_email) {
+        $hash = auth_email_hash($email);
+        $stmt = mysqli_prepare($conn, 'SELECT UNIX_TIMESTAMP(created_at) AS t FROM auth_attempts
+            WHERE kind = ? AND email_hash = ? AND ip = ? AND created_at >= NOW() - INTERVAL ? SECOND ORDER BY id');
+        mysqli_stmt_bind_param($stmt, 'sssi', $kind, $hash, $ip, $since);
+    } else {
+        $stmt = mysqli_prepare($conn, 'SELECT UNIX_TIMESTAMP(created_at) AS t FROM auth_attempts
+            WHERE kind = ? AND ip = ? AND created_at >= NOW() - INTERVAL ? SECOND ORDER BY id');
+        mysqli_stmt_bind_param($stmt, 'ssi', $kind, $ip, $since);
+    }
+
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $times = array();
+
+    while ($row = mysqli_fetch_assoc($result)) {
+        $times[] = (int) $row['t'];
+    }
+
+    mysqli_stmt_close($stmt);
+
+    return $times;
+}
+
+
+// Blocked when, within the last 15 minutes, the limit was reached inside one
+// 15-minute window. Tries made while blocked are not counted, so the block ends
+// 15 minutes after the try that reached the limit.
+function auth_times_blocked($times, $limit)
+{
+    $now = time();
+    $count = count($times);
+
+    for ($i = $limit - 1; $i < $count; $i++) {
+        if ($times[$i] >= $now - AUTH_WINDOW_SECONDS && $times[$i] - $times[$i - $limit + 1] <= AUTH_WINDOW_SECONDS) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+function auth_is_blocked($kind, $email)
+{
+    try {
+        return auth_times_blocked(auth_attempt_times($kind, $email, true), AUTH_LIMIT_PER_EMAIL)
+            || auth_times_blocked(auth_attempt_times($kind, $email, false), AUTH_LIMIT_PER_IP);
+    } catch (Throwable $error) {
+        error_log('DiSSENT: auth limit check failed: ' . get_class($error));
+        return false;
+    }
+}
+
+
+function auth_record_attempt($kind, $email)
+{
+    global $conn;
+
+    try {
+        $hash = auth_email_hash($email);
+        $ip = auth_client_ip();
+        $stmt = mysqli_prepare($conn, 'INSERT INTO auth_attempts (kind, email_hash, ip) VALUES (?, ?, ?)');
+        mysqli_stmt_bind_param($stmt, 'sss', $kind, $hash, $ip);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+
+        // Old rows are not needed after a day.
+        mysqli_query($conn, 'DELETE FROM auth_attempts WHERE created_at < NOW() - INTERVAL 1 DAY');
+    } catch (Throwable $error) {
+        error_log('DiSSENT: auth attempt not saved: ' . get_class($error));
+    }
+}
+
+
+// After a successful login, earlier failed tries for this email + IP no longer count.
+function auth_clear_attempts($kind, $email)
+{
+    global $conn;
+
+    try {
+        $hash = auth_email_hash($email);
+        $ip = auth_client_ip();
+        $stmt = mysqli_prepare($conn, 'DELETE FROM auth_attempts WHERE kind = ? AND email_hash = ? AND ip = ?');
+        mysqli_stmt_bind_param($stmt, 'sss', $kind, $hash, $ip);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+    } catch (Throwable $error) {
+        error_log('DiSSENT: auth attempts not cleared: ' . get_class($error));
+    }
+}
+
+
+// True if this email was sent a "someone tried to register" notice in the last hour.
+function register_notice_recent($email)
+{
+    global $conn;
+
+    try {
+        $hash = auth_email_hash($email);
+        $kind = 'register_notice';
+        $stmt = mysqli_prepare($conn, 'SELECT 1 FROM auth_attempts WHERE kind = ? AND email_hash = ? AND created_at >= NOW() - INTERVAL 1 HOUR LIMIT 1');
+        mysqli_stmt_bind_param($stmt, 'ss', $kind, $hash);
+        mysqli_stmt_execute($stmt);
+        $found = (bool) mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+        mysqli_stmt_close($stmt);
+
+        return $found;
+    } catch (Throwable $error) {
+        return true;
     }
 }
 
@@ -611,6 +1158,28 @@ function get_verification_history($limit = 10)
 }
 
 
+// Published reports that have no blockchain record yet (for example because the
+// verification service was offline when they were approved). Newest first.
+function get_unrecorded_publications($limit = 20)
+{
+    $limit = max(1, min(100, (int) $limit));
+
+    return db_rows("
+        SELECT r.id, r.title, r.created_at
+        FROM reports r
+        WHERE r.status = 'Approved'
+          AND NOT EXISTS (
+              SELECT 1 FROM verification_chain vc
+              WHERE vc.report_id = r.id
+                AND vc.block_hash IS NOT NULL
+                AND vc.block_hash <> ''
+          )
+        ORDER BY r.created_at DESC, r.id DESC
+        LIMIT $limit
+    ");
+}
+
+
 // Retains the existing function name for compatibility.
 // Returns an approved report and its cached recording information.
 function find_verified_report($query)
@@ -668,7 +1237,7 @@ function find_verified_report($query)
         mysqli_stmt_bind_param($stmt, 'i', $id);
     } else {
         $sql .= "
-            AND (r.title LIKE ? OR u.fullname LIKE ?)
+            AND r.title LIKE ?
             ORDER BY r.created_at DESC, vc.created_at DESC
             LIMIT 1
         ";
@@ -680,9 +1249,10 @@ function find_verified_report($query)
         }
 
         // Prepared parameters do not need mysqli_real_escape_string().
-        $pattern = '%' . $query . '%';
+        // Report ID or title only (not the journalist's name, workshop feedback 25/11/2026).
+        $pattern = '%' . addcslashes($query, '%_\\') . '%';
 
-        mysqli_stmt_bind_param($stmt, 'ss', $pattern, $pattern);
+        mysqli_stmt_bind_param($stmt, 's', $pattern);
     }
 
     if (!mysqli_stmt_execute($stmt)) {
@@ -731,6 +1301,15 @@ function faq_items()
                     'q' => 'How do I find my way around on a phone or tablet?',
                     'a' => 'Press the menu button (three lines) at the top left. A side menu opens with all the pages, the search box, the language list and your account links. Close it with the X button, the Esc key, or by tapping outside it.',
                 ),
+                array(
+                    'q' => 'Is there a step-by-step guide?',
+                    'a' => 'Yes. The User guide explains each task in numbered steps: creating an account, logging in, your profile, reports, messages, verification, settings and getting help. It is linked at the bottom of every page.',
+                    'links' => array('user_guide.php' => 'Open the User guide'),
+                ),
+                array(
+                    'q' => 'Can I use DiSSENT in another language?',
+                    'a' => 'Not yet. The language list at the top shows the languages we plan to add, marked "coming soon". For now the whole site is in English.',
+                ),
             ),
         ),
         array(
@@ -741,17 +1320,22 @@ function faq_items()
                     'q' => 'How do I create an account?',
                     'a' => 'Registration takes about a minute.',
                     'steps' => array(
-                        'Press "Get Started" at the top of the page, or open the Register page.',
-                        'Fill in Full name, Email address and Professional category.',
+                        'Press "Create account" at the top of the page.',
+                        'Fill in Full name, Email address and Professional category (choose "Other" to type your own).',
                         'Create a password that meets every rule in the checklist, then type it again in Confirm password.',
-                        'Press "Register". A green message says "Registration successful! You can now log in."',
-                        'Open the Login page and log in with your email and password.',
+                        'Press "Register". You go to the Login page, which says "Thank you. If this email address can be used, your account is ready. You can log in now."',
+                        'Log in with your email and password.',
                     ),
-                    'links' => array('register.php' => 'Open Register'),
+                    'links' => array('register.php' => 'Create an account'),
                 ),
                 array(
                     'q' => 'What is a professional category?',
-                    'a' => 'It describes your work: Journalist, Freelance Journalist, Media Organisation, Fact Checker, Researcher / Investigator, NGO / Human Rights Organisation, or Other. It is shown next to your name on published reports. It does not change what you can do on the site: every new account is a normal member. You can change it later on your Profile page.',
+                    'a' => 'It describes your work: Journalist, Freelance Journalist, Media Organisation, Fact Checker, Researcher / Investigator, NGO / Human Rights Organisation, or Other (then you can type your own, up to 100 characters). It is shown next to your name on published reports and in Messaging. It does not change what you can do on the site: every new account is a normal member. You can change it later on your Profile page.',
+                ),
+                array(
+                    'q' => 'Why does Register not tell me if my email is already used?',
+                    'a' => 'So that nobody can use the Register page to find out who has a DiSSENT account. If the email already has an account, nothing changes and the owner gets an email saying someone tried to register. If that is you, log in or reset your password.',
+                    'links' => array('login.php' => 'Open Login', 'forgot_password.php' => 'Reset my password'),
                 ),
                 array(
                     'q' => 'What are the password rules?',
@@ -759,7 +1343,7 @@ function faq_items()
                 ),
                 array(
                     'q' => 'How do I log in and log out?',
-                    'a' => 'Open the Login page, enter your email address and password, and press "Log in". You go to your Dashboard. To log out, press "Logout" in the menu. You return to the Login page with the message "You have been logged out". Always log out on shared computers.',
+                    'a' => 'Open the Login page, enter your email address and password, and press "Log in". You go to your Dashboard, or back to the page you were trying to open. After 5 wrong passwords in 15 minutes, logging in is paused for 15 minutes. To log out, press "Logout" in the menu. You return to the Login page with the message "You have been logged out". Always log out on shared computers.',
                     'links' => array('login.php' => 'Open Login'),
                 ),
                 array(
@@ -768,16 +1352,16 @@ function faq_items()
                     'steps' => array(
                         'On the Login page, press "Forgot password?".',
                         'Enter the email address you registered with and press "Send Reset Link".',
-                        'If an account exists for that email, we send a link. For your privacy, the page shows the same message either way.',
-                        'Open the link within 60 minutes. Choose a new password that meets the rules and press "Update Password".',
+                        'If an account exists for that email, we send a link straight away. Check your inbox (and spam folder). For your privacy, the page shows the same message either way.',
+                        'Open the link: it works for 60 minutes, so there is nothing to wait for. Choose a new password that meets the rules and press "Update Password". After 60 minutes, ask for a new link.',
                         'Log in with your new password.',
                     ),
                     'links' => array('forgot_password.php' => 'Reset my password'),
                 ),
                 array(
                     'q' => 'How do I change my name, picture or password?',
-                    'a' => 'Press your name in the menu to open your Profile. In "Profile details" you can change your full name, professional category and picture (JPG, PNG or GIF), then press "Save Changes". In "Change password", enter your current password and the new one twice, then press "Update Password". You can also change your password on the Settings page.',
-                    'links' => array('profile.php' => 'Open Profile', 'settings.php' => 'Open Settings'),
+                    'a' => 'Press your name in the menu to open your Profile. There you can change your full name, professional category and picture (JPG, PNG or GIF), then press "Save Changes". To change your password, open Settings and use "Change password": enter your current password and the new one twice. Your other devices are then logged out; the one you are using stays logged in.',
+                    'links' => array('profile.php' => 'Open Profile', 'settings.php#password' => 'Change password in Settings'),
                 ),
                 array(
                     'q' => 'How do I delete my account?',
@@ -795,7 +1379,7 @@ function faq_items()
                     'a' => 'You need to be logged in.',
                     'steps' => array(
                         'Open Reports from the menu.',
-                        'In "Submit a report", fill in Report title, Category (for example "human rights") and Report description. These are required.',
+                        'In "Submit a report", fill in Report title, Category (choose from the list, or "Other" and type your own) and Report description. These are required.',
                         'Optionally add a Location (use a general area if an exact place could identify a source), an Evidence link and one supporting PDF.',
                         'Press "Submit for review".',
                         'Your report appears under "My reports" with the status "Pending review".',
@@ -804,7 +1388,7 @@ function faq_items()
                 ),
                 array(
                     'q' => 'What can I upload?',
-                    'a' => 'You can attach one PDF file per report, up to 5 MB. The site checks that the file really is a PDF. The document is stored outside the public website: only you and administrators can download it, and approving the report does not make the document public. For the Evidence link, use a normal web address without passwords or private access tokens.',
+                    'a' => 'You can attach one PDF file per report, up to 5 MB. The site checks that the file really is a PDF and tells you exactly what is wrong if it is not accepted (for example "not a PDF" or "larger than 5 MB"). The document is stored outside the public website: only you and administrators can download it, and approving the report does not make the document public. For the Evidence link, use a normal web address without passwords or private access tokens.',
                 ),
                 array(
                     'q' => 'What happens after I submit?',
@@ -853,7 +1437,8 @@ function faq_items()
                     'a' => 'You need to be logged in.',
                     'steps' => array(
                         'Open Messaging from the menu.',
-                        'Choose a person from the Contacts list. You can search by name or role.',
+                        'To talk to someone new, press "New message", type their full email address (for example name@example.com; a name is not enough) and, if you like, a short first message, and press "Send request". When they accept, they appear in your Contacts.',
+                        'Choose a person from your Contacts list, or type part of their name in "Search your contacts". The people you talked to most recently are at the top, and a number shows how many new messages they sent you. On a phone the chat opens on its own screen; press "All contacts" to go back.',
                         'Type your message in the box at the bottom. You can also attach one file.',
                         'Press the send button (paper plane). Your message appears in the conversation. Some messages are reviewed before the other person sees them.',
                     ),
@@ -861,7 +1446,7 @@ function faq_items()
                 ),
                 array(
                     'q' => 'What do the message statuses mean?',
-                    'a' => 'Each message shows a "Secure Transfer" badge. "Pending" means DiSSENT is waiting for confirmation. "Verified ✓" means an encrypted and signed copy travelled between the two DiSSENT systems and the second system checked the signature and decrypted it. "Failed" means that check did not succeed. In all three cases the message was delivered on the site. Messages that are reviewed first also show "Waiting for review", "Approved" or "Rejected" to the sender.',
+                    'a' => 'Delivered messages show a badge. "Secure transfer: pending" means DiSSENT is waiting for the second system to confirm. "Secure transfer: verified ✓" means an encrypted and signed copy travelled between the two DiSSENT systems and the second system checked the signature and decrypted it. "Secure transfer: failed" means that check did not succeed. "Secure transfer: not used (service offline)" means the secure service was offline when the message was sent. In every case the message was delivered on the site. Messages that are reviewed first also show "Waiting for review", "Approved" or "Rejected" to the sender.',
                 ),
                 array(
                     'q' => 'What can I attach to a message?',
@@ -873,11 +1458,15 @@ function faq_items()
                 ),
                 array(
                     'q' => 'Is hidden information removed from my files?',
-                    'a' => 'For images, yes: they are saved again without EXIF data such as the GPS position. What you can see in the picture, and the file name, stay. For PDFs, no: hidden details such as the author name can remain, so remove them before sending.',
+                    'a' => 'For images, yes: message images and profile pictures are saved again without EXIF data such as the GPS position, camera and date. What you can see in the picture, and the name of a message file, stay. For PDFs, no: hidden details such as the author name can remain, so remove them before sending.',
                 ),
                 array(
                     'q' => 'Who can I message?',
-                    'a' => 'Any registered member shown in your Contacts list.',
+                    'a' => 'Only your contacts: people who accepted your message request, or whose request you accepted. Conversations you already had stay in your contacts. To add someone, press "New message" in Messaging and type their exact email address. DiSSENT never shows a list of members and never suggests people, so nobody can use it to find out who uses DiSSENT: you always see the same answer, "Request sent. If this person has a DiSSENT account, they will see your request.", whether or not the address has an account. You can send up to 20 requests a day, and up to 5 a week to the same address.',
+                ),
+                array(
+                    'q' => 'What happens when someone sends me a message request?',
+                    'a' => 'It appears under "Message requests" in Messaging, and the red number on Messaging includes it. You see the person\'s name, professional category and first message, never their email address. Choose Accept to add them to your contacts, Decline to say no, or Block so they cannot send you new requests. The sender is never told that you declined or blocked them: for them the request simply stays unanswered.',
                 ),
             ),
         ),
@@ -890,16 +1479,25 @@ function faq_items()
                     'a' => 'Before a decision, only you and administrators can see your report. When it is approved, it is published in the Media Centre: anyone can see its title, category, description, location (if you gave one), evidence link, and your name and professional category. Your uploaded PDF is never public: only you and administrators can download it.',
                 ),
                 array(
+                    'q' => 'Who can see my name?',
+                    'a' => 'Other members see your name and professional category only if they are your contact, or if you send them a message request. Your email address is never shown to other members, and there is no list of members to browse. Administrators can see your name when they review your reports or held messages. If one of your reports is approved, it is published in the Media Centre with your name and professional category, so anyone can see those.',
+                ),
+                array(
                     'q' => 'Who can see my messages?',
                     'a' => 'You and the person you are talking to. If a message is held for review, an administrator can read it and open its file to decide, and the decision is logged. Administrators cannot open the file after deciding. Messages are stored in the DiSSENT database, so people who manage the server could technically access them. Never send passwords in a message.',
                 ),
                 array(
                     'q' => 'How is my data protected?',
-                    'a' => 'Passwords are stored only as secure hashes, never as plain text. Forms are protected against requests from other websites, and your login cookie cannot be read by scripts. Uploaded documents are kept outside the public website. Messages sent between the two DiSSENT systems are encrypted (AES) and signed (ECDSA).',
+                    'a' => 'Passwords are stored only as secure hashes, never as plain text. After 5 wrong passwords in 15 minutes, logging in to that account from the same place is paused for 15 minutes. Changing your password logs out your other devices. Forms are protected against requests from other websites, and your login cookie cannot be read by scripts. Uploaded documents are kept outside the public website. Messages sent between the two DiSSENT systems are encrypted (AES) and signed (ECDSA).',
                 ),
                 array(
                     'q' => 'How can I stay safe when reporting?',
                     'a' => 'Give a general area instead of an exact location if a place could identify a source. Do not put names or private details of sources in evidence links. Use a strong password that you do not use anywhere else, and log out on shared devices.',
+                ),
+                array(
+                    'q' => 'Where are the terms and the privacy notice?',
+                    'a' => 'They are linked at the bottom of every page: "Terms of use" and "Privacy notice".',
+                    'links' => array('terms.php' => 'Terms of use', 'privacy.php' => 'Privacy notice'),
                 ),
             ),
         ),
@@ -1064,6 +1662,11 @@ function account_change_password($user_id, $current_password, $new_password, $co
     mysqli_stmt_execute($stmt);
     $changed = mysqli_stmt_affected_rows($stmt) === 1;
     mysqli_stmt_close($stmt);
+
+    if ($changed) {
+        // Other devices are logged out; this one stays logged in.
+        bump_session_version($user_id);
+    }
 
     return $changed
         ? ''
@@ -1398,9 +2001,14 @@ function app_page_url($page)
    Password-reset helpers
 ------------------------------------------------- */
 
-// Existing token format retained for compatibility with reset pages.
-// Token hashing and atomic one-use redemption need coordinated changes
-// to those pages and the password_resets table.
+// The link holds a random token; the database only keeps its SHA-256 hash
+// (token_hashed = 1), so a copy of the database cannot be used to reset passwords.
+function reset_token_hash($token)
+{
+    return hash('sha256', $token);
+}
+
+
 function create_password_reset($email)
 {
     if (!db_ready()) {
@@ -1417,17 +2025,27 @@ function create_password_reset($email)
     global $conn;
 
     $token = bin2hex(random_bytes(32));
+    $token_hash = reset_token_hash($token);
+
+    // Only the newest link for an email works.
+    $stmt = mysqli_prepare($conn, "DELETE FROM password_resets WHERE email = ?");
+
+    if ($stmt) {
+        mysqli_stmt_bind_param($stmt, 's', $email);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+    }
 
     $stmt = mysqli_prepare(
         $conn,
-        "INSERT INTO password_resets (email, token) VALUES (?, ?)"
+        "INSERT INTO password_resets (email, token, token_hashed) VALUES (?, ?, 1)"
     );
 
     if (!$stmt) {
         throw new RuntimeException('Could not prepare password reset.');
     }
 
-    mysqli_stmt_bind_param($stmt, 'ss', $email, $token);
+    mysqli_stmt_bind_param($stmt, 'ss', $email, $token_hash);
 
     if (!mysqli_stmt_execute($stmt)) {
         throw new RuntimeException('Could not save password reset.');
@@ -1459,6 +2077,7 @@ function get_valid_reset($token)
         "SELECT *
          FROM password_resets
          WHERE token = ?
+           AND token_hashed = 1
            AND created_at >= NOW() - INTERVAL 60 MINUTE
          ORDER BY id DESC
          LIMIT 1"
@@ -1468,7 +2087,8 @@ function get_valid_reset($token)
         throw new RuntimeException('Could not prepare reset lookup.');
     }
 
-    mysqli_stmt_bind_param($stmt, 's', $token);
+    $token_hash = reset_token_hash($token);
+    mysqli_stmt_bind_param($stmt, 's', $token_hash);
 
     if (!mysqli_stmt_execute($stmt)) {
         throw new RuntimeException('Could not check password reset.');
@@ -1483,7 +2103,11 @@ function get_valid_reset($token)
     $row = mysqli_fetch_assoc($result);
     mysqli_stmt_close($stmt);
 
-    return $row ?: null;
+    if (!$row || !hash_equals((string) $row['token'], $token_hash)) {
+        return null;
+    }
+
+    return $row;
 }
 
 
@@ -1511,7 +2135,8 @@ function consume_reset_token($token)
         throw new RuntimeException('Could not prepare reset removal.');
     }
 
-    mysqli_stmt_bind_param($stmt, 's', $token);
+    $token_hash = reset_token_hash($token);
+    mysqli_stmt_bind_param($stmt, 's', $token_hash);
 
     if (!mysqli_stmt_execute($stmt)) {
         throw new RuntimeException('Could not remove password reset.');
@@ -1560,6 +2185,29 @@ function get_avatar_html($user)
     }
 
     return '<div class="profile-avatar">' . e($initial) . '</div>';
+}
+
+
+// Small round profile picture, or the first letter of the name, for the header and
+// Messaging. alt="" because the name is always shown as text next to it. The same file
+// as the Profile page (uploaded from a file, or taken with the phone camera through the
+// same upload field).
+function avatar_small_html($fullname, $picture, $extra_class = '')
+{
+    $class = trim('avatar-sm ' . $extra_class);
+    $picture = (string) $picture;
+
+    if (
+        preg_match('/^[a-zA-Z0-9_-]+\.(jpg|jpeg|png|gif)$/i', $picture) === 1 &&
+        is_file(__DIR__ . '/../uploads/profile_pictures/' . $picture)
+    ) {
+        return '<img src="../uploads/profile_pictures/' . e(rawurlencode($picture)) . '" class="' . e($class) . '" alt="" width="36" height="36" decoding="async">';
+    }
+
+    $name = trim((string) $fullname);
+    $initial = $name === '' ? '?' : mb_strtoupper(mb_substr($name, 0, 1, 'UTF-8'), 'UTF-8');
+
+    return '<span class="' . e($class . ' avatar-sm--initial') . '" aria-hidden="true">' . e($initial) . '</span>';
 }
 
 
@@ -1664,14 +2312,25 @@ function handle_avatar_upload($file)
 
         $destination = $destination_dir . $filename;
 
-        if (!move_uploaded_file($temp_path, $destination)) {
-            return array('error' => 'The image could not be saved.');
+        // Save a clean copy, never the uploaded file itself: hidden data such as the
+        // GPS location of a phone photo is removed and the photo is turned upright
+        // (image_clean.php, the same as message images). The size stays as uploaded.
+        if (!image_clean_save($temp_path, $destination, $mime, 0)) {
+            return array('error' => 'Please upload a valid JPG, PNG or GIF image.');
         }
 
         return array('filename' => $filename);
     } catch (Throwable $exception) {
         error_log('DiSSENT: avatar upload failed.');
 
+        if (isset($destination) && is_file($destination)) {
+            @unlink($destination);
+        }
+
         return array('error' => 'The image could not be saved.');
     }
 }
+
+
+// Every page that includes this file checks that a logged-in session is still valid.
+enforce_session_still_valid();

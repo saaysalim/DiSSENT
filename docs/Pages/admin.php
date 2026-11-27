@@ -445,6 +445,23 @@ try {
     error_log('DiSSENT: held messages could not be loaded.');
 }
 
+// AI suggestions for the held messages, and how often admins agreed with the AI so far.
+$ai_checks = array();
+$ai_agreement = null;
+
+foreach ($held_messages as $held_row) {
+    $ai_row = messages_ai_check((int) $held_row['id']);
+    if ($ai_row !== null) {
+        $ai_checks[(int) $held_row['id']] = $ai_row;
+    }
+}
+
+try {
+    $ai_agreement = messages_rows('SELECT COUNT(*) AS decided, COALESCE(SUM(admin_agreed = 1), 0) AS agreed FROM message_ai_checks WHERE admin_agreed IS NOT NULL')[0];
+} catch (Throwable $exception) {
+    $ai_agreement = null;
+}
+
 $contact_messages = array();
 $contact_total = 0;
 $contact_failed = false;
@@ -477,14 +494,17 @@ $status_labels = array(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Report Review - DiSSENT</title>
+    <meta name="description" content="Administrators review reports and held messages on DiSSENT.">
 
-    <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/admin.css?v=2">
+    <link rel="stylesheet" href="../assets/css/base.css?v=5">
+    <link rel="stylesheet" href="../assets/css/admin.css?v=3">
 </head>
 
 <body>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
+
+<main id="main-content" tabindex="-1">
 
 <section class="page-hero" aria-labelledby="adminHeading">
     <h1 id="adminHeading">Report Review</h1>
@@ -495,7 +515,7 @@ $status_labels = array(
     </p>
 </section>
 
-<main class="review-page">
+<div class="review-page">
 
     <nav class="review-sections" aria-label="Admin sections">
         <ul>
@@ -618,7 +638,8 @@ $status_labels = array(
                     <?php echo $id; ?><br>
 
                     <strong>Review:</strong>
-                    <?php echo e($label); ?><br>
+                    <span title="<?php echo e(report_status_explanation($r['status'])); ?>"><?php echo e($label); ?></span>
+                    <span class="status-help">(<?php echo e(report_status_explanation($r['status'])); ?>)</span><br>
 
                     <strong>Blockchain recording status:</strong>
                     <?php echo e($r['blockchain_status'] ?: 'Unknown'); ?><br>
@@ -795,7 +816,16 @@ $status_labels = array(
             </div>
         <?php elseif (empty($held_messages)): ?>
             <p class="review-muted">No messages are waiting for review.</p>
-        <?php else: ?>
+        <?php endif; ?>
+
+        <?php if ($ai_agreement !== null && (int) $ai_agreement['decided'] > 0): ?>
+            <p class="review-muted ai-agreement">
+                AI suggestions so far: administrators agreed with <?php echo (int) $ai_agreement['agreed']; ?>
+                of <?php echo (int) $ai_agreement['decided']; ?> (recorded for the evaluation).
+            </p>
+        <?php endif; ?>
+
+        <?php if (!$held_failed && !empty($held_messages)): ?>
             <p class="review-muted">
                 <?php echo (int) $held_total; ?> waiting, oldest first. The receiver cannot see these messages.
                 <?php if ($held_total > count($held_messages)): ?>
@@ -820,6 +850,54 @@ $status_labels = array(
                             <li><?php echo e($reason); ?></li>
                         <?php endforeach; ?>
                     </ul>
+
+                    <?php $ai = $ai_checks[(int) $held['id']] ?? null; ?>
+                    <?php if ($ai !== null && !$own_conversation): ?>
+                        <!-- AI compliance check (ai/README.md): a suggestion only; the admin's decision is final. -->
+                        <section class="ai-suggestion<?php echo $ai['status'] === 'ok' ? '' : ' ai-suggestion--failed'; ?>" aria-labelledby="aiSuggestion<?php echo (int) $held['id']; ?>">
+                            <h4 id="aiSuggestion<?php echo (int) $held['id']; ?>">AI suggestion &ndash; the admin decides</h4>
+                            <?php if ($ai['status'] === 'ok'): ?>
+                                <p class="ai-suggestion__summary">
+                                    Suggestion: <strong><?php echo $ai['decision'] === 'REVIEW' ? 'Review' : 'Allow'; ?></strong>
+                                    &middot; risk: <?php echo e($ai['risk_level']); ?>
+                                    &middot; model: <?php echo e($ai['model_name']); ?>
+                                    &middot; <?php echo (int) $ai['latency_ms']; ?> ms
+                                </p>
+                            <?php endif; ?>
+                            <ul class="ai-suggestion__reasons">
+                                <?php foreach ($ai['reasons'] as $ai_reason): ?>
+                                    <li><?php echo e(is_string($ai_reason) ? $ai_reason : ''); ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                            <?php if (!empty($ai['citations'])): ?>
+                                <p class="ai-suggestion__label">Cited passages</p>
+                                <ul class="ai-citations">
+                                    <?php foreach ($ai['citations'] as $citation): ?>
+                                        <li>
+                                            <strong><?php echo e($citation['passage_id'] ?? ''); ?></strong>
+                                            (<?php echo e($citation['country'] ?? ''); ?>, <?php echo e($citation['source'] ?? ''); ?>)
+                                            <q><?php echo e($citation['quote'] ?? ''); ?></q>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                            <?php if (!empty($ai['steps'])): ?>
+                                <details class="ai-steps">
+                                    <summary>How the AI reached this (<?php echo count($ai['steps']); ?> steps)</summary>
+                                    <ol>
+                                        <?php foreach ($ai['steps'] as $step): ?>
+                                            <li>
+                                                <span><strong>Thought:</strong> <?php echo e($step['thought'] ?? ''); ?></span>
+                                                <span><strong>Action:</strong> <code><?php echo e($step['action'] ?? ''); ?></code></span>
+                                                <span><strong>Observation:</strong> <?php echo e($step['observation'] ?? ''); ?></span>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ol>
+                                </details>
+                            <?php endif; ?>
+                            <p class="ai-suggestion__note">Your Approve or Reject below is the final decision. Whether it matches the AI is recorded for the evaluation.</p>
+                        </section>
+                    <?php endif; ?>
 
                     <?php if ($own_conversation): ?>
                         <div class="notice">You are part of this conversation, so another administrator must decide.</div>
@@ -947,6 +1025,8 @@ $status_labels = array(
             </div>
         <?php endif; ?>
     </section>
+
+</div>
 
 </main>
 

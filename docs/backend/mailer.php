@@ -185,8 +185,8 @@ function send_password_reset_email($email, $reset_link)
     $content = email_layout(
         'Reset your DiSSENT password',
         array(
-            'We received a request to reset the password for your DiSSENT account.',
-            'Press the button below to choose a new password. The link is valid for 60 minutes and can be used once.',
+            'We received a request to reset the password for your DiSSENT account, and sent this email straight away.',
+            'Press the button below to choose a new password. You do not need to wait: the link works now and for the next 60 minutes, and can be used once.',
         ),
         'Choose a new password',
         $reset_link,
@@ -214,6 +214,25 @@ function send_password_changed_email($email)
     );
 
     return send_app_email($email, 'Your DiSSENT password was changed', $content['html'], $content['text'], 'password changed');
+}
+
+
+// Sent to the owner when someone uses their email on the Register page
+// (the page itself never says the email is taken). At most one per hour.
+function send_register_attempt_email($email)
+{
+    $content = email_layout(
+        'Someone tried to register with your email',
+        array(
+            'Someone tried to create a DiSSENT account with this email address. You already have an account, so no new account was made.',
+            "If this was you, you can log in as normal. If you forgot your password, you can reset it. If this wasn't you, you do not need to do anything.",
+        ),
+        'Reset my password',
+        app_page_url('forgot_password.php'),
+        'We send this email so that nobody can find out from the website which email addresses use DiSSENT.'
+    );
+
+    return send_app_email($email, 'Someone tried to register with your DiSSENT email', $content['html'], $content['text'], 'register attempt');
 }
 
 

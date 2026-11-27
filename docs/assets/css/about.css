@@ -270,3 +270,108 @@
         transform: none;
     }
 }
+/* DIAGRAMS ("How DiSSENT Works"): picture and the same steps as a list.
+   Side by side on wide screens, stacked on phones and tablets. */
+
+.about-diagrams {
+    max-width: 1100px;
+}
+
+.about-diagram {
+    display: grid;
+    grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+    gap: 32px;
+    align-items: start;
+    margin: 32px 0 0;
+    padding: 24px;
+    border: 1px solid var(--card-border);
+    border-radius: var(--card-radius);
+    background: #fff;
+    box-shadow: var(--card-shadow);
+    text-align: left;
+}
+
+.about-diagram__picture {
+    display: flex;
+    justify-content: center;
+}
+
+.about-diagram__svg {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+}
+
+.about-diagram figcaption h3 {
+    margin: 0 0 12px;
+    color: #10244d;
+    font-size: 1.2rem;
+}
+
+.about-diagram figcaption ol {
+    margin: 0;
+    padding-left: 1.3rem;
+    line-height: 1.7;
+}
+
+.about-diagram figcaption li + li {
+    margin-top: 6px;
+}
+
+.about-diagram figcaption p {
+    margin: 12px 0 0;
+}
+
+@media (max-width: 820px) {
+    .about-diagram {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px;
+        padding: 18px 16px;
+    }
+}
+
+/* Organisation without a website link (ECHO until confirmed): not clickable,
+   so no hover change. */
+.about-page .partner-card.partner-card--plain {
+    cursor: default;
+}
+
+@media (hover: hover) {
+    .about-page .partner-card.partner-card--plain:hover {
+        border-color: var(--card-border);
+        background: #fff;
+        color: inherit;
+        transform: none;
+        box-shadow: var(--card-shadow);
+    }
+
+    .about-page .partner-card.partner-card--plain:hover h3 {
+        color: #10244d;
+    }
+
+    .about-page .partner-card.partner-card--plain:hover p {
+        color: #475569;
+    }
+}
+
+/* Review criteria (under the report review diagram). */
+.review-criteria {
+    margin-top: 16px;
+    padding: 16px 18px;
+    border: 1px solid var(--card-border);
+    border-left: 4px solid #285bb5;
+    border-radius: 10px;
+    background: #f7f9fc;
+}
+
+.review-criteria h4 {
+    margin: 0 0 8px;
+    color: #10244d;
+    font-size: 1rem;
+}
+
+.review-criteria ul {
+    margin: 0;
+    padding-left: 1.2rem;
+}

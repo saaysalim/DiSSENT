@@ -170,8 +170,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Contact Us - DiSSENT</title>
+    <meta name="description" content="Contact the DiSSENT team about the platform, collaboration or a technical problem.">
 
-    <link rel="stylesheet" href="../assets/css/base.css">
+    <link rel="stylesheet" href="../assets/css/base.css?v=5">
     <link rel="stylesheet" href="../assets/css/contact_us.css">
 </head>
 
@@ -179,7 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<main class="contact-page">
+<main class="contact-page" id="main-content" tabindex="-1">
 
     <section class="page-hero" aria-labelledby="contactHeading">
         <div>
@@ -232,8 +233,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </p>
 
                     <p>
-                        <strong>Contact:</strong>
-                        Please use the message form.
+                        To reach the DiSSENT team, fill in the form on this
+                        page. We reply to the email address you give.
                     </p>
                 </div>
 
@@ -302,7 +303,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         id="contactSubject"
                         name="subject"
                         maxlength="150"
-                        placeholder="What is your message about?"
+                        placeholder="Message topic"
                         value="<?php
                             echo $contact_escape($fields['subject']);
                         ?>"

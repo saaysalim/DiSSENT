@@ -168,6 +168,17 @@ try {
     $stats_error = true;
 }
 
+/* Published reports without a blockchain record yet. */
+$unrecorded = array();
+$unrecorded_error = false;
+
+try {
+    $unrecorded = get_unrecorded_publications(20);
+} catch (Throwable $exception) {
+    error_log('DiSSENT: unrecorded publications unavailable.');
+    $unrecorded_error = true;
+}
+
 /* Load locally recorded verification history. */
 try {
     $result = get_verification_history(10);
@@ -220,16 +231,17 @@ if ($chain_intact === true) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Report Verification - DiSSENT</title>
+    <meta name="description" content="Check whether a published DiSSENT report was recorded on the blockchain and whether the record chain is intact.">
 
-    <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/verification.css">
+    <link rel="stylesheet" href="../assets/css/base.css?v=5">
+    <link rel="stylesheet" href="../assets/css/verification.css?v=2">
 </head>
 
 <body>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<main class="verification-page">
+<main class="verification-page" id="main-content" tabindex="-1">
 
     <section class="page-hero" aria-labelledby="verificationHeading">
         <h1 id="verificationHeading">Report Verification</h1>
@@ -245,7 +257,7 @@ if ($chain_intact === true) {
         <h2 id="verificationSearchHeading">Find a Report</h2>
 
         <p>
-            Search by report ID, title, or journalist name.
+            Search by report ID or title.
         </p>
 
         <form
@@ -258,8 +270,8 @@ if ($chain_intact === true) {
             <input
                 type="search"
                 name="q"
-                aria-label="Report ID, title, or journalist name"
-                placeholder="Report ID, title, or journalist name"
+                aria-label="Report ID or title"
+                placeholder="Report ID or title"
                 maxlength="255"
                 value="<?php echo $verification_escape($search); ?>"
                 required
@@ -423,19 +435,10 @@ if ($chain_intact === true) {
 
     <section class="verification-stats" aria-label="Verification overview">
 
-        <div class="verification-card">
-            <h2><?php echo $verification_count($stats, 'total_reports'); ?></h2>
-            <p>Total Reports</p>
-        </div>
-
+        <!-- "Total reports" and "Pending review" moved to the Dashboard (workshop feedback 25/11/2026). -->
         <div class="verification-card">
             <h2><?php echo $verification_count($stats, 'verified_count'); ?></h2>
-            <p>Locally Recorded Verifications</p>
-        </div>
-
-        <div class="verification-card">
-            <h2><?php echo $verification_count($stats, 'pending_count'); ?></h2>
-            <p>Pending Review</p>
+            <p>Reports recorded on the blockchain</p>
         </div>
 
         <div class="verification-card">
@@ -479,7 +482,7 @@ if ($chain_intact === true) {
 
     <section class="verification-history" aria-labelledby="verificationHistoryHeading">
 
-        <h2 id="verificationHistoryHeading">Recent Recorded Verifications</h2>
+        <h2 id="verificationHistoryHeading">Reports recorded on the blockchain</h2>
 
         <?php if ($history_error): ?>
 
@@ -587,6 +590,32 @@ if ($chain_intact === true) {
             </table>
             </div>
 
+        <?php endif; ?>
+
+    </section>
+
+    <section class="verification-history" aria-labelledby="unrecordedHeading">
+
+        <h2 id="unrecordedHeading">Published, not yet on the blockchain</h2>
+
+        <?php if ($unrecorded_error): ?>
+            <p role="status">This list is temporarily unavailable. Please try again later.</p>
+        <?php elseif (empty($unrecorded)): ?>
+            <p>Every published report has a blockchain record.</p>
+        <?php else: ?>
+            <p>
+                These reports were approved and published, but no blockchain record was saved for
+                them, for example because the verification service was offline at the time.
+                Their text can still be read in the Media Centre.
+            </p>
+            <ul class="unrecorded-list">
+                <?php foreach ($unrecorded as $item): ?>
+                    <li>
+                        <strong><?php echo $verification_escape($item['title'] ?? 'Untitled report'); ?></strong>
+                        <span>Report ID <?php echo (int) $item['id']; ?> · submitted <?php echo $verification_escape($verification_date($item['created_at'] ?? null)); ?></span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
         <?php endif; ?>
 
     </section>

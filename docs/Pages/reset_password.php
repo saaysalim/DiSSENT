@@ -18,7 +18,7 @@ try {
 }
 
 if(!$reset){
-    $message = "This reset link is invalid or has expired. Please request a new one.";
+    $message = "This reset link is invalid or has expired (links work for 60 minutes). Please request a new one.";
 }else{
     $valid = true;
 
@@ -40,7 +40,8 @@ if(!$reset){
         }else{
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-            $stmt = mysqli_prepare($conn, "UPDATE users SET password = ? WHERE email = ?");
+            // A new session_version logs this account out everywhere.
+            $stmt = mysqli_prepare($conn, "UPDATE users SET password = ?, session_version = session_version + 1 WHERE email = ? AND role <> 'deleted'");
             mysqli_stmt_bind_param($stmt, 'ss', $hashed_password, $reset['email']);
             mysqli_stmt_execute($stmt);
 
@@ -64,15 +65,16 @@ if(!$reset){
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset Password - DiSSENT</title>
-    <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/auth.css?v=6">
-    <script src="../assets/JavaScript/auth-forms.js?v=2" defer></script>
+    <meta name="description" content="Choose a new password for your DiSSENT account.">
+    <link rel="stylesheet" href="../assets/css/base.css?v=5">
+    <link rel="stylesheet" href="../assets/css/auth.css?v=7">
+    <script src="../assets/JavaScript/auth-forms.js?v=3" defer></script>
 </head>
 <body>
 
 <?php include('../includes/header.php'); ?>
 
-<main class="auth-section" aria-labelledby="reset-title">
+<main class="auth-section" id="main-content" tabindex="-1" aria-labelledby="reset-title">
     <div class="auth-card">
         <h1 id="reset-title">Reset Password</h1>
         <p class="auth-intro">Choose a new password for your DiSSENT account.</p>
@@ -105,7 +107,7 @@ if(!$reset){
                             id="reset-password"
                             type="password"
                             name="password"
-                            placeholder="Create a new password"
+                            placeholder="New password"
                             autocomplete="new-password"
                             autocapitalize="none"
                             spellcheck="false"
@@ -126,7 +128,7 @@ if(!$reset){
                             id="reset-confirm-password"
                             type="password"
                             name="confirm_password"
-                            placeholder="Repeat the password"
+                            placeholder="Repeat password"
                             autocomplete="new-password"
                             autocapitalize="none"
                             spellcheck="false"

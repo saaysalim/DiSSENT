@@ -142,3 +142,8 @@
         font-size: 34px;
     }
 }
+
+.profile-settings-link {
+    margin-top: 0.75rem;
+    text-decoration: none;
+}

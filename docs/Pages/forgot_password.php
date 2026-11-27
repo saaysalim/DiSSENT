@@ -18,7 +18,14 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     if($email === '' || strlen($email) > 254 || filter_var($email, FILTER_VALIDATE_EMAIL) === false){
         $message = "Please enter a valid email address.";
         $message_type = "error";
+    }elseif(auth_is_blocked('reset', $email)){
+        // 5 requests per email + visitor in 15 minutes. Same text whether or not the account exists.
+        http_response_code(429);
+        $message = "Too many requests. Please wait 15 minutes and try again.";
+        $message_type = "error";
     }else{
+        auth_record_attempt('reset', $email);
+
         try {
             $stmt = mysqli_prepare($conn, "SELECT id FROM users WHERE email = ? LIMIT 1");
             mysqli_stmt_bind_param($stmt, 's', $email);
@@ -39,8 +46,8 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
                 // A sending problem is logged only, never shown to the visitor.
                 send_password_reset_email($email, $reset_link);
 
-                // Local development only (APP_DEBUG=1): show the link on screen.
-                if(DEBUG_MODE){
+                // Local development only: APP_DEBUG=1 and a browser on this computer.
+                if(show_debug_links()){
                     $debug_link = $reset_link;
                 }
             }
@@ -51,7 +58,7 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
 
         // Always show the same message, whether or not the email was found —
         // this prevents visitors from discovering which emails are registered.
-        $message = "If an account exists for this email, we have sent a password reset link.";
+        $message = "If an account exists for this email, we've sent a link to reset your password. Check your inbox (and spam folder). The link works for 60 minutes.";
     }
 }
 ?>
@@ -61,15 +68,16 @@ if($_SERVER["REQUEST_METHOD"] == "POST"){
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Forgot Password - DiSSENT</title>
-    <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/auth.css?v=6">
-    <script src="../assets/JavaScript/auth-forms.js?v=2" defer></script>
+    <meta name="description" content="Get a link to choose a new DiSSENT password.">
+    <link rel="stylesheet" href="../assets/css/base.css?v=5">
+    <link rel="stylesheet" href="../assets/css/auth.css?v=7">
+    <script src="../assets/JavaScript/auth-forms.js?v=3" defer></script>
 </head>
 <body>
 
 <?php include('../includes/header.php'); ?>
 
-<main class="auth-section" aria-labelledby="forgot-title">
+<main class="auth-section" id="main-content" tabindex="-1" aria-labelledby="forgot-title">
     <div class="auth-card">
         <h1 id="forgot-title">Forgot Password</h1>
         <p class="auth-intro">Enter the email address you registered with and we will send you a link to choose a new password.</p>

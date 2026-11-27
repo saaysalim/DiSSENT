@@ -2,10 +2,12 @@
 /*
  * DiSSENT compliance check: runs before a message is delivered.
  *
- * compliance_check() decides ALLOW or REVIEW. It is rule-based for now and is
- * a placeholder for the planned RAG + LLM (ReAct) check. To replace it, change
- * only compliance_check() and COMPLIANCE_CHECKER; the rest of the code calls
- * compliance_run(), which also holds the message if the check breaks.
+ * compliance_check() decides ALLOW or REVIEW:
+ *   AI_ENABLED=0 (default): the rules below (compliance_check_rules()).
+ *   AI_ENABLED=1: the AI service (RAG + ReAct, ai/README.md) at AI_SERVICE_URL. If it is down,
+ *   slower than AI_TIMEOUT_SECONDS, or answers with invalid data, the message is held
+ *   (REVIEW, "check_failed"), exactly as when the rules break.
+ * The rest of the code calls compliance_run(), which also holds the message if the check breaks.
  *
  * Simple rules give false alarms and can be avoided on purpose. They support a
  * human reviewer; they do not prove that a message is safe.
@@ -24,7 +26,21 @@ function compliance_reason_labels()
         'id_number' => 'It may contain an ID or passport number',
         'iban' => 'It may contain a bank account number (IBAN)',
         'check_failed' => 'The automatic check could not run',
+        'ai_review' => 'The AI check suggested a review',
     );
+}
+
+
+// Name stored with each review log entry (message_reviews.checker).
+function compliance_checker_name()
+{
+    return compliance_ai_enabled() ? 'ai-rag-react-v1' : COMPLIANCE_CHECKER;
+}
+
+
+function compliance_ai_enabled()
+{
+    return getenv('AI_ENABLED') === '1';
 }
 
 
@@ -34,9 +50,21 @@ function compliance_reason_labels()
  * $sender, $receiver  arrays with 'id', 'role' and 'organisation'
  *                     (not used by the rules; the AI check will need them)
  *
- * Returns array('decision' => 'ALLOW' or 'REVIEW', 'reasons' => array of codes).
+ * Returns array('decision' => 'ALLOW' or 'REVIEW', 'reasons' => array of codes), and with
+ * the AI check also 'ai' => the AI's result (stored with a held message for the admin).
  */
 function compliance_check($message_text, $attachment, $sender, $receiver)
+{
+    if (compliance_ai_enabled()) {
+        return compliance_check_ai($message_text, $attachment, $sender, $receiver);
+    }
+
+    return compliance_check_rules($message_text, $attachment, $sender, $receiver);
+}
+
+
+// The rule-based check (the baseline in ai/eval/results_baseline.md).
+function compliance_check_rules($message_text, $attachment, $sender, $receiver)
 {
     $text = compliance_normalise($message_text);
     $reasons = array();
@@ -69,13 +97,14 @@ function compliance_run($message_text, $attachment, $sender, $receiver)
 {
     try {
         $result = compliance_check($message_text, $attachment, $sender, $receiver);
+        $ai = is_array($result['ai'] ?? null) ? array('ai' => $result['ai']) : array();
 
         if (is_array($result) && is_array($result['reasons'] ?? null)) {
             if (($result['decision'] ?? '') === 'ALLOW') {
-                return array('decision' => 'ALLOW', 'reasons' => array());
+                return array('decision' => 'ALLOW', 'reasons' => array()) + $ai;
             }
             if (($result['decision'] ?? '') === 'REVIEW' && $result['reasons'] !== array()) {
-                return array('decision' => 'REVIEW', 'reasons' => array_values($result['reasons']));
+                return array('decision' => 'REVIEW', 'reasons' => array_values($result['reasons'])) + $ai;
             }
         }
 
@@ -86,6 +115,159 @@ function compliance_run($message_text, $attachment, $sender, $receiver)
     }
 
     return array('decision' => 'REVIEW', 'reasons' => array('check_failed'));
+}
+
+
+/* ---------- AI check (RAG + ReAct service, ai/README.md) ---------- */
+
+/*
+ * Asks the AI service. The message text goes only to AI_SERVICE_URL (inside the DiSSENT
+ * Docker network by default). Countries are sent when the accounts have one (not stored yet).
+ * On any problem the message is held: decision REVIEW, reason "check_failed", and the 'ai'
+ * part says what went wrong, so the admin sees it next to the held message.
+ */
+function compliance_check_ai($message_text, $attachment, $sender, $receiver)
+{
+    $started = microtime(true);
+    $url = rtrim((string) (getenv('AI_SERVICE_URL') ?: 'http://ai:8000'), '/') . '/check';
+    $timeout = max(1, min(30, (int) (getenv('AI_TIMEOUT_SECONDS') ?: 5)));
+    $connect_timeout = min(2, $timeout);
+    $country = static function ($person) {
+        $code = strtoupper(trim((string) ($person['country'] ?? '')));
+        return preg_match('/\A[A-Z]{2}\z/', $code) === 1 ? $code : '';
+    };
+
+    $body = json_encode(array(
+        'text' => (string) $message_text,
+        'sender_country' => $country($sender),
+        'receiver_country' => $country($receiver),
+        'has_attachment' => $attachment !== null,
+    ), JSON_INVALID_UTF8_SUBSTITUTE);
+
+    $problem = '';
+    $data = null;
+
+    if (!function_exists('curl_init')) {
+        $problem = 'cURL is not installed';
+    } else {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, array(
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $body,
+            CURLOPT_HTTPHEADER => array('Content-Type: application/json', 'Accept: application/json'),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => $connect_timeout,
+            CURLOPT_TIMEOUT => $timeout,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+        ));
+        $raw = curl_exec($ch);
+        $errno = curl_errno($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $connected = (float) curl_getinfo($ch, CURLINFO_CONNECT_TIME) > 0;
+        curl_close($ch);
+
+        if ($errno === CURLE_OPERATION_TIMEDOUT && !$connected) {
+            $problem = 'the service could not be reached within ' . $connect_timeout . ' seconds';
+        } elseif ($errno === CURLE_OPERATION_TIMEDOUT) {
+            $problem = 'no answer within ' . $timeout . ' seconds';
+        } elseif ($errno !== 0 || $raw === false) {
+            $problem = 'the service could not be reached';
+        } elseif ($status !== 200) {
+            $problem = 'the service answered with HTTP ' . $status;
+        } else {
+            $data = compliance_ai_validate(json_decode((string) $raw, true));
+            if ($data === null) {
+                $problem = 'the answer was not valid';
+            }
+        }
+    }
+
+    if ($problem !== '') {
+        // Never log the message text.
+        error_log('DiSSENT: AI compliance check failed (' . $problem . '); the message is held.');
+
+        return array(
+            'decision' => 'REVIEW',
+            'reasons' => array('check_failed'),
+            'ai' => array(
+                'status' => 'failed',
+                'decision' => 'REVIEW',
+                'risk_level' => 'unknown',
+                'reasons' => array('The AI check did not work (' . $problem . '), so the message was held for safety.'),
+                'citations' => array(),
+                'steps' => array(),
+                'model_name' => 'unavailable',
+                'latency_ms' => (int) round((microtime(true) - $started) * 1000),
+            ),
+        );
+    }
+
+    $data['status'] = 'ok';
+
+    return array(
+        'decision' => $data['decision'],
+        'reasons' => $data['decision'] === 'REVIEW' ? array('ai_review') : array(),
+        'ai' => $data,
+    );
+}
+
+
+// Checks the shape of the AI answer. Returns the cleaned answer, or null if anything is wrong.
+function compliance_ai_validate($data)
+{
+    $string = static function ($value, $max) {
+        return is_string($value) && $value !== '' && mb_strlen($value, 'UTF-8') <= $max;
+    };
+
+    if (!is_array($data) || !in_array($data['decision'] ?? null, array('ALLOW', 'REVIEW'), true)) {
+        return null;
+    }
+    if (!$string($data['risk_level'] ?? null, 20) || !$string($data['model_name'] ?? null, 60)) {
+        return null;
+    }
+    if (!is_array($data['reasons'] ?? null) || count($data['reasons']) > 20
+        || !is_array($data['citations'] ?? null) || count($data['citations']) > 30
+        || !is_array($data['steps'] ?? null) || count($data['steps']) > 20
+        || !is_numeric($data['latency_ms'] ?? null)) {
+        return null;
+    }
+    foreach ($data['reasons'] as $reason) {
+        if (!$string($reason, 600)) {
+            return null;
+        }
+    }
+    if ($data['decision'] === 'REVIEW' && $data['reasons'] === array()) {
+        return null;
+    }
+
+    $citations = array();
+    foreach ($data['citations'] as $c) {
+        if (!is_array($c) || !$string($c['source'] ?? null, 200) || !$string($c['passage_id'] ?? null, 60)
+            || !$string($c['quote'] ?? null, 600) || preg_match('/\A[A-Z]{2}\z/', (string) ($c['country'] ?? '')) !== 1) {
+            return null;
+        }
+        $citations[] = array('source' => $c['source'], 'country' => $c['country'], 'passage_id' => $c['passage_id'], 'quote' => $c['quote']);
+    }
+
+    $steps = array();
+    foreach ($data['steps'] as $s) {
+        if (!is_array($s) || !$string($s['thought'] ?? null, 1000) || !$string($s['action'] ?? null, 1000)
+            || !is_string($s['observation'] ?? null) || mb_strlen($s['observation'], 'UTF-8') > 2000) {
+            return null;
+        }
+        $steps[] = array('thought' => $s['thought'], 'action' => $s['action'], 'observation' => $s['observation']);
+    }
+
+    return array(
+        'decision' => $data['decision'],
+        'risk_level' => $data['risk_level'],
+        'reasons' => array_values($data['reasons']),
+        'citations' => $citations,
+        'steps' => $steps,
+        'model_name' => $data['model_name'],
+        'latency_ms' => (int) $data['latency_ms'],
+    );
 }
 
 

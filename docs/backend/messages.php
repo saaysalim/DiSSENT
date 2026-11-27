@@ -12,6 +12,7 @@
 
 require_once __DIR__ . '/compliance.php';
 require_once __DIR__ . '/message_files.php';
+require_once __DIR__ . '/contacts.php';
 
 
 // Runs a prepared statement and throws if anything fails. Returns the statement.
@@ -78,7 +79,7 @@ function messages_log_review($message_id, $reviewer_id, $decision, $reasons_json
         'INSERT INTO message_reviews (message_id, reviewer_id, decision, reasons, note, checker, file_name, file_sha256)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         'iissssss',
-        array($message_id, $reviewer_id, $decision, $reasons_json, $note, COMPLIANCE_CHECKER, $file_name, $file_sha256)
+        array($message_id, $reviewer_id, $decision, $reasons_json, $note, compliance_checker_name(), $file_name, $file_sha256)
     ));
 }
 
@@ -105,11 +106,13 @@ function messages_reasons($json)
 /*
  * Saves a message that has passed the form checks, after the compliance check.
  * $file is the result of message_file_receive() or null.
+ * Only between accepted contacts; $as_request = true for the first message of a
+ * message request the sender has just made (contacts_send_request()).
  * Returns array('id' => ..., 'held' => bool).
  */
-function messages_send($sender_id, $receiver_id, $text, $file)
+function messages_send($sender_id, $receiver_id, $text, $file, $as_request = false)
 {
-    $saved = messages_transaction(function () use ($sender_id, $receiver_id, $text, $file) {
+    $saved = messages_transaction(function () use ($sender_id, $receiver_id, $text, $file, $as_request) {
         global $conn;
 
         // Locked in id order, so a deletion running at the same moment cannot slip in between.
@@ -121,6 +124,15 @@ function messages_send($sender_id, $receiver_id, $text, $file)
 
         if ($sender_id === $receiver_id || !isset($people[$sender_id], $people[$receiver_id])) {
             throw new MessageFileProblem('This message cannot be sent to that account.');
+        }
+
+        $pair = contacts_pair($sender_id, $receiver_id, 'FOR SHARE');
+        $allowed = $as_request
+            ? ($pair !== null && $pair['status'] === 'pending' && (int) $pair['requester_id'] === $sender_id)
+            : ($pair !== null && $pair['status'] === 'accepted');
+
+        if (!$allowed) {
+            throw new MessageFileProblem('You can only message your contacts. Use "New message" to send a request.');
         }
 
         $check = compliance_run($text, $file, $people[$sender_id], $people[$receiver_id]);
@@ -145,6 +157,10 @@ function messages_send($sender_id, $receiver_id, $text, $file)
 
         if ($held) {
             messages_log_review($id, null, 'held', $reasons, null, $file['original_name'] ?? null, $file['sha256'] ?? null);
+
+            if (is_array($check['ai'] ?? null)) {
+                messages_save_ai_check($id, $check['ai']);
+            }
         }
 
         return array('id' => $id, 'held' => $held);
@@ -161,7 +177,7 @@ function messages_send($sender_id, $receiver_id, $text, $file)
 /*
  * Sends a delivered message through securecomm / Kafka, once.
  * Best effort: if the Java API is unreachable, the message is still delivered,
- * just without the "Secure Transfer" badge. Files stay on the website; the
+ * with the badge "Secure transfer: not used (service offline)". Files stay on the website; the
  * secure copy carries the file's SHA-256 fingerprint.
  */
 function messages_secure_transfer($message_id)
@@ -198,6 +214,60 @@ function messages_secure_transfer($message_id)
     } catch (Throwable $error) {
         error_log('DiSSENT: secure transfer of a message failed: ' . get_class($error));
     }
+}
+
+
+/*
+ * Stores the AI's suggestion with a held message (table message_ai_checks), so the admin
+ * sees it next to the message. A missing table only means the suggestion is not shown.
+ */
+function messages_save_ai_check($message_id, $ai)
+{
+    $json = static function ($value) {
+        return json_encode(is_array($value) ? array_values($value) : array(), JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    };
+
+    try {
+        mysqli_stmt_close(messages_query(
+            'INSERT INTO message_ai_checks (message_id, status, decision, risk_level, reasons, citations, steps, model_name, latency_ms)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            'isssssssi',
+            array(
+                $message_id,
+                ($ai['status'] ?? '') === 'ok' ? 'ok' : 'failed',
+                ($ai['decision'] ?? '') === 'ALLOW' ? 'ALLOW' : 'REVIEW',
+                mb_substr((string) ($ai['risk_level'] ?? 'unknown'), 0, 20, 'UTF-8'),
+                $json($ai['reasons'] ?? array()),
+                $json($ai['citations'] ?? array()),
+                $json($ai['steps'] ?? array()),
+                mb_substr((string) ($ai['model_name'] ?? 'unavailable'), 0, 60, 'UTF-8'),
+                (int) ($ai['latency_ms'] ?? 0),
+            )
+        ));
+    } catch (Throwable $error) {
+        error_log('DiSSENT: AI suggestion not saved (run database/migrations/2026-11-26_ai_checks.sql): ' . get_class($error));
+    }
+}
+
+
+// The AI's suggestion for a held message, or null.
+function messages_ai_check($message_id)
+{
+    try {
+        $rows = messages_rows('SELECT * FROM message_ai_checks WHERE message_id = ?', 'i', array($message_id));
+    } catch (Throwable $error) {
+        return null;
+    }
+    if ($rows === array()) {
+        return null;
+    }
+
+    $row = $rows[0];
+    foreach (array('reasons', 'citations', 'steps') as $key) {
+        $row[$key] = json_decode((string) $row[$key], true) ?: array();
+    }
+
+    return $row;
 }
 
 
@@ -251,6 +321,22 @@ function messages_review($message_id, $admin_id, $approve, $note)
 
         messages_log_review($message_id, $admin_id, $approve ? 'approved' : 'rejected', $row['review_reasons'], $note, $row['original_name'], $row['sha256']);
 
+        // For the evaluation: did the admin agree with the AI's suggestion?
+        // Agreed = AI said REVIEW and the admin rejected, or AI said ALLOW and the admin approved.
+        try {
+            $admin_decision = $approve ? 'approved' : 'rejected';
+            mysqli_stmt_close(messages_query(
+                "UPDATE message_ai_checks
+                 SET admin_decision = ?, admin_decided_at = CURRENT_TIMESTAMP,
+                     admin_agreed = IF(status = 'ok', (decision = 'REVIEW' AND ? = 'rejected') OR (decision = 'ALLOW' AND ? = 'approved'), NULL)
+                 WHERE message_id = ?",
+                'sssi',
+                array($admin_decision, $admin_decision, $admin_decision, $message_id)
+            ));
+        } catch (Throwable $error) {
+            error_log('DiSSENT: AI agreement not saved: ' . get_class($error));
+        }
+
         return '';
     });
 
@@ -269,6 +355,8 @@ function messages_review($message_id, $admin_id, $approve, $note)
  */
 function messages_prepare_account_deletion($user_id)
 {
+    contacts_prepare_account_deletion($user_id);
+
     foreach (messages_rows(
         "SELECT id, review_reasons FROM messages WHERE status = 'pending_review' AND (sender_id = ? OR receiver_id = ?) FOR UPDATE",
         'ii',
@@ -323,6 +411,24 @@ function messages_visible($user_id, $other_id, $extra = '', $types = '', $values
         'iiii' . $types,
         array_merge(array($user_id, $other_id, $other_id, $user_id), $values)
     );
+}
+
+
+// Marks the messages $other_id sent to $user_id as read (the conversation is open).
+// changed_at is kept, so the sender's chat is not redrawn for nothing.
+function messages_mark_read($user_id, $other_id)
+{
+    try {
+        mysqli_stmt_close(messages_query(
+            "UPDATE messages SET read_at = CURRENT_TIMESTAMP, changed_at = changed_at
+             WHERE sender_id = ? AND receiver_id = ? AND status = 'delivered' AND read_at IS NULL",
+            'ii',
+            array($other_id, $user_id)
+        ));
+    } catch (Throwable $error) {
+        // Older database without read_at: unread counts are simply not shown.
+        error_log('DiSSENT: marking messages as read failed (run database/migrations/2026-11-26_message_read.sql).');
+    }
 }
 
 
@@ -399,8 +505,12 @@ function message_html($row, $user_id, $other_name)
         $html .= '</div>';
     }
 
+    // What happened to the encrypted copy between the two DiSSENT systems.
+    // messaging.js changes "checking" to Verified or Failed.
     if ($envelope !== '') {
-        $html .= '<small class="secure-badge">Secure Transfer: Pending</small>';
+        $html .= '<small class="secure-badge" title="An encrypted, signed copy was sent between the two DiSSENT systems. Waiting for the second system to check it.">Secure transfer: pending</small>';
+    } elseif ($row['status'] === 'delivered') {
+        $html .= '<small class="secure-badge secure-offline" title="The message was delivered on DiSSENT, but the secure service was offline, so no encrypted copy was sent.">Secure transfer: not used (service offline)</small>';
     }
 
     return $html . '</div>';

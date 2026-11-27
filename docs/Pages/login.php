@@ -50,7 +50,30 @@ if (
     // Shown once after settings.php deletes the account.
     $message = 'Your account has been deleted.';
     $message_type = 'success';
+} elseif (
+    ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' &&
+    ($_GET['session_ended'] ?? '') === '1'
+) {
+    // Set by enforce_session_still_valid() in backend/content.php.
+    $message = 'You have been logged out because your password was changed or your account was removed. Please log in again.';
+    $message_type = 'success';
+} elseif (
+    ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' &&
+    ($_GET['registered'] ?? '') === '1'
+) {
+    // Set by register.php. The same text whether or not the email was new.
+    $message = 'Thank you. If this email address can be used, your account is ready. You can log in now.';
+    $message_type = 'success';
+} elseif (
+    ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' &&
+    ($_GET['need_login'] ?? '') === '1'
+) {
+    // Set by require_login(); after logging in the visitor goes back to that page.
+    $message = 'Please log in to view that page.';
+    $message_type = 'info';
 }
+
+$login_blocked_message = 'Too many login attempts. Please wait 15 minutes and try again.';
 
 /*
  * Escape values before placing them into HTML.
@@ -108,6 +131,11 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
          */
         $message = 'Email or password is incorrect.';
 
+    } elseif (auth_is_blocked('login', $email)) {
+        // Same message whether or not the account exists.
+        http_response_code(429);
+        $message = $login_blocked_message;
+
     } else {
         $stmt = null;
         $previous_report_mode = null;
@@ -142,7 +170,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
              */
             $stmt = mysqli_prepare(
                 $conn,
-                'SELECT id, fullname, role, password
+                'SELECT id, fullname, role, password, session_version
                  FROM users
                  WHERE email = ?
                  LIMIT 2'
@@ -163,7 +191,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     $id,
                     $fullname,
                     $role,
-                    $stored_password
+                    $stored_password,
+                    $session_version
                 );
 
                 if (mysqli_stmt_fetch($stmt) === true) {
@@ -172,6 +201,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                         'fullname' => (string) $fullname,
                         'role' => (string) $role,
                         'password' => (string) $stored_password,
+                        'session_version' => (int) $session_version,
                     ];
                 }
             }
@@ -216,10 +246,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                  */
                 $_SESSION['role'] = $account['role'];
 
+                // Changes when the password changes; see enforce_session_still_valid().
+                $_SESSION['session_version'] = $account['session_version'];
+
                 $authenticated = true;
+                auth_clear_attempts('login', $email);
 
             } else {
-                $message = 'Email or password is incorrect.';
+                auth_record_attempt('login', $email);
+
+                $message = auth_is_blocked('login', $email)
+                    ? $login_blocked_message
+                    : 'Email or password is incorrect.';
             }
 
         } catch (Throwable $error) {
@@ -248,7 +286,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
 
         if ($authenticated) {
-            header('Location: dashboard.php', true, 303);
+            // Back to the page that asked for a login (checked list), otherwise the Dashboard.
+            header('Location: ' . login_return_target(), true, 303);
             exit;
         }
     }
@@ -261,15 +300,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - DiSSENT</title>
-    <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/auth.css?v=6">
-    <script src="../assets/JavaScript/auth-forms.js?v=2" defer></script>
+    <meta name="description" content="Log in to DiSSENT to submit reports, read your messages and use your dashboard.">
+    <link rel="stylesheet" href="../assets/css/base.css?v=5">
+    <link rel="stylesheet" href="../assets/css/auth.css?v=7">
+    <script src="../assets/JavaScript/auth-forms.js?v=3" defer></script>
 </head>
 <body>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<main class="auth-section" aria-labelledby="login-title">
+<main class="auth-section" id="main-content" tabindex="-1" aria-labelledby="login-title">
     <div class="auth-card">
         <h1 id="login-title">Login to DiSSENT</h1>
         <p class="auth-intro">Access your media workspace, reports and collaboration tools.</p>
@@ -277,7 +317,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         <?php if ($message !== ''): ?>
             <div
                 class="auth-message auth-message--<?php echo $login_escape($message_type); ?>"
-                role="<?php echo $message_type === 'success' ? 'status' : 'alert'; ?>"
+                role="<?php echo $message_type === 'error' ? 'alert' : 'status'; ?>"
                 <?php echo $message_type === 'error' ? 'tabindex="-1"' : ''; ?>
             >
                 <?php echo $login_escape($message); ?>
@@ -319,7 +359,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                         id="login-password"
                         type="password"
                         name="password"
-                        placeholder="Enter your password"
+                        placeholder="Your password"
                         autocomplete="current-password"
                         autocapitalize="none"
                         spellcheck="false"
@@ -335,7 +375,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         </form>
 
         <div class="auth-links">
-            <p>Don't have an account? <a href="register.php">Register</a></p>
+            <p>Don't have an account? <a href="register.php">Create an account</a></p>
         </div>
     </div>
 </main>

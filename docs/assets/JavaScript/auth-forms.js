@@ -160,7 +160,26 @@
         });
     }
 
+    /* ---------- Email boxes: the same message in every browser ---------- */
+
+    // Matches the PHP message ("Please enter a valid email address.").
+    function setupEmail(input) {
+        function check() {
+            input.setCustomValidity("");
+
+            if (input.validity.valueMissing) {
+                input.setCustomValidity("Please enter your email address.");
+            } else if (input.validity.typeMismatch) {
+                input.setCustomValidity("Please enter a valid email address.");
+            }
+        }
+
+        input.addEventListener("input", check);
+        input.addEventListener("invalid", check);
+    }
+
     function initialise() {
+        document.querySelectorAll("form[data-auth-form] input[type=\"email\"]:not([readonly])").forEach(setupEmail);
         document.querySelectorAll("[data-password-toggle]").forEach(setupToggle);
         document.querySelectorAll("[data-password-rules-for]").forEach(setupChecklist);
         document.querySelectorAll("[data-password-match-for]").forEach(setupMatch);

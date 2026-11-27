@@ -9,6 +9,8 @@
  * position. Information inside a PDF (for example its author) is NOT removed.
  */
 
+require_once __DIR__ . '/image_clean.php';
+
 define('MESSAGE_FILE_MAX_BYTES', 5 * 1024 * 1024);
 define('MESSAGE_FILE_MAX_PIXELS', 25000000);
 define('MESSAGE_FILE_MAX_SIDE', 2560);
@@ -184,57 +186,8 @@ function message_file_clean_image($source, $path, $mime)
     if ($info[0] * $info[1] > MESSAGE_FILE_MAX_PIXELS) {
         throw new MessageFileProblem('This image has too many pixels (the limit is 25 megapixels). Please send a smaller one.');
     }
-    if (!function_exists('imagecreatefromjpeg')) {
-        throw new RuntimeException('Image cleaning is not installed.');
-    }
-
-    ini_set('memory_limit', '512M');
-
-    $open = array('image/jpeg' => 'imagecreatefromjpeg', 'image/png' => 'imagecreatefrompng', 'image/webp' => 'imagecreatefromwebp');
-    $image = @$open[$mime]($source);
-
-    if (!$image) {
+    // Shared with profile pictures (image_clean.php): decode, turn upright, save only the pixels.
+    if (!image_clean_save($source, $path, $mime, MESSAGE_FILE_MAX_SIDE)) {
         throw new MessageFileProblem($bad . ' Animated images are not supported.');
-    }
-
-    // Photos store "which way is up" in EXIF, which is about to be removed.
-    if ($mime === 'image/jpeg' && function_exists('exif_read_data')) {
-        $exif = @exif_read_data($source);
-        $orientation = is_array($exif) ? (int) ($exif['Orientation'] ?? 1) : 1;
-
-        if (in_array($orientation, array(2, 4, 5, 7), true)) {
-            imageflip($image, in_array($orientation, array(2, 5, 7), true) ? IMG_FLIP_HORIZONTAL : IMG_FLIP_VERTICAL);
-        }
-
-        $turn = array(3 => 180, 5 => 90, 6 => 270, 7 => 270, 8 => 90);
-
-        if (isset($turn[$orientation])) {
-            $image = imagerotate($image, $turn[$orientation], 0);
-        }
-    }
-
-    $width = imagesx($image);
-    $height = imagesy($image);
-    $scale = min(1, MESSAGE_FILE_MAX_SIDE / max($width, $height));
-
-    if ($scale < 1) {
-        $image = imagescale($image, max(1, (int) round($width * $scale)), max(1, (int) round($height * $scale)), IMG_BICUBIC);
-    }
-
-    if (!$image) {
-        throw new MessageFileProblem($bad);
-    }
-
-    if ($mime === 'image/jpeg') {
-        $saved = imagejpeg($image, $path, 88);
-    } else {
-        imagepalettetotruecolor($image);
-        imagealphablending($image, false);
-        imagesavealpha($image, true);
-        $saved = $mime === 'image/png' ? imagepng($image, $path, 6) : imagewebp($image, $path, 88);
-    }
-
-    if (!$saved) {
-        throw new RuntimeException('Could not save a cleaned image.');
     }
 }

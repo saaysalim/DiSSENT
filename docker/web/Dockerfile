@@ -22,4 +22,12 @@ RUN { \
       echo 'session.cookie_httponly = 1'; \
       echo 'session.cookie_samesite = Lax'; \
       echo 'session.use_strict_mode = 1'; \
+      echo 'expose_php = Off'; \
+      echo 'auto_prepend_file = /var/www/html/backend/bootstrap.php'; \
     } > /usr/local/etc/php/conf.d/dissent.ini
+
+# Apache: hide the version, refuse backups/config files and the PHP helper folders.
+# "zz-" makes it load after Debian's security.conf, which would otherwise win.
+COPY dissent-apache.conf /etc/apache2/conf-available/zz-dissent.conf
+RUN a2enconf zz-dissent
+

@@ -10,22 +10,14 @@ require_once __DIR__ . '/../backend/mailer.php';
 
 $message = '';
 $message_type = 'error';
-$email_taken = false;
 $fullname = '';
 $email = '';
 $organisation = '';
 
 // These are professional categories, not account permission levels.
 // Keep the existing POST field "role" and database column "organisation".
-$registration_categories = [
-    'Journalist',
-    'Freelance Journalist',
-    'Media Organisation',
-    'Fact Checker',
-    'Researcher / Investigator',
-    'NGO / Human Rights Organisation',
-    'Other',
-];
+// "Other" can be typed in the role_other box (backend/content.php).
+$registration_categories = professional_categories();
 
 // Local closures avoid adding global helper functions to the existing project.
 $registration_post_text = static function (string $key): string {
@@ -36,13 +28,6 @@ $registration_post_text = static function (string $key): string {
 $registration_escape = static function (string $value): string {
     return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 };
-
-// A successful POST redirects back to this page so refresh does not resubmit it.
-if (($_SESSION['dissent_registration_success'] ?? false) === true) {
-    unset($_SESSION['dissent_registration_success']);
-    $message = 'Registration successful! You can now log in.';
-    $message_type = 'success';
-}
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     $message = '';
@@ -57,28 +42,36 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     } else {
         $fullname = trim($registration_post_text('fullname'));
         $email = trim($registration_post_text('email'));
-        $organisation = trim($registration_post_text('role'));
+        $organisation_choice = trim($registration_post_text('role'));
+        list($organisation, $category_error) = category_from_post('role', $registration_categories);
 
         // Do not trim or repopulate passwords.
         $password = $registration_post_text('password');
         $confirm_password = $registration_post_text('confirm_password');
 
-        if ($fullname === '' || $email === '' || $organisation === '' ||
+        if ($fullname === '' || $email === '' || $organisation_choice === '' ||
             $password === '' || $confirm_password === '') {
             $message = 'Please complete every field.';
         } elseif (preg_match('//u', $fullname) !== 1 || strpos($fullname, "\0") !== false) {
             $message = 'Please enter a valid full name.';
         } elseif (strlen($email) > 254 || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
             $message = 'Please enter a valid email address.';
-        } elseif (!in_array($organisation, $registration_categories, true)) {
-            $message = 'Please choose one of the listed professional categories.';
+        } elseif ($category_error !== '') {
+            $message = $category_error;
         } elseif (($registration_password_problem = password_policy_message($password)) !== '') {
             // Same rules as reset password and profile (backend/content.php).
             $message = $registration_password_problem;
         } elseif ($password !== $confirm_password) {
             $message = 'Passwords do not match.';
+        } elseif (($_POST['consent'] ?? '') !== '1') {
+            // Required tick box; the time is saved in users.consent_at.
+            $message = 'Please tick the box to agree to the Terms of use and confirm you have read the Privacy notice.';
         } else {
+            // The visitor is never told whether the email was already registered
+            // (that would show who uses DiSSENT). Both cases go to Login with the same
+            // message; the owner of an existing account gets an email instead.
             $registration_created = false;
+            $registration_existing = false;
             $check_stmt = null;
             $stmt = null;
             $registration_previous_report_mode = null;
@@ -102,18 +95,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 mysqli_stmt_execute($check_stmt);
                 mysqli_stmt_store_result($check_stmt);
 
-                if (mysqli_stmt_num_rows($check_stmt) > 0) {
-                    $message = 'This email is already registered.';
-                    $email_taken = true;
-                } else {
-                    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                // Hashed in both cases so the answer takes the same time.
+                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
+                if (mysqli_stmt_num_rows($check_stmt) > 0) {
+                    $registration_existing = true;
+                } else {
                     // Account permissions are always fixed by the server.
                     // A submitted professional category cannot grant admin access.
                     $stmt = mysqli_prepare(
                         $conn,
-                        "INSERT INTO users (fullname, email, password, role, organisation)
-                        VALUES (?, ?, ?, 'user', ?)"
+                        "INSERT INTO users (fullname, email, password, role, organisation, consent_at)
+                        VALUES (?, ?, ?, 'user', ?, CURRENT_TIMESTAMP)"
                     );
                     mysqli_stmt_bind_param(
                         $stmt,
@@ -128,10 +121,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 }
             } catch (mysqli_sql_exception $error) {
                 if ((int) $error->getCode() === 1062) {
-                    // Handles a duplicate rejected by an existing UNIQUE constraint.
-                    // The pre-check alone does not prevent concurrent duplicate inserts.
-                    $message = 'This email is already registered.';
-                    $email_taken = true;
+                    // Handles a duplicate rejected by the UNIQUE constraint
+                    // (two registrations at the same moment).
+                    $registration_existing = true;
                 } else {
                     // Avoid logging submitted passwords, email addresses or full SQL errors.
                     error_log('DiSSENT registration: database error code ' . (int) $error->getCode());
@@ -153,12 +145,18 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             }
 
             if ($registration_created) {
-                // "Welcome to DiSSENT" email. A sending problem is logged only;
-                // the account exists either way, so the page still says success.
+                // "Welcome to DiSSENT" email. A sending problem is logged only.
                 send_welcome_email($email, $fullname);
+            } elseif ($registration_existing && !register_notice_recent($email)) {
+                // "Someone tried to register with your email" (at most one per hour).
+                auth_record_attempt('register_notice', $email);
+                send_register_attempt_email($email);
+            }
 
-                $_SESSION['dissent_registration_success'] = true;
-                header('Location: register.php', true, 303);
+            if ($registration_created || $registration_existing) {
+                // login.php shows: "Thank you. If this email address can be used,
+                // your account is ready. You can log in now."
+                header('Location: login.php?registered=1', true, 303);
                 exit;
             }
         }
@@ -170,18 +168,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - DiSSENT</title>
-    <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/auth.css?v=6">
-    <script src="../assets/JavaScript/auth-forms.js?v=2" defer></script>
+    <title>Create an account - DiSSENT</title>
+    <meta name="description" content="Create a free DiSSENT account to submit reports, message other journalists and follow editorial review.">
+    <link rel="stylesheet" href="../assets/css/base.css?v=5">
+    <link rel="stylesheet" href="../assets/css/auth.css?v=7">
+    <script src="../assets/JavaScript/auth-forms.js?v=3" defer></script>
 </head>
 <body>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<main class="auth-section" aria-labelledby="register-title">
+<main class="auth-section" id="main-content" tabindex="-1" aria-labelledby="register-title">
     <div class="auth-card">
-        <h1 id="register-title">Create Account</h1>
+        <h1 id="register-title">Create an account</h1>
         <p class="auth-intro">Register to access the DiSSENT media workspace.</p>
         <p class="auth-note">All fields are required.</p>
 
@@ -234,30 +233,19 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     spellcheck="false"
                     maxlength="254"
                     value="<?php echo $registration_escape($email); ?>"
-                    <?php if ($email_taken): ?>aria-invalid="true" aria-describedby="register-email-taken"<?php endif; ?>
                     required
                 >
-                <?php if ($email_taken): ?>
-                    <p class="auth-field-error" id="register-email-taken">
-                        This email is already registered.
-                        <a href="login.php">Log in</a>
-                        <a href="forgot_password.php">Forgot password?</a>
-                    </p>
-                <?php endif; ?>
             </div>
 
             <div class="auth-field">
-                <label for="register-category">Professional category</label>
-                <select class="auth-select" id="register-category" name="role" aria-describedby="register-category-help" required>
-                    <option value="">Choose a category</option>
-                    <?php foreach ($registration_categories as $category): ?>
-                        <option
-                            value="<?php echo $registration_escape($category); ?>"
-                            <?php echo $organisation === $category ? 'selected' : ''; ?>
-                        ><?php echo $registration_escape($category); ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <small class="auth-help" id="register-category-help">This describes your work. It does not change your account permissions.</small>
+                <?php echo category_select_html(
+                    'role',
+                    'register-category',
+                    'Professional category',
+                    $registration_categories,
+                    $organisation !== '' ? $organisation : ($organisation_choice ?? ''),
+                    'This describes your work. It does not change your account permissions.'
+                ); ?>
             </div>
 
             <div class="auth-field">
@@ -268,7 +256,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                         id="register-password"
                         type="password"
                         name="password"
-                        placeholder="Create a password"
+                        placeholder="New password"
                         autocomplete="new-password"
                         autocapitalize="none"
                         spellcheck="false"
@@ -289,7 +277,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                         id="register-confirm-password"
                         type="password"
                         name="confirm_password"
-                        placeholder="Repeat your password"
+                        placeholder="Repeat password"
                         autocomplete="new-password"
                         autocapitalize="none"
                         spellcheck="false"
@@ -300,6 +288,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     <?php echo password_toggle_html('register-confirm-password'); ?>
                 </div>
                 <?php echo password_match_html('register-password-match', 'register-confirm-password', 'register-password'); ?>
+            </div>
+
+            <div class="auth-field auth-consent">
+                <label class="auth-checkbox" for="register-consent">
+                    <input type="checkbox" id="register-consent" name="consent" value="1" required>
+                    <span>I agree to the <a href="terms.php" target="_blank" rel="noopener">Terms of use</a> and I have read the <a href="privacy.php" target="_blank" rel="noopener">Privacy notice</a> (both open in a new tab).</span>
+                </label>
             </div>
 
             <button class="auth-submit" type="submit" data-busy-text="Creating account…">Register</button>

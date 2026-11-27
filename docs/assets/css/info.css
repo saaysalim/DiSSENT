@@ -1,0 +1,135 @@
+/* Text pages: Terms of use, Privacy notice, User guide, Page not found. */
+
+.info-page {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 56px;
+}
+
+.info-card {
+    padding: 28px 32px;
+    border: 1px solid var(--card-border);
+    border-radius: var(--card-radius);
+    background: #fff;
+    box-shadow: var(--card-shadow);
+    line-height: 1.75;
+    overflow-wrap: anywhere;
+}
+
+.info-card + .info-card {
+    margin-top: 24px;
+}
+
+.info-card h2 {
+    margin: 0 0 10px;
+    color: #10244d;
+    font-size: 1.35rem;
+    line-height: 1.35;
+    scroll-margin-top: 90px;
+}
+
+.info-card h3 {
+    margin: 20px 0 6px;
+    color: #10244d;
+    font-size: 1.1rem;
+}
+
+.info-card p,
+.info-card ul,
+.info-card ol {
+    margin: 0 0 12px;
+}
+
+.info-card ul,
+.info-card ol {
+    padding-left: 1.4rem;
+}
+
+.info-card li + li {
+    margin-top: 6px;
+}
+
+.info-card a {
+    color: #174a8b;
+}
+
+.info-updated {
+    margin: 0 0 20px;
+    color: #526078;
+    font-size: 0.95rem;
+}
+
+/* Contents list (User guide). */
+.info-contents ol {
+    columns: 2;
+    column-gap: 32px;
+}
+
+.info-contents li {
+    break-inside: avoid;
+}
+
+/* Big enough to tap on a phone. */
+.info-contents li a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+}
+
+/* Two big links (Page not found). */
+.info-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.info-actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    background: var(--button-color);
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.info-actions a.info-actions__secondary {
+    border: 1px solid #10244d;
+    background: #fff;
+    color: #10244d;
+}
+
+.info-actions a:hover {
+    background: var(--button-hover);
+    color: #fff;
+}
+
+@media (max-width: 600px) {
+    .info-page {
+        padding: 28px 16px 40px;
+    }
+
+    .info-card {
+        padding: 20px 18px;
+    }
+
+    .info-contents ol {
+        columns: 1;
+    }
+
+    .info-actions a {
+        flex: 1 1 100%;
+    }
+}
+
+.info-title {
+    margin: 0 0 12px;
+    color: #10244d;
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    line-height: 1.25;
+}

@@ -38,10 +38,11 @@ services:
       DB_NAME: dissent_local
       BLOCKCHAIN_API_URL: http://host.docker.internal:8081
       MESSAGING_API_URL: http://host.docker.internal:8082
-      # Local development only: shows password-reset links on screen.
-      APP_DEBUG: "1"
-      # Origin used in emailed links (stops forged Host headers steering them).
-      APP_URL: http://localhost:8888
+      # 1 shows password-reset links on screen, but only to a browser on this computer.
+      # Default 0. Set APP_DEBUG=1 in .env for local testing. start-demo.ps1 -Share forces 0.
+      APP_DEBUG: ${APP_DEBUG:-0}
+      # Address used in emailed links. start-demo.ps1 -Share sets the public tunnel address.
+      APP_URL: ${APP_URL:-http://localhost:8888}
       DISSENT_API_KEY: ${DISSENT_API_KEY:?Set DISSENT_API_KEY in .env}
       # Email (PHPMailer). Empty values in .env mean: use the local Mailpit inbox.
       # Put real SMTP settings in .env to send real email.
@@ -53,6 +54,11 @@ services:
       SMTP_SECURE: ${SMTP_SECURE:-}
       # Who gets an email when someone uses the Contact form.
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      # AI compliance check (ai/README.md). 0 = the current rules; 1 = ask the AI service.
+      # If the AI service is down, slow or answers wrongly, the message is held (fail safe).
+      AI_ENABLED: ${AI_ENABLED:-0}
+      AI_SERVICE_URL: ${AI_SERVICE_URL:-http://ai:8000}
+      AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-5}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -84,6 +90,28 @@ services:
     ports:
       - "127.0.0.1:1025:1025"
       - "127.0.0.1:8025:8025"
+
+  # AI compliance check: RAG (Chroma, local embeddings) + ReAct, FastAPI (ai/README.md).
+  # The website calls it at http://ai:8000 on the internal Docker network. The port is bound
+  # to 127.0.0.1 only, for the evaluation scripts. Default model: mock (nothing leaves the server).
+  ai:
+    build: ./ai
+    container_name: dissent-ai
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8090:8000"
+    volumes:
+      # Knowledge files (read-only); ingested into the vector database at start-up.
+      - ./ai/knowledge:/app/knowledge:ro
+    environment:
+      AI_MODEL: ${AI_MODEL:-mock}
+      OLLAMA_URL: ${OLLAMA_URL:-}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-}
+      # A cloud model sends message text off the server: only with the supervisor's approval.
+      AI_ALLOW_CLOUD: ${AI_ALLOW_CLOUD:-0}
+      AI_CLOUD_MODEL: ${AI_CLOUD_MODEL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      ANONYMIZED_TELEMETRY: "False"
 
 volumes:
   dissent-mysql-data:

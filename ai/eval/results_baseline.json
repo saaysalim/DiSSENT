@@ -1,0 +1,731 @@
+{
+    "system": "Baseline: rule-based compliance_check() (rules-v1)",
+    "test_set": "ai/eval/test_messages.jsonl",
+    "run_at": "2026-11-26 14:39:44 UTC",
+    "metrics": {
+        "n": 62,
+        "tp": 12,
+        "fp": 1,
+        "tn": 30,
+        "fn": 19,
+        "accuracy": 0.6774193548387096,
+        "precision": 0.9230769230769231,
+        "recall": 0.3870967741935484,
+        "false_alarm_rate": 0.03225806451612903,
+        "missed_risks": [
+            "m032",
+            "m033",
+            "m034",
+            "m035",
+            "m036",
+            "m037",
+            "m038",
+            "m039",
+            "m040",
+            "m041",
+            "m042",
+            "m046",
+            "m047",
+            "m048",
+            "m049",
+            "m050",
+            "m051",
+            "m057",
+            "m060"
+        ],
+        "false_alarms": [
+            "m054"
+        ],
+        "with_citation": 0,
+        "avg_latency_ms": 0.043338709677419235,
+        "per_category": {
+            "safe": {
+                "n": 24,
+                "correct": 24,
+                "held": 0
+            },
+            "personal_data": {
+                "n": 7,
+                "correct": 7,
+                "held": 7
+            },
+            "source_identity": {
+                "n": 6,
+                "correct": 0,
+                "held": 0
+            },
+            "location": {
+                "n": 5,
+                "correct": 0,
+                "held": 0
+            },
+            "financial": {
+                "n": 5,
+                "correct": 3,
+                "held": 3
+            },
+            "security_risk": {
+                "n": 6,
+                "correct": 2,
+                "held": 2
+            },
+            "borderline": {
+                "n": 9,
+                "correct": 6,
+                "held": 1
+            }
+        }
+    },
+    "results": [
+        {
+            "id": "m001",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 2.002
+        },
+        {
+            "id": "m002",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.014
+        },
+        {
+            "id": "m003",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.009
+        },
+        {
+            "id": "m004",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.009
+        },
+        {
+            "id": "m005",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.007
+        },
+        {
+            "id": "m006",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m007",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m008",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m009",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m010",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m011",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m012",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m013",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m014",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.005
+        },
+        {
+            "id": "m015",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m016",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m017",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m018",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m019",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m020",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m021",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.004
+        },
+        {
+            "id": "m022",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m023",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.009
+        },
+        {
+            "id": "m024",
+            "category": "safe",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.007
+        },
+        {
+            "id": "m025",
+            "category": "personal_data",
+            "expected": "REVIEW",
+            "predicted": "REVIEW",
+            "correct": true,
+            "reasons": [
+                "phone"
+            ],
+            "citations": 0,
+            "latency_ms": 0.148
+        },
+        {
+            "id": "m026",
+            "category": "personal_data",
+            "expected": "REVIEW",
+            "predicted": "REVIEW",
+            "correct": true,
+            "reasons": [
+                "email"
+            ],
+            "citations": 0,
+            "latency_ms": 0.011
+        },
+        {
+            "id": "m027",
+            "category": "personal_data",
+            "expected": "REVIEW",
+            "predicted": "REVIEW",
+            "correct": true,
+            "reasons": [
+                "id_number"
+            ],
+            "citations": 0,
+            "latency_ms": 0.008
+        },
+        {
+            "id": "m028",
+            "category": "personal_data",
+            "expected": "REVIEW",
+            "predicted": "REVIEW",
+            "correct": true,
+            "reasons": [
+                "id_number"
+            ],
+            "citations": 0,
+            "latency_ms": 0.007
+        },
+        {
+            "id": "m029",
+            "category": "personal_data",
+            "expected": "REVIEW",
+            "predicted": "REVIEW",
+            "correct": true,
+            "reasons": [
+                "phone"
+            ],
+            "citations": 0,
+            "latency_ms": 0.008
+        },
+        {
+            "id": "m030",
+            "category": "personal_data",
+            "expected": "REVIEW",
+            "predicted": "REVIEW",
+            "correct": true,
+            "reasons": [
+                "phone"
+            ],
+            "citations": 0,
+            "latency_ms": 0.007
+        },
+        {
+            "id": "m031",
+            "category": "personal_data",
+            "expected": "REVIEW",
+            "predicted": "REVIEW",
+            "correct": true,
+            "reasons": [
+                "phone",
+                "id_number"
+            ],
+            "citations": 0,
+            "latency_ms": 0.008
+        },
+        {
+            "id": "m032",
+            "category": "source_identity",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m033",
+            "category": "source_identity",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m034",
+            "category": "source_identity",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m035",
+            "category": "source_identity",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.007
+        },
+        {
+            "id": "m036",
+            "category": "source_identity",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.01
+        },
+        {
+            "id": "m037",
+            "category": "source_identity",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m038",
+            "category": "location",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m039",
+            "category": "location",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m040",
+            "category": "location",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m041",
+            "category": "location",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m042",
+            "category": "location",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m043",
+            "category": "financial",
+            "expected": "REVIEW",
+            "predicted": "REVIEW",
+            "correct": true,
+            "reasons": [
+                "iban",
+                "phone",
+                "id_number"
+            ],
+            "citations": 0,
+            "latency_ms": 0.109
+        },
+        {
+            "id": "m044",
+            "category": "financial",
+            "expected": "REVIEW",
+            "predicted": "REVIEW",
+            "correct": true,
+            "reasons": [
+                "iban",
+                "id_number"
+            ],
+            "citations": 0,
+            "latency_ms": 0.013
+        },
+        {
+            "id": "m045",
+            "category": "financial",
+            "expected": "REVIEW",
+            "predicted": "REVIEW",
+            "correct": true,
+            "reasons": [
+                "id_number"
+            ],
+            "citations": 0,
+            "latency_ms": 0.007
+        },
+        {
+            "id": "m046",
+            "category": "financial",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.007
+        },
+        {
+            "id": "m047",
+            "category": "financial",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.007
+        },
+        {
+            "id": "m048",
+            "category": "security_risk",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m049",
+            "category": "security_risk",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m050",
+            "category": "security_risk",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m051",
+            "category": "security_risk",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m052",
+            "category": "security_risk",
+            "expected": "REVIEW",
+            "predicted": "REVIEW",
+            "correct": true,
+            "reasons": [
+                "attachment"
+            ],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m053",
+            "category": "security_risk",
+            "expected": "REVIEW",
+            "predicted": "REVIEW",
+            "correct": true,
+            "reasons": [
+                "attachment"
+            ],
+            "citations": 0,
+            "latency_ms": 0.005
+        },
+        {
+            "id": "m054",
+            "category": "borderline",
+            "expected": "ALLOW",
+            "predicted": "REVIEW",
+            "correct": false,
+            "reasons": [
+                "email"
+            ],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m055",
+            "category": "borderline",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m056",
+            "category": "borderline",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.005
+        },
+        {
+            "id": "m057",
+            "category": "borderline",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.006
+        },
+        {
+            "id": "m058",
+            "category": "borderline",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.023
+        },
+        {
+            "id": "m059",
+            "category": "borderline",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.009
+        },
+        {
+            "id": "m060",
+            "category": "borderline",
+            "expected": "REVIEW",
+            "predicted": "ALLOW",
+            "correct": false,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.009
+        },
+        {
+            "id": "m061",
+            "category": "borderline",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.01
+        },
+        {
+            "id": "m062",
+            "category": "borderline",
+            "expected": "ALLOW",
+            "predicted": "ALLOW",
+            "correct": true,
+            "reasons": [],
+            "citations": 0,
+            "latency_ms": 0.011
+        }
+    ]
+}

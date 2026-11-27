@@ -1,13 +1,28 @@
-/* STATISTICS */
+/* STATISTICS ("Across DiSSENT") */
 
-.dashboard-stats {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 24px;
+.dashboard-overview {
     width: 100%;
     max-width: 1240px;
     margin: 0 auto;
-    padding: 56px 24px;
+    padding: 48px 24px 8px;
+    text-align: center;
+}
+
+.dashboard-overview .dashboard-heading {
+    margin: 0 0 30px;
+    color: #10244d;
+    font-size: clamp(1.6rem, 3vw, 2.3rem);
+    line-height: 1.3;
+}
+
+/* Five cards: they wrap evenly instead of leaving one alone on a row. */
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 20px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0;
 }
 
 .dashboard-stats .stat-card {
@@ -24,7 +39,7 @@
     box-shadow: var(--card-shadow);
 }
 
-.dashboard-stats .stat-card h2 {
+.dashboard-stats .stat-card .stat-number {
     margin: 0 0 10px;
     color: #10244d;
     font-size: clamp(2rem, 3.5vw, 2.8rem);
@@ -188,7 +203,6 @@
 /* TABLETS AND SMALLER LAPTOPS */
 
 @media (max-width: 1000px) {
-    .dashboard-stats,
     .actions-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -199,7 +213,6 @@
 @media (max-width: 700px) {
     .dashboard-stats {
         gap: 16px;
-        padding: 36px 20px;
     }
 
     .activity-section,
@@ -224,7 +237,6 @@
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .dashboard-stats,
     .activity-section,
     .actions-section {
         padding: 30px 16px;
@@ -250,5 +262,50 @@
     .actions-grid .action-card {
         transition: none;
         transform: none;
+    }
+}
+/* "GETTING STARTED" — only while you have no reports and no messages. */
+
+.getting-started {
+    width: calc(100% - 48px);
+    max-width: 900px;
+    margin: 40px auto 0;
+    padding: 24px 28px;
+    border: 1px solid #a9cdbb;
+    border-left: 4px solid #2f8f5b;
+    border-radius: var(--card-radius);
+    background: #edf8f1;
+    color: #1d3b2b;
+    line-height: 1.7;
+}
+
+.getting-started h2 {
+    margin: 0 0 8px;
+    color: #10244d;
+    font-size: 1.4rem;
+}
+
+.getting-started ol {
+    margin: 8px 0 0;
+    padding-left: 1.4rem;
+}
+
+.getting-started li + li {
+    margin-top: 6px;
+}
+
+.getting-started a {
+    color: #174a8b;
+    font-weight: 700;
+}
+
+@media (max-width: 480px) {
+    .getting-started {
+        width: calc(100% - 32px);
+        padding: 18px 18px;
+    }
+
+    .dashboard-overview {
+        padding: 36px 16px 0;
     }
 }

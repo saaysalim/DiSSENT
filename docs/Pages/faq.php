@@ -15,20 +15,23 @@ $faq_sections = faq_items();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FAQ - DiSSENT</title>
-    <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/faq.css?v=1">
-    <script src="../assets/JavaScript/faq.js?v=1" defer></script>
+    <meta name="description" content="Answers about DiSSENT accounts, reports, verification, secure messaging and privacy, with a search box.">
+    <link rel="stylesheet" href="../assets/css/base.css?v=5">
+    <link rel="stylesheet" href="../assets/css/faq.css?v=4">
+    <script src="../assets/JavaScript/faq.js?v=3" defer></script>
 </head>
 <body>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
+<main id="main-content" tabindex="-1">
+
 <section class="faq-hero">
-    <h1>Frequently Asked Questions</h1>
+    <h1 id="faqHeading">Frequently Asked Questions</h1>
     <p>Short answers about accounts, reports, verification, secure messaging and your privacy on DiSSENT.</p>
 </section>
 
-<main class="faq-page">
+<div class="faq-page">
 
     <div class="faq-search" role="search">
         <label for="faqSearch">Search the questions</label>
@@ -100,9 +103,11 @@ $faq_sections = faq_items();
 
     <aside class="faq-contact">
         <h2>Still need help?</h2>
-        <p>If your question is not answered here, send us a message.</p>
+        <p>The <a href="user_guide.php">User guide</a> explains each task step by step. If your question is not answered, send us a message.</p>
         <a href="contact_us.php" class="btn-primary">Contact us</a>
     </aside>
+
+</div>
 
 </main>
 

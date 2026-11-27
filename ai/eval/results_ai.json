@@ -1,0 +1,1217 @@
+{
+  "system": "RAG + mock (mock-rules-v1)",
+  "test_set": "ai/eval/test_messages.jsonl",
+  "service": {
+    "model": "mock-rules-v1",
+    "passages": 30,
+    "countries": [
+      "AF",
+      "DE",
+      "IE",
+      "IR",
+      "UA"
+    ]
+  },
+  "run_at": "2026-11-26 14:39:33 UTC",
+  "metrics": {
+    "n": 62,
+    "tp": 30,
+    "fp": 0,
+    "tn": 31,
+    "fn": 1,
+    "accuracy": 0.9838709677419355,
+    "precision": 1.0,
+    "recall": 0.967741935483871,
+    "false_alarm_rate": 0.0,
+    "missed_risks": [
+      "m048"
+    ],
+    "false_alarms": [],
+    "with_citation": 0.4838709677419355,
+    "review_with_citation": 1.0,
+    "avg_latency_ms": 50.88177419354839,
+    "per_category": {
+      "safe": {
+        "n": 24,
+        "correct": 24,
+        "held": 0
+      },
+      "personal_data": {
+        "n": 7,
+        "correct": 7,
+        "held": 7
+      },
+      "source_identity": {
+        "n": 6,
+        "correct": 6,
+        "held": 6
+      },
+      "location": {
+        "n": 5,
+        "correct": 5,
+        "held": 5
+      },
+      "financial": {
+        "n": 5,
+        "correct": 5,
+        "held": 5
+      },
+      "security_risk": {
+        "n": 6,
+        "correct": 5,
+        "held": 5
+      },
+      "borderline": {
+        "n": 9,
+        "correct": 9,
+        "held": 2
+      }
+    }
+  },
+  "results": [
+    {
+      "id": "m001",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.64,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m002",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 4.11,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m003",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.51,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m004",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.78,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m005",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 6.77,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m006",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 4.77,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m007",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.3,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m008",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 2.99,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m009",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.24,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m010",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 4.24,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m011",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 20.82,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m012",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 24.22,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m013",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.93,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m014",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 2.97,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m015",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 2.79,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m016",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 2.95,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m017",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.22,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m018",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.74,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m019",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.05,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m020",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.21,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m021",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.48,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m022",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 4.01,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m023",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.22,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m024",
+      "category": "safe",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.66,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m025",
+      "category": "personal_data",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "medium",
+      "reasons": [
+        "The message may contain a phone number. Personal data about a person should only be shared when it is necessary. (see IE-PD-1, AF-PD-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "IE-PD-1",
+        "AF-PD-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 147.0,
+      "service_latency_ms": 142
+    },
+    {
+      "id": "m026",
+      "category": "personal_data",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "medium",
+      "reasons": [
+        "The message may contain a private email address. Personal data about a person should only be shared when it is necessary. (see AF-PD-1, DE-PD-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "AF-PD-1",
+        "DE-PD-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 130.63,
+      "service_latency_ms": 120
+    },
+    {
+      "id": "m027",
+      "category": "personal_data",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "medium",
+      "reasons": [
+        "The message may contain an ID or passport number. Personal data about a person should only be shared when it is necessary. (see AF-PD-1, IE-PD-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "AF-PD-1",
+        "IE-PD-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 140.67,
+      "service_latency_ms": 135
+    },
+    {
+      "id": "m028",
+      "category": "personal_data",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "medium",
+      "reasons": [
+        "The message may contain an ID or passport number. Personal data about a person should only be shared when it is necessary. (see IE-PD-1, DE-PD-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "IE-PD-1",
+        "DE-PD-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 184.31,
+      "service_latency_ms": 181
+    },
+    {
+      "id": "m029",
+      "category": "personal_data",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "medium",
+      "reasons": [
+        "The message may contain a phone number. Personal data about a person should only be shared when it is necessary. (see AF-PD-1, IR-PD-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "AF-PD-1",
+        "IR-PD-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 224.35,
+      "service_latency_ms": 211
+    },
+    {
+      "id": "m030",
+      "category": "personal_data",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "medium",
+      "reasons": [
+        "The message may contain a phone number. Personal data about a person should only be shared when it is necessary. (see AF-PD-1, DE-PD-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "AF-PD-1",
+        "DE-PD-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 143.68,
+      "service_latency_ms": 126
+    },
+    {
+      "id": "m031",
+      "category": "personal_data",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "medium",
+      "reasons": [
+        "The message may contain an ID or passport number, a date of birth. Personal data about a person should only be shared when it is necessary. (see IR-PD-1, IE-PD-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "IR-PD-1",
+        "IE-PD-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 106.72,
+      "service_latency_ms": 97
+    },
+    {
+      "id": "m032",
+      "category": "source_identity",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain details that could identify a source. A confidential source must not be named or made identifiable. (see AF-SRC-1, DE-SRC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "AF-SRC-1",
+        "DE-SRC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 128.09,
+      "service_latency_ms": 123
+    },
+    {
+      "id": "m033",
+      "category": "source_identity",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain details that could identify a source. A confidential source must not be named or made identifiable. (see IR-SRC-1, IE-SRC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "IR-SRC-1",
+        "IE-SRC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 121.62,
+      "service_latency_ms": 117
+    },
+    {
+      "id": "m034",
+      "category": "source_identity",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain details that could identify a source. A confidential source must not be named or made identifiable. (see AF-SRC-1, UA-SRC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "AF-SRC-1",
+        "UA-SRC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 113.9,
+      "service_latency_ms": 106
+    },
+    {
+      "id": "m035",
+      "category": "source_identity",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain details that could identify a source. A confidential source must not be named or made identifiable. (see UA-SRC-1, DE-SRC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "UA-SRC-1",
+        "DE-SRC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 58.35,
+      "service_latency_ms": 55
+    },
+    {
+      "id": "m036",
+      "category": "source_identity",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain details that could identify a source. A confidential source must not be named or made identifiable. (see IR-SRC-1, DE-SRC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "IR-SRC-1",
+        "DE-SRC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 60.64,
+      "service_latency_ms": 56
+    },
+    {
+      "id": "m037",
+      "category": "source_identity",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain details that could identify a source. A confidential source must not be named or made identifiable. (see AF-SRC-1, IE-SRC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "AF-SRC-1",
+        "IE-SRC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 57.49,
+      "service_latency_ms": 53
+    },
+    {
+      "id": "m038",
+      "category": "location",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain an exact address, where people are sheltering or hiding. An exact location or a planned movement can put people in danger. (see AF-LOC-1, DE-LOC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "AF-LOC-1",
+        "DE-LOC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 70.25,
+      "service_latency_ms": 64
+    },
+    {
+      "id": "m039",
+      "category": "location",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain GPS coordinates, where people are sheltering or hiding. An exact location or a planned movement can put people in danger. (see AF-LOC-1, IE-LOC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "AF-LOC-1",
+        "IE-LOC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 63.7,
+      "service_latency_ms": 53
+    },
+    {
+      "id": "m040",
+      "category": "location",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain the time and place of a border crossing. An exact location or a planned movement can put people in danger. (see AF-LOC-1, IR-LOC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "AF-LOC-1",
+        "IR-LOC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 110.69,
+      "service_latency_ms": 107
+    },
+    {
+      "id": "m041",
+      "category": "location",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain an exact address. An exact location or a planned movement can put people in danger. (see IE-LOC-1, AF-LOC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "IE-LOC-1",
+        "AF-LOC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 103.44,
+      "service_latency_ms": 99
+    },
+    {
+      "id": "m042",
+      "category": "location",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain an exact address, where people are sheltering or hiding. An exact location or a planned movement can put people in danger. (see UA-LOC-1, DE-LOC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "UA-LOC-1",
+        "DE-LOC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 119.18,
+      "service_latency_ms": 114
+    },
+    {
+      "id": "m043",
+      "category": "financial",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "medium",
+      "reasons": [
+        "The message may contain a bank account number (IBAN). Bank, card and payment details are sensitive and can be misused. (see IE-FIN-1, AF-FIN-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "IE-FIN-1",
+        "AF-FIN-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 80.58,
+      "service_latency_ms": 68
+    },
+    {
+      "id": "m044",
+      "category": "financial",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "medium",
+      "reasons": [
+        "The message may contain a bank account number (IBAN), a payment card number. Bank, card and payment details are sensitive and can be misused. (see DE-FIN-1, UA-FIN-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "DE-FIN-1",
+        "UA-FIN-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 96.66,
+      "service_latency_ms": 88
+    },
+    {
+      "id": "m045",
+      "category": "financial",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "medium",
+      "reasons": [
+        "The message may contain a payment card number. Bank, card and payment details are sensitive and can be misused. (see IR-FIN-1, DE-FIN-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "IR-FIN-1",
+        "DE-FIN-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 58.73,
+      "service_latency_ms": 55
+    },
+    {
+      "id": "m046",
+      "category": "financial",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "medium",
+      "reasons": [
+        "The message may contain a crypto wallet address. Bank, card and payment details are sensitive and can be misused. (see AF-FIN-1, IE-FIN-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "AF-FIN-1",
+        "IE-FIN-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 66.84,
+      "service_latency_ms": 59
+    },
+    {
+      "id": "m047",
+      "category": "financial",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "medium",
+      "reasons": [
+        "The message may contain a payment code for a money transfer. Bank, card and payment details are sensitive and can be misused. (see AF-FIN-1, DE-FIN-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "AF-FIN-1",
+        "DE-FIN-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 56.61,
+      "service_latency_ms": 49
+    },
+    {
+      "id": "m048",
+      "category": "security_risk",
+      "expected": "REVIEW",
+      "predicted": "ALLOW",
+      "correct": false,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 18.78,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m049",
+      "category": "security_risk",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain a password or login details. Passwords, login details and log-in links must not be shared in messages. (see AF-SEC-1, IE-SEC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "AF-SEC-1",
+        "IE-SEC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 62.21,
+      "service_latency_ms": 59
+    },
+    {
+      "id": "m050",
+      "category": "security_risk",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain a password or login details. Passwords, login details and log-in links must not be shared in messages. (see UA-SEC-1, DE-SEC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "UA-SEC-1",
+        "DE-SEC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 60.84,
+      "service_latency_ms": 56
+    },
+    {
+      "id": "m051",
+      "category": "security_risk",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain a link that asks people to log in elsewhere. Passwords, login details and log-in links must not be shared in messages. (see IR-SEC-1, IE-SEC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "IR-SEC-1",
+        "IE-SEC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 80.13,
+      "service_latency_ms": 66
+    },
+    {
+      "id": "m052",
+      "category": "security_risk",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "medium",
+      "reasons": [
+        "The message may contain an attachment that cannot be checked automatically. The content of a file cannot be checked automatically, so a person should look at it. (see IE-ATT-1, DE-ATT-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "IE-ATT-1",
+        "DE-ATT-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 57.25,
+      "service_latency_ms": 53
+    },
+    {
+      "id": "m053",
+      "category": "security_risk",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "medium",
+      "reasons": [
+        "The message may contain an attachment that cannot be checked automatically. The content of a file cannot be checked automatically, so a person should look at it. (see UA-ATT-1, IE-ATT-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "UA-ATT-1",
+        "IE-ATT-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 66.39,
+      "service_latency_ms": 61
+    },
+    {
+      "id": "m054",
+      "category": "borderline",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 4.41,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m055",
+      "category": "borderline",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.56,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m056",
+      "category": "borderline",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 3.07,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m057",
+      "category": "borderline",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain a relative at a named workplace who could be identified. A confidential source must not be named or made identifiable. (see AF-SRC-1, DE-SRC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "AF-SRC-1",
+        "DE-SRC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 52.44,
+      "service_latency_ms": 49
+    },
+    {
+      "id": "m058",
+      "category": "borderline",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 4.01,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m059",
+      "category": "borderline",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 2.38,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m060",
+      "category": "borderline",
+      "expected": "REVIEW",
+      "predicted": "REVIEW",
+      "correct": true,
+      "risk_level": "high",
+      "reasons": [
+        "The message may contain a password or login details. Passwords, login details and log-in links must not be shared in messages. (see IE-SEC-1, AF-SEC-1)"
+      ],
+      "citations": 2,
+      "cited_passages": [
+        "IE-SEC-1",
+        "AF-SEC-1"
+      ],
+      "steps": 3,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 159.47,
+      "service_latency_ms": 156
+    },
+    {
+      "id": "m061",
+      "category": "borderline",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 5.92,
+      "service_latency_ms": 0
+    },
+    {
+      "id": "m062",
+      "category": "borderline",
+      "expected": "ALLOW",
+      "predicted": "ALLOW",
+      "correct": true,
+      "risk_level": "none",
+      "reasons": [
+        "No personal data, source details, exact locations, financial data, passwords or attachments were found."
+      ],
+      "citations": 0,
+      "cited_passages": [],
+      "steps": 2,
+      "model_name": "mock-rules-v1",
+      "latency_ms": 4.06,
+      "service_latency_ms": 0
+    }
+  ]
+}

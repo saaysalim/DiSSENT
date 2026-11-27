@@ -1,0 +1,7 @@
+eval/
+tests/
+**/__pycache__/
+*.md
+!knowledge/**/*.md
+make_samples.py
+knowledge/make_samples.py

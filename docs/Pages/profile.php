@@ -5,7 +5,6 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/../backend/db.php';
 require_once __DIR__ . '/../backend/content.php';
-require_once __DIR__ . '/../backend/mailer.php';
 
 require_login();
 
@@ -13,19 +12,11 @@ $user_id = (int) $_SESSION['user_id'];
 
 $message = '';
 $message_type = 'error';
-$password_message = '';
-$password_message_type = 'error';
 
 // Read text fields without accepting unexpected arrays.
 $read_text = static function ($name) {
     $value = $_POST[$name] ?? '';
     return is_string($value) ? trim($value) : '';
-};
-
-// Passwords must not be trimmed.
-$read_password = static function ($name) {
-    $value = $_POST[$name] ?? '';
-    return is_string($value) ? $value : '';
 };
 
 $text_length = static function ($value) {
@@ -39,7 +30,7 @@ try {
     $stmt = mysqli_prepare(
         $conn,
         "SELECT id, fullname, email, organisation,
-                profile_picture, role, created_at, password
+                profile_picture, role, created_at
         FROM users
         WHERE id = ?
         LIMIT 1"
@@ -87,40 +78,30 @@ unset($_SESSION['profile_flash']);
 if ($flash === 'profile_saved') {
     $message = 'Profile updated successfully.';
     $message_type = 'success';
-} elseif ($flash === 'password_saved') {
-    $password_message = 'Password changed successfully.';
-    $password_message_type = 'success';
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
 
     $message = '';
-    $password_message = '';
     $message_type = 'error';
-    $password_message_type = 'error';
 
-    $update_profile = isset($_POST['update_profile']);
-    $change_password = isset($_POST['change_password']);
-
-    // Accept exactly one action per request.
-    if ($update_profile === $change_password) {
-        $message = 'Please submit one form at a time.';
-    } elseif ($update_profile) {
+    // Passwords are changed in Settings only (one form for the whole site).
+    if (!isset($_POST['update_profile'])) {
+        $message = 'Please use the form below. To change your password, open Settings.';
+    } else {
         $fullname_value = $read_text('fullname');
-        $organisation_value = $read_text('organisation');
+        list($organisation_value, $category_error) = category_from_post('organisation', professional_categories());
 
-        if (
-            !is_string($_POST['fullname'] ?? null) ||
-            !is_string($_POST['organisation'] ?? null)
-        ) {
+        if (!is_string($_POST['fullname'] ?? null)) {
             $message = 'Please enter valid profile information.';
         } elseif ($fullname_value === '') {
             $message = 'Full name cannot be empty.';
         } elseif ($text_length($fullname_value) > 100) {
             $message = 'Please keep your name within 100 characters.';
-        } elseif ($text_length($organisation_value) > 100) {
-            $message = 'Please keep the organisation or job type within 100 characters.';
+        } elseif ($category_error !== '') {
+            $message = $category_error;
+            $organisation_value = (string) ($user['organisation'] ?? '');
         } else {
             $picture_filename = null;
             $stmt = null;
@@ -229,104 +210,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
         }
-    } elseif ($change_password) {
-        $current_password = $read_password('current_password');
-        $new_password = $read_password('new_password');
-        $confirm_password = $read_password('confirm_password');
-
-        if (
-            $current_password === '' ||
-            $new_password === '' ||
-            $confirm_password === ''
-        ) {
-            $password_message = 'Please complete all three password fields.';
-        } elseif (
-            !password_verify($current_password, $user['password'])
-        ) {
-            $password_message = 'Current password is incorrect.';
-        } elseif (($new_password_problem = password_policy_message($new_password)) !== '') {
-            $password_message = $new_password_problem;
-        } elseif ($new_password !== $confirm_password) {
-            $password_message = 'New passwords do not match.';
-        } elseif (password_verify($new_password, $user['password'])) {
-            $password_message = 'Please choose a different password from your current one.';
-        } else {
-            $stmt = null;
-
-            try {
-                $hashed_password = password_hash(
-                    $new_password,
-                    PASSWORD_DEFAULT
-                );
-
-                if ($hashed_password === false) {
-                    throw new RuntimeException('Password hashing failed.');
-                }
-
-                // Avoid overwriting a password changed since this page loaded.
-                $old_hash = $user['password'];
-
-                $stmt = mysqli_prepare(
-                    $conn,
-                    "UPDATE users
-                    SET password = ?
-                    WHERE id = ? AND password = ?"
-                );
-
-                if (!$stmt) {
-                    throw new RuntimeException('Password update preparation failed.');
-                }
-
-                mysqli_stmt_bind_param(
-                    $stmt,
-                    'sis',
-                    $hashed_password,
-                    $user_id,
-                    $old_hash
-                );
-
-                if (!mysqli_stmt_execute($stmt)) {
-                    throw new RuntimeException('Password update failed.');
-                }
-
-                if (mysqli_stmt_affected_rows($stmt) !== 1) {
-                    $password_message = 'Your account changed during this request. Refresh the page and try again.';
-                }
-            } catch (Throwable $exception) {
-                // Never log passwords.
-                error_log('DiSSENT: password update failed.');
-                $password_message = 'Your password could not be changed. Please try again later.';
-            } finally {
-                if ($stmt instanceof mysqli_stmt) {
-                    mysqli_stmt_close($stmt);
-                }
-            }
-
-            if ($password_message === '') {
-                send_password_changed_email($user['email']);
-
-                session_regenerate_id(true);
-                $_SESSION['profile_flash'] = 'password_saved';
-
-                header('Location: profile.php', true, 303);
-                exit();
-            }
-        }
     }
 }
 
-// The password hash is not needed when rendering the page.
-unset($user['password']);
-
-$category_suggestions = array(
-    'Journalist',
-    'Freelance Journalist',
-    'Media Organisation',
-    'Fact Checker',
-    'Researcher / Investigator',
-    'NGO / Human Rights Organisation',
-    'Other',
-);
 
 $created_timestamp = strtotime((string) ($user['created_at'] ?? ''));
 $member_since = $created_timestamp !== false
@@ -340,18 +226,19 @@ $member_since = $created_timestamp !== false
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>My Profile - DiSSENT</title>
+    <meta name="description" content="Your DiSSENT profile: name, professional category and picture.">
 
-    <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/auth.css?v=6">
-    <link rel="stylesheet" href="../assets/css/profile.css?v=2">
-    <script src="../assets/JavaScript/auth-forms.js?v=2" defer></script>
+    <link rel="stylesheet" href="../assets/css/base.css?v=5">
+    <link rel="stylesheet" href="../assets/css/auth.css?v=7">
+    <link rel="stylesheet" href="../assets/css/profile.css?v=3">
+    <script src="../assets/JavaScript/auth-forms.js?v=3" defer></script>
 </head>
 
 <body>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
 
-<main class="auth-section profile-page" aria-labelledby="profileHeading">
+<main class="auth-section profile-page" id="main-content" tabindex="-1" aria-labelledby="profileHeading">
     <div class="profile-container">
 
         <div class="profile-summary">
@@ -362,7 +249,7 @@ $member_since = $created_timestamp !== false
                 <p class="profile-summary__email"><?php echo e($user['email']); ?></p>
 
                 <ul class="profile-facts">
-                    <li><span>Account role</span> <?php echo e($user['role']); ?></li>
+                    <li><span>Account</span> <?php echo $user['role'] === 'admin' ? 'Administrator' : 'Member'; ?></li>
                     <?php if ($organisation_value !== ''): ?>
                         <li><span>Category</span> <?php echo e($organisation_value); ?></li>
                     <?php endif; ?>
@@ -429,26 +316,14 @@ $member_since = $created_timestamp !== false
                     </div>
 
                     <div class="auth-field">
-                        <label for="organisation">Professional category</label>
-                        <input
-                            class="auth-input"
-                            type="text"
-                            id="organisation"
-                            name="organisation"
-                            list="categorySuggestions"
-                            autocomplete="organization-title"
-                            maxlength="100"
-                            value="<?php echo e($organisation_value); ?>"
-                            aria-describedby="organisationHelp"
-                        >
-                        <datalist id="categorySuggestions">
-                            <?php foreach ($category_suggestions as $suggestion): ?>
-                                <option value="<?php echo e($suggestion); ?>"></option>
-                            <?php endforeach; ?>
-                        </datalist>
-                        <small id="organisationHelp" class="auth-help">
-                            Pick a suggestion or type your own. This does not change your account permissions.
-                        </small>
+                        <?php echo category_select_html(
+                            'organisation',
+                            'organisation',
+                            'Professional category',
+                            professional_categories(),
+                            $organisation_value,
+                            'Choose "Other" to type your own. This does not change your account permissions.'
+                        ); ?>
                     </div>
 
                     <div class="auth-field">
@@ -462,7 +337,7 @@ $member_since = $created_timestamp !== false
                             aria-describedby="pictureHelp"
                         >
                         <small id="pictureHelp" class="auth-help">
-                            JPG, PNG or GIF. Leave empty to keep your current picture.
+                            JPG, PNG or GIF. Leave empty to keep your current picture. Hidden data such as the location of a phone photo is removed.
                         </small>
                     </div>
 
@@ -473,93 +348,9 @@ $member_since = $created_timestamp !== false
             </section>
 
             <section class="auth-card profile-card" aria-labelledby="passwordHeading">
-                <h2 id="passwordHeading">Change password</h2>
-                <p class="auth-intro">Enter your current password, then choose a new one.</p>
-
-                <?php if ($password_message !== ''): ?>
-                    <div
-                        class="auth-message auth-message--<?php echo e($password_message_type); ?>"
-                        role="<?php echo $password_message_type === 'error' ? 'alert' : 'status'; ?>"
-                        <?php echo $password_message_type === 'error' ? 'tabindex="-1"' : ''; ?>
-                    >
-                        <?php echo e($password_message); ?>
-                    </div>
-                <?php endif; ?>
-
-                <form
-                    method="POST"
-                    action="profile.php"
-                    class="auth-form"
-                    data-auth-form
-                >
-                    <?php echo csrf_field(); ?>
-
-                    <input type="hidden" name="change_password" value="1">
-
-                    <!-- Lets password managers save the new password for this account. -->
-                    <input type="email" autocomplete="username" value="<?php echo e($user['email']); ?>" readonly hidden>
-
-                    <div class="auth-field">
-                        <label for="current_password">Current password</label>
-                        <div class="password-field">
-                            <input
-                                class="auth-input"
-                                type="password"
-                                id="current_password"
-                                name="current_password"
-                                autocomplete="current-password"
-                                autocapitalize="none"
-                                spellcheck="false"
-                                required
-                            >
-                            <?php echo password_toggle_html('current_password'); ?>
-                        </div>
-                    </div>
-
-                    <div class="auth-field">
-                        <label for="new_password">New password</label>
-                        <div class="password-field">
-                            <input
-                                class="auth-input"
-                                type="password"
-                                id="new_password"
-                                name="new_password"
-                                autocomplete="new-password"
-                                autocapitalize="none"
-                                spellcheck="false"
-                                minlength="8"
-                                aria-describedby="newPasswordRules"
-                                required
-                            >
-                            <?php echo password_toggle_html('new_password'); ?>
-                        </div>
-                        <?php echo password_rules_html('newPasswordRules', 'new_password'); ?>
-                    </div>
-
-                    <div class="auth-field">
-                        <label for="confirm_password">Confirm new password</label>
-                        <div class="password-field">
-                            <input
-                                class="auth-input"
-                                type="password"
-                                id="confirm_password"
-                                name="confirm_password"
-                                autocomplete="new-password"
-                                autocapitalize="none"
-                                spellcheck="false"
-                                minlength="8"
-                                aria-describedby="newPasswordMatch"
-                                required
-                            >
-                            <?php echo password_toggle_html('confirm_password'); ?>
-                        </div>
-                        <?php echo password_match_html('newPasswordMatch', 'confirm_password', 'new_password'); ?>
-                    </div>
-
-                    <button type="submit" class="auth-submit auth-submit--secondary" data-busy-text="Updating…">
-                        Update Password
-                    </button>
-                </form>
+                <h2 id="passwordHeading">Password</h2>
+                <p class="auth-intro">You change your password in Settings. Your other devices are then logged out; this one stays logged in.</p>
+                <a class="auth-submit auth-submit--secondary profile-settings-link" href="settings.php#password">Change password in Settings</a>
             </section>
 
         </div>

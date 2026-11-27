@@ -28,7 +28,7 @@ public class CryptoService {
     private final SecretKeySpec sharedAesKey;
 
     public CryptoService(@Value("${app.crypto.aes-key-base64}") String aesKeyBase64) {
-        byte[] keyBytes = Base64.getDecoder().decode(aesKeyBase64);
+        byte[] keyBytes = decodeAesKey(aesKeyBase64);
         this.sharedAesKey = new SecretKeySpec(keyBytes, "AES");
     }
 
@@ -52,5 +52,22 @@ public class CryptoService {
         byte[] plaintext = cipher.doFinal(ciphertext);
 
         return new String(plaintext, StandardCharsets.UTF_8);
+    }
+
+    /** The key must be set (API_CRYPTO_AES_KEY_BASE64) and be exactly 32 bytes, otherwise the service stops. */
+    static byte[] decodeAesKey(String aesKeyBase64) {
+        if (aesKeyBase64 == null || aesKeyBase64.isBlank()) {
+            throw new IllegalStateException("API_CRYPTO_AES_KEY_BASE64 is not set. Add it to the DiSSENT .env file (see .env.example).");
+        }
+        byte[] keyBytes;
+        try {
+            keyBytes = Base64.getDecoder().decode(aesKeyBase64.trim());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("API_CRYPTO_AES_KEY_BASE64 is not valid base64.");
+        }
+        if (keyBytes.length != 32) {
+            throw new IllegalStateException("API_CRYPTO_AES_KEY_BASE64 must be 32 bytes (AES-256), but it is " + keyBytes.length + " bytes.");
+        }
+        return keyBytes;
     }
 }

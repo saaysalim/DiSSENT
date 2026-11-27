@@ -177,12 +177,17 @@
             }
         });
 
-        // Close the language list when clicking anywhere outside it.
-        document.addEventListener("click", function (event) {
+        // Close the language list when tapping or clicking anywhere outside it.
+        // "pointerdown" is used as well as "click": iPhone Safari does not send a
+        // click for taps on empty areas, so the list stayed open there.
+        function closeIfOutside(event) {
             if (languages && languages.open && !languages.contains(event.target)) {
                 closeLanguages(languages.contains(document.activeElement));
             }
-        });
+        }
+
+        document.addEventListener("pointerdown", closeIfOutside);
+        document.addEventListener("click", closeIfOutside);
 
         function handleScreenChange() {
             if (!mobile.matches && isOpen) {
@@ -231,9 +236,88 @@
         });
     }
 
+    // Category lists with "Other" (Register, Profile, Reports): the text box is
+    // shown only while "Other" is chosen. Without JavaScript it is always shown.
+    function initialiseOtherFields() {
+        Array.prototype.forEach.call(
+            document.querySelectorAll("select[data-other-select]"),
+            function (select) {
+                var field = document.getElementById(select.getAttribute("data-other-select"));
+
+                if (!field) {
+                    return;
+                }
+
+                function update() {
+                    var isOther = select.value === "Other";
+                    field.classList.toggle("is-hidden", !isOther);
+                }
+
+                select.addEventListener("change", function () {
+                    update();
+
+                    if (select.value === "Other") {
+                        var input = field.querySelector("input");
+                        if (input) {
+                            input.focus();
+                        }
+                    }
+                });
+                update();
+            }
+        );
+    }
+
+    // "Back to top" (footer.php, long pages only): appears after about one and a
+    // half screens of scrolling, scrolls to the top and moves the keyboard focus to
+    // the page heading so keyboard and screen-reader users start again from the top.
+    function initialiseBackToTop() {
+        var button = document.getElementById("backToTop");
+
+        if (!button) {
+            return;
+        }
+
+        var target = document.querySelector("main h1") || document.getElementById("main-content");
+        var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
+
+        var footer = document.querySelector("footer");
+
+        button.classList.add("is-floating");
+
+        function update() {
+            button.classList.toggle("is-visible", window.scrollY > window.innerHeight * 1.5);
+
+            // Over the dark footer: switch to white with navy text so it stays visible.
+            if (footer) {
+                var box = button.getBoundingClientRect();
+                var middle = box.top + box.height / 2;
+                button.classList.toggle("is-over-dark", footer.getBoundingClientRect().top < middle);
+            }
+        }
+
+        window.addEventListener("scroll", update, { passive: true });
+        window.addEventListener("resize", update, { passive: true });
+        update();
+
+        button.addEventListener("click", function (event) {
+            event.preventDefault();
+            window.scrollTo({ top: 0, behavior: reduce && reduce.matches ? "auto" : "smooth" });
+
+            if (target) {
+                if (!target.hasAttribute("tabindex")) {
+                    target.setAttribute("tabindex", "-1");
+                }
+                target.focus({ preventScroll: true });
+            }
+        });
+    }
+
     function initialise() {
         initialiseNavigation();
         initialiseHeaderSearch();
+        initialiseOtherFields();
+        initialiseBackToTop();
     }
 
     if (document.readyState === "loading") {

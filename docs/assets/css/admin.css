@@ -497,3 +497,95 @@
         transition: none;
     }
 }
+/* Plain-words meaning of a report status (26/11/2026). */
+.review-page .status-help {
+    color: #526078;
+    font-size: 0.9rem;
+}
+
+/* AI suggestion next to a held message (26/11/2026): clearly a suggestion, not a decision. */
+.ai-suggestion {
+    margin: 14px 0;
+    padding: 14px 16px;
+    border: 1px solid #c9d6ea;
+    border-left: 4px solid #285bb5;
+    border-radius: 10px;
+    background: #f5f8fd;
+    color: #1e293b;
+    overflow-wrap: anywhere;
+}
+
+.ai-suggestion--failed {
+    border-left-color: #b7791f;
+    background: #fffaf0;
+}
+
+.ai-suggestion h4 {
+    margin: 0 0 6px;
+    color: #10244d;
+    font-size: 1rem;
+}
+
+.ai-suggestion__summary,
+.ai-suggestion__label,
+.ai-suggestion__note {
+    margin: 6px 0;
+}
+
+.ai-suggestion__label {
+    font-weight: 700;
+    color: #10244d;
+}
+
+.ai-suggestion__note {
+    color: #475569;
+    font-size: 0.9rem;
+}
+
+.ai-suggestion__reasons,
+.ai-citations {
+    margin: 6px 0;
+    padding-left: 1.2rem;
+}
+
+.ai-citations li {
+    margin-bottom: 6px;
+}
+
+.ai-citations q {
+    display: block;
+    margin-top: 2px;
+    color: #334155;
+    font-style: italic;
+}
+
+.ai-steps summary {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    color: #174a8b;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ai-steps ol {
+    margin: 6px 0 0;
+    padding-left: 1.2rem;
+}
+
+.ai-steps li {
+    margin-bottom: 10px;
+}
+
+.ai-steps li span {
+    display: block;
+}
+
+.ai-steps code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.ai-agreement {
+    font-weight: 600;
+}

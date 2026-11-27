@@ -31,3 +31,7 @@ CLAUDE.md
 # Files attached to messages, and database backups (personal data)
 private/message-files/
 database/backups/
+
+# Backup copies of config files (e.g. connection-org1.json.backup-20261018-123538)
+*.backup-*
+*.bak

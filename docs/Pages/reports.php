@@ -245,8 +245,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
      */
     if (empty($_POST) && empty($_FILES)) {
         $errors[] =
-            'The submission was too large or could not be received. '
-            . 'Choose a smaller PDF and try again.';
+            'The upload was larger than the server allows (8 MB for the whole form). '
+            . 'Choose a PDF of up to 5 MB and try again.';
     } else {
         verify_csrf();
 
@@ -258,12 +258,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 : '';
         }
 
+        // Category: one of report_categories(), or "Other" with the person's own words.
+        $category_choice = $form['category'];
+        list($form['category'], $category_error) = category_from_post('category', report_categories());
+
         if ($form['title'] === '') {
             $errors[] = 'Please enter a report title.';
         }
 
-        if ($form['category'] === '') {
-            $errors[] = 'Please enter a category.';
+        if ($category_choice === '') {
+            $errors[] = 'Please choose a category.';
+        } elseif ($category_error !== '') {
+            $errors[] = $category_error;
         }
 
         if ($form['description'] === '') {
@@ -319,22 +325,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ) {
                 $errors[] = 'The uploaded document is invalid.';
             } elseif ($upload['error'] !== UPLOAD_ERR_NO_FILE) {
-                if ($upload['error'] !== UPLOAD_ERR_OK) {
+                // Say exactly what went wrong with the file.
+                if (in_array($upload['error'], array(UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE), true)) {
                     $errors[] =
-                        'The PDF could not be uploaded. It may exceed '
-                        . 'the server upload limit. Try a smaller file.';
+                        'The PDF is larger than the server allows (6 MB). '
+                        . 'The limit for reports is 5 MB. Choose a smaller file.';
+                } elseif ($upload['error'] === UPLOAD_ERR_PARTIAL) {
+                    $errors[] =
+                        'The upload was interrupted before the whole PDF arrived. '
+                        . 'Please try again.';
+                } elseif ($upload['error'] !== UPLOAD_ERR_OK) {
+                    $errors[] =
+                        'The server could not save the upload. Please try again later.';
                 } elseif (!is_uploaded_file($upload['tmp_name'])) {
                     $errors[] = 'The uploaded document could not be validated.';
                 } else {
                     $document_size = filesize($upload['tmp_name']);
+                    $upload_name = basename(str_replace('\\', '/', $upload['name']));
 
-                    if (
-                        $document_size === false ||
-                        $document_size < 1 ||
-                        $document_size > $max_document_size
-                    ) {
+                    if ($document_size === false || $document_size < 1) {
+                        $errors[] = 'The PDF is empty (0 bytes). Choose another file.';
+                    } elseif ($document_size > $max_document_size) {
+                        $errors[] = 'The PDF is larger than 5 MB. Choose a smaller file.';
+                    } elseif (mb_strlen($upload_name, 'UTF-8') > 150) {
                         $errors[] =
-                            'Please choose a non-empty PDF no larger than 5 MB.';
+                            'The file name is longer than 150 characters. '
+                            . 'Rename the file and try again.';
+                    } elseif (strtolower(pathinfo($upload_name, PATHINFO_EXTENSION)) !== 'pdf') {
+                        $errors[] = 'The file is not a PDF. Its name must end in .pdf.';
                     } else {
                         $original_name = basename(
                             str_replace('\\', '/', $upload['name'])
@@ -355,7 +373,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             ) !== 'pdf'
                         ) {
                             $errors[] =
-                                'Choose a PDF with a shorter, valid filename.';
+                                'The file name has characters that cannot be used. '
+                                . 'Rename the file and try again.';
                         } elseif (!class_exists('finfo')) {
                             $errors[] =
                                 'Document validation is unavailable '
@@ -377,8 +396,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     $signature !== '%PDF-'
                                 ) {
                                     $errors[] =
-                                        'The selected file is not recognised '
-                                        . 'as a PDF.';
+                                        'The file is not a PDF. Its name ends in .pdf, '
+                                        . 'but the content is a different kind of file.';
                                 } else {
                                     $has_document = true;
                                 }
@@ -560,20 +579,23 @@ $status_labels = array(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Reports - DiSSENT</title>
+    <meta name="description" content="Submit a report with an optional PDF and follow its editorial review status.">
 
-    <link rel="stylesheet" href="../assets/css/base.css">
-    <link rel="stylesheet" href="../assets/css/reports.css">
+    <link rel="stylesheet" href="../assets/css/base.css?v=5">
+    <link rel="stylesheet" href="../assets/css/reports.css?v=2">
 </head>
 <body>
 
 <?php include __DIR__ . '/../includes/header.php'; ?>
+
+<main id="main-content" tabindex="-1">
 
 <section class="page-hero" aria-labelledby="reportsHeading">
     <h1 id="reportsHeading">Reports Centre</h1>
     <p>Submit a report, attach a document and follow its review status.</p>
 </section>
 
-<main class="reports-page">
+<div class="reports-page">
 
     <?php if (is_string($success) && $success !== ''): ?>
         <div class="notice notice--success" role="status">
@@ -621,16 +643,14 @@ $status_labels = array(
 
                     <div class="report-form-row">
                         <div class="report-field">
-                            <label for="reportCategory">Category *</label>
-                            <input
-                                id="reportCategory"
-                                type="text"
-                                name="category"
-                                maxlength="100"
-                                placeholder="For example, human rights"
-                                value="<?php echo e($form['category']); ?>"
-                                required
-                            >
+                            <?php echo category_select_html(
+                                'category',
+                                'reportCategory',
+                                'Category *',
+                                report_categories(),
+                                $form['category'],
+                                'Choose "Other" to type your own.'
+                            ); ?>
                         </div>
 
                         <div class="report-field">
@@ -772,10 +792,11 @@ $status_labels = array(
                     <article class="report-card">
                         <div class="report-card-heading">
                             <h3><?php echo e($row['title']); ?></h3>
-                            <span class="report-status <?php echo e($status_class); ?>">
+                            <span class="report-status <?php echo e($status_class); ?>" title="<?php echo e(report_status_explanation(ucfirst($status_key))); ?>">
                                 <?php echo e($status_label); ?>
                             </span>
                         </div>
+                        <p class="report-status-help"><?php echo e(report_status_explanation(ucfirst($status_key))); ?></p>
 
                         <p><strong>Report ID:</strong> <?php echo (int) $row['id']; ?></p>
 
@@ -852,6 +873,8 @@ $status_labels = array(
             <?php endif; ?>
         </div>
     </section>
+
+</div>
 
 </main>
 

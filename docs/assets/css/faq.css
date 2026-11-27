@@ -267,3 +267,23 @@
         width: 100%;
     }
 }
+
+/* BACK TO TOP — a plain link without JavaScript; a floating button with it. */
+
+#faqHeading:focus {
+    outline: none;
+}
+
+
+/* Link inside the dark "Still need help?" box: light and underlined, readable on navy (26/11/2026). */
+.faq-contact p a {
+    color: #cfe3ff;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.faq-contact p a:hover,
+.faq-contact p a:focus-visible {
+    color: #fff;
+}
